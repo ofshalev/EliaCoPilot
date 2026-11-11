@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Elia CoPilot — קבוצות נמענים</title>
+<style>
+:root{font-family:Arial,sans-serif;color:#172b46;background:#f3f6fb}*{box-sizing:border-box}body{margin:0}
+header{background:#14283f;color:white;padding:24px max(22px,calc((100vw - 1080px)/2))}header strong{font-size:28px}header p{opacity:.8;margin:5px 0}
+nav{display:flex;gap:10px;flex-wrap:wrap;padding:12px max(20px,calc((100vw - 1180px)/2));background:#e5edf7;border-bottom:1px solid #cbd6e3}nav a{font-weight:700;color:#245bb4;text-decoration:none;background:#fff;border-radius:8px;padding:9px 13px}nav a[aria-current]{color:#14263e}
+main{max-width:1050px;margin:24px auto;padding:0 18px}.card{background:white;border:1px solid #dce4ee;border-radius:14px;padding:22px;margin-bottom:16px;box-shadow:0 5px 20px #1025400c}h2{font-size:20px;margin:0 0 10px}h3{font-size:16px;margin:0 0 9px}
+label{display:block;font-weight:bold;font-size:14px;margin-bottom:7px}input,textarea,select{font:14px Arial,sans-serif;padding:10px;border:1px solid #c4d2e2;border-radius:8px;width:100%;background:white;color:#172b46}
+textarea{min-height:180px;resize:vertical;line-height:1.65;direction:ltr;text-align:left}.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.row{display:flex;gap:9px;align-items:end;flex-wrap:wrap}.grow{flex:1;min-width:170px}
+button,.uploadLabel{display:inline-block;font:700 14px Arial,sans-serif;background:#2864e2;color:white;border:0;border-radius:8px;padding:10px 15px;cursor:pointer}button.alt,.uploadLabel{background:#eaf0fa;color:#294968}button.danger{background:#fff0f0;color:#a33}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px}.muted{color:#62768d;font-size:13px;line-height:1.7}.stat{font-weight:bold;color:#2864e2}.notice{background:#f1f6ff;border-right:3px solid #2864e2;padding:12px;border-radius:7px}.warning{background:#fff9ed;border-right:3px solid #d99a27;padding:12px;border-radius:7px}#status{min-height:20px;color:#246c43;font-size:13px;margin-top:12px}.uploadLabel input{display:none}@media(max-width:690px){.grid{grid-template-columns:1fr}.card{padding:16px}}
+</style></head><body>
+<header><strong>Elia CoPilot</strong><p>ניהול נמענים לפי פרויקט / סוג עבודה</p></header>
+<nav aria-label="כלי Elia CoPilot"><a href="./index.html">✉️ מחולל מייל</a><a href="./word-generator.html">📄 מחולל Word</a><a href="./contacts.html" aria-current="page">👥 קבוצות נמענים</a></nav>
+<main><section class="card"><h2>קבוצות נמענים</h2><p class="muted">כל פרויקט מקבל רשימות נפרדות עבור <b>אל</b> ו<b>עותק</b>. אפשר להדביק רשימת נמענים כפי שהועתקה מאאוטלוק: השמות והסוגריים יוסרו והכתובות יזוהו אוטומטית, ללא הקלדה חוזרת.</p>
+<div class="row"><div class="grow"><label for="group">בחר קבוצה</label><select id="group"></select></div><button id="new" class="alt">+ קבוצה חדשה</button><button id="delete" class="danger">מחק קבוצה</button></div>
+<div style="margin-top:13px"><label for="name">שם הקבוצה</label><input id="name" placeholder="לדוגמה: הקו הסגול – עבודות תשתית"/></div>
+</section>
+<section class="card"><h2>כתובות המייל</h2><div class="grid">
+<div><h3>אל <span class="stat" id="toCount"></span></h3><label for="to">נמענים ראשיים</label><textarea id="to" placeholder="הדבק כאן את שורת אל מאאוטלוק, או רשימת כתובות מייל..."></textarea><div class="actions"><button class="alt" id="copyTo">העתק אל</button></div></div>
+<div><h3>עותק <span class="stat" id="ccCount"></span></h3><label for="cc">נמענים בעותק</label><textarea id="cc" placeholder="הדבק כאן את שורת עותק מאאוטלוק, או רשימת כתובות מייל..."></textarea><div class="actions"><button class="alt" id="copyCc">העתק עותק</button></div></div>
+</div>
+<p class="muted">הכתובות נשמרות אחת בשורה. ניתן להדביק רצף מופרד בפסיקים או בנקודה-פסיק, כולל צורה כגון <span dir="ltr">Name &lt;name@example.com&gt;</span>. המערכת תסיר כפילויות בתוך כל שדה.</p>
+<div class="actions"><button id="save">שמור קבוצה</button><button id="copyBoth" class="alt">העתק את כל הכתובות</button><button id="use" class="alt">השתמש בקבוצה במחולל המייל</button></div><div id="status" role="status"></div>
+</section>
+<section class="card"><h2>גיבוי והעברה למחשב אחר</h2><p class="warning">הכתובות נשמרות <b>רק בדפדפן הזה</b>, ולא נשלחות ל-GitHub או לשרת. הן לא יופיעו במחשב אחר באופן אוטומטי, ועלולות להימחק עם ניקוי נתוני הדפדפן. מומלץ להוריד קובץ גיבוי ולשמור אותו במקום מאובטח של העבודה. קובץ הגיבוי מכיל את כתובות המייל.</p>
+<div class="actions"><button id="export" class="alt">הורד גיבוי JSON</button><label class="uploadLabel">טען גיבוי JSON<input type="file" id="import" accept=".json,application/json"></label></div></section></main>
+<script>
+const KEY='elia_copilot_contacts_v1',ACTIVE='elia_copilot_active_group_v1';
+const $=id=>document.getElementById(id);
+function extract(s){const m=String(s).match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)||[];return [...new Map(m.map(x=>[x.toLowerCase(),x])).values()]}
+function uniqueLines(s){return extract(s).join('\n')}
+function load(){try{const o=JSON.parse(localStorage.getItem(KEY));if(o&&Array.isArray(o.groups))return o.groups.filter(x=>x&&typeof x.name==='string'&&Array.isArray(x.to)&&Array.isArray(x.cc)).map(x=>({id:String(x.id||crypto.randomUUID()),name:x.name,to:extract(x.to.join(' ')),cc:extract(x.cc.join(' '))}))}catch(e){}return [{id:'purple-line',name:'הקו הסגול – עבודות תשתית',to:[],cc:[]}]}
+let groups=load(),current=localStorage.getItem(ACTIVE)||groups[0]?.id;
+if(!groups.length){groups=[{id:'purple-line',name:'הקו הסגול – עבודות תשתית',to:[],cc:[]}];current=groups[0].id}
+function persist(){localStorage.setItem(KEY,JSON.stringify({version:1,groups}));localStorage.setItem(ACTIVE,current)}
+function selected(){return groups.find(x=>x.id===current)||groups[0]}
+function draw(){const sel=$('group');sel.replaceChildren();for(const g of groups){const opt=document.createElement('option');opt.value=g.id;opt.textContent=g.name;sel.append(opt)}const g=selected();current=g.id;sel.value=g.id;$('name').value=g.name;$('to').value=g.to.join('\n');$('cc').value=g.cc.join('\n');counts()}
+function counts(){$('toCount').textContent='('+extract($('to').value).length+')';$('ccCount').textContent='('+extract($('cc').value).length+')'}
+function save(){const g=selected(),name=$('name').value.trim();if(!name){$('status').textContent='יש לתת שם לקבוצה';return false}g.name=name;g.to=extract($('to').value);g.cc=extract($('cc').value);persist();draw();$('status').textContent='הקבוצה נשמרה בדפדפן ('+g.to.length+' אל, '+g.cc.length+' עותק)';return true}
+$('group').addEventListener('change',()=>{save();current=$('group').value;persist();draw()});
+$('new').onclick=()=>{save();const name=prompt('שם הקבוצה החדשה','פרויקט חדש');if(!name?.trim())return;current='group-'+Date.now();groups.push({id:current,name:name.trim(),to:[],cc:[]});persist();draw();$('status').textContent='נוצרה קבוצה חדשה'};
+$('delete').onclick=()=>{if(groups.length===1){$('status').textContent='יש להשאיר לפחות קבוצה אחת';return}if(!confirm('למחוק את הקבוצה '+selected().name+'?'))return;groups=groups.filter(x=>x.id!==current);current=groups[0].id;persist();draw();$('status').textContent='הקבוצה נמחקה'};
+$('save').onclick=save;
+for(const id of ['to','cc'])$(id).addEventListener('input',counts);
+async function copy(v){try{await navigator.clipboard.writeText(v);$('status').textContent='הועתק ללוח'}catch(e){$('status').textContent='לא ניתן להעתיק. נסה דרך HTTPS או סמן והעתק ידנית'}}
+$('copyTo').onclick=()=>copy(uniqueLines($('to').value).replace(/\n/g,'; '));
+$('copyCc').onclick=()=>copy(uniqueLines($('cc').value).replace(/\n/g,'; '));
+$('copyBoth').onclick=()=>copy('אל: '+uniqueLines($('to').value).replace(/\n/g,'; ')+'\nעותק: '+uniqueLines($('cc').value).replace(/\n/g,'; '));
+$('use').onclick=()=>{if(save())location.href='./index.html'};
+$('export').onclick=()=>{save();const data=JSON.stringify({version:1,groups},null,2);const url=URL.createObjectURL(new Blob([data],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='EliaCoPilot_Recipient_Groups.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+$('import').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const obj=JSON.parse(await file.text());if(!Array.isArray(obj.groups))throw Error('קובץ לא תקין');const imported=obj.groups.filter(g=>g&&typeof g.name==='string'&&Array.isArray(g.to)&&Array.isArray(g.cc)).map((g,i)=>({id:'import-'+Date.now()+'-'+i,name:g.name,to:extract(g.to.join(' ')),cc:extract(g.cc.join(' '))}));if(!imported.length)throw Error('לא נמצאו קבוצות');if(!confirm('ייבוא הגיבוי יחליף את הקבוצות השמורות בדפדפן. להמשיך?'))return;groups=imported;current=groups[0].id;persist();draw();$('status').textContent='הגיבוי נטען בהצלחה'}catch(err){$('status').textContent='שגיאה בטעינת הגיבוי: '+err.message}};
+draw();
+</script></body></html>
