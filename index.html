@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Elia CoPilot | בקשת אישור שבועית</title>
+<style>
+:root{font-family:Arial,"Noto Sans Hebrew",sans-serif;color:#14263e;background:#f3f6fb;line-height:1.55}
+*{box-sizing:border-box}body{margin:0}.hero{background:#14263e;color:white;padding:25px max(20px,calc((100vw - 1180px)/2));display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}.brand{font-size:31px;letter-spacing:-.5px;font-weight:800}.subtitle{opacity:.8;font-size:14px}.tag{background:#274363;border:1px solid #50647e;padding:6px 12px;border-radius:20px;font-size:13px}.wrap{max-width:1180px;margin:26px auto;padding:0 18px}.intro{margin:0 0 19px;color:#52647c}.layout{display:block;max-width:850px;margin:0 auto}.panel{background:#fff;border:1px solid #dce4ed;border-radius:15px;padding:22px;box-shadow:0 7px 28px #1028460c;min-width:0}.panel h2{font-size:19px;margin:0 0 15px}.section{border-top:1px solid #e5ebf1;padding-top:16px;margin-top:19px}.section h3{font-size:15px;margin:0 0 13px;color:#36516d}label{font-weight:700;font-size:13px;display:block;margin:0 0 6px}input,textarea{width:100%;font-family:inherit;font-size:14px;color:#17283b;border:1px solid #cbd6e3;border-radius:8px;padding:10px 11px;background:white;outline:0}input:focus,textarea:focus{border-color:#3972e7;box-shadow:0 0 0 3px #3972e71a}textarea{resize:vertical;min-height:90px;line-height:1.75}.body-editor{min-height:180px}.field{margin-bottom:14px}.hint{font-size:12px;color:#677b92;margin:6px 0 0}.buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}button{border:0;border-radius:8px;background:#2463e6;color:#fff;font:700 14px Arial,sans-serif;padding:10px 15px;cursor:pointer}button:hover{filter:brightness(.94)}button.secondary{background:#e9eef6;color:#24405e}button.outline{background:white;color:#2463e6;border:1px solid #b8cbfa}.status{color:#246c43;font-size:13px;min-height:20px;margin-top:9px}.upload{border:1px dashed #9eb2cb;background:#f8faff;border-radius:10px;padding:13px}.upload input{border:none;padding:5px 0;background:transparent}.pill{display:inline-block;background:#e9f2ff;color:#245bb4;border-radius:20px;font-size:12px;padding:3px 8px;margin-right:5px}.warning{color:#9a581b}.footnote{color:#6d8093;font-size:12px;margin-top:16px}.toast{position:fixed;bottom:19px;left:20px;background:#163b64;color:white;padding:10px 15px;border-radius:8px;box-shadow:0 8px 30px #0002;opacity:0;transform:translateY(10px);transition:.25s;pointer-events:none}.toast.show{opacity:1;transform:translateY(0)}@media(max-width:850px){.hero{padding:20px}.brand{font-size:26px}}@media(max-width:440px){.panel{padding:15px}}
+</style>
+</head>
+<body>
+<header class="hero"><div><div class="brand">Elia CoPilot</div><div class="subtitle">מחולל מיילים · בקשת אישור שבועית · קו סגול אינפרא 2</div></div><span class="tag">עובד מקומית בדפדפן · ללא שליחת מידע לשרת</span></header>
+<main class="wrap">
+<p class="intro">התאריכים נקבעים אוטומטית ליום ראשון עד יום חמישי הקרובים ומוזנים ישירות לנושא המייל במקום סימני הכוכבית. מעלים מסמך Word עם פירוט העבודות (או מדביקים טקסט), ואז מעתיקים את המייל לאאוטלוק.</p>
+<div class="layout">
+<section class="panel" aria-label="עריכת הבקשה">
+<h2>פרטי הבקשה</h2>
+<div class="field"><label for="weekDisplay">שבוע העבודה (א׳–ה׳) — נקבע אוטומטית</label><input id="weekDisplay" type="text" readonly style="background:#f4f7fb;font-weight:700" /><input id="fromDate" type="hidden"/><input id="toDate" type="hidden"/></div>
+<div class="section"><h3>גוף 1 — פתיחה קבועה (ניתנת לעריכה)</h3><textarea id="opening" rows="6">מונתי שלום,
+
+להלן עבודות קו סגול אינפרא 2 לשבוע הבא.
+כל העבודות יתקיימו בין השעות 22:00 ועד 05:00 למחרת, אלא אם כן מצוין אחרת.
+בוצע תיאום מול אינפרא 1 ועיריית תל אביב.</textarea></div>
+<div class="section"><h3>גוף 2 — פירוט העבודות <span class="pill">Word או הדבקת טקסט</span></h3><div class="upload"><label for="docxFile">טעינת מסמך Word מסוג DOCX</label><input type="file" id="docxFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"/><p class="hint" id="fileStatus">הטקסט ייקרא מהמסמך מקומית בדפדפן, ללא העלאה לשרת. ניתן לתקן אותו בתיבה למטה.</p></div><div class="field" style="margin-top:12px"><label for="workDetails">פירוט העבודות שיוכנס לגוף המייל</label><textarea id="workDetails" class="body-editor" placeholder="אפשר להעלות קובץ Word או להדביק כאן את פירוט העבודות..."></textarea></div><p class="hint warning">ייבוא Word מעביר טקסט בלבד: תמונות, מפות, עיצוב מורכב וטבלאות אינם נשמרים במלואם. יש לבדוק את התוצאה לפני השליחה.</p></div>
+<div class="section"><h3>גוף 3 — סיום</h3><textarea id="closing" rows="4">אודה לאישורך.
+
+בברכה,</textarea></div>
+<div class="section"><h3>העתקה לאאוטלוק</h3><p class="hint">כתובות הנמענים ועותקי המייל נשמרו לפי התבנית. אין צורך להציג אותן על המסך.</p>
+<div class="buttons"><button id="generate">צור מייל</button><button data-copy="outTo" class="outline">העתק אל</button><button data-copy="outCc" class="outline">העתק עותק</button><button data-copy="outSubject" class="outline">העתק נושא</button><button data-copy="outBody" class="outline">העתק גוף המייל</button><button id="openOutlook" class="secondary">פתח טיוטה</button><button id="clear" class="secondary">נקה את פירוט העבודות</button></div>
+<div class="status" id="status" role="status"></div><p class="footnote">פתיחת הטיוטה משתמשת באפליקציית הדואר המוגדרת במחשב. בטקסט ארוך, עדיף להעתיק את גוף המייל באופן ידני. המידע לא נשלח לשרת.</p></div>
+<div hidden><pre id="outTo"></pre><pre id="outCc"></pre><pre id="outSubject"></pre><pre id="outBody"></pre></div>
+</section></div>
+</main><div class="toast" id="toast" aria-live="polite"></div>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const fixedTo='montaser@gl-urban.co.il';
+const fixedCc='gilvi@nta.co.il; ariell@shapir.co.il; almogf@shapir.co.il; roil@shapir.co.il; roni@eliabs.com; rosinj@mot.gov.il';
+function isoLocal(d){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
+function formatFullDate(v){if(!v)return '**/**/****';const [y,m,d]=v.split('-');return [d,m,y].join('/')}
+function setNextWeek(){const now=new Date(),start=new Date(now.getFullYear(),now.getMonth(),now.getDate());let days=(7-start.getDay())%7;if(days===0)days=7;start.setDate(start.getDate()+days);const end=new Date(start);end.setDate(start.getDate()+4);$('fromDate').value=isoLocal(start);$('toDate').value=isoLocal(end);$('weekDisplay').value=formatFullDate(isoLocal(start))+' – '+formatFullDate(isoLocal(end))}
+function generate(){
+ const a=formatFullDate($('fromDate').value),b=formatFullDate($('toDate').value);
+ $('outTo').textContent=fixedTo;
+ $('outCc').textContent=fixedCc;
+ $('outSubject').textContent='קו סגול אינפרא 2 - עבודות תשתית לשבוע הבא '+a+'-'+b+' - השפעות על תחבורה ציבורית';
+ $('outBody').textContent=[$('opening').value.trim(),$('workDetails').value.trim(),$('closing').value.trim()].filter(Boolean).join('\n\n');
+ $('status').textContent='המייל מוכן להעתקה. יש לבדוק את פירוט העבודות לפני השליחה.';
+}
+let toastTimeout;function notify(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('show'),2300)}
+async function copy(s){try{await navigator.clipboard.writeText(s);notify('הועתק ללוח')}catch(e){const t=document.createElement('textarea');t.value=s;t.style.position='fixed';t.style.opacity='0';document.body.append(t);t.select();try{document.execCommand('copy');notify('הועתק ללוח')}catch{notify('לא ניתן להעתיק אוטומטית. סמנו והעתיקו ידנית')}t.remove()}}
+document.querySelectorAll('[data-copy]').forEach(btn=>btn.addEventListener('click',()=>copy($(btn.dataset.copy).textContent)));
+$('generate').addEventListener('click',()=>{generate();notify('המייל נוצר')});
+$('clear').addEventListener('click',()=>{$('workDetails').value='';$('docxFile').value='';$('fileStatus').textContent='בחרו מסמך Word או הדביקו טקסט.';generate()});
+$('openOutlook').addEventListener('click',()=>{generate();const to=$('outTo').textContent,cc=$('outCc').textContent,subject=$('outSubject').textContent,body=$('outBody').textContent;const url='mailto:'+encodeURIComponent(to).replace(/%3B/gi,';')+'?cc='+encodeURIComponent(cc)+'&subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);if(url.length>1900)notify('המייל ארוך; יתכן שהטיוטה תיחתך. מומלץ להעתיק את גוף המייל ידנית.');window.location.href=url});
+['opening','workDetails','closing'].forEach(id=>$(id).addEventListener('input',generate));
+async function extractDocx(file){
+ const data=await file.arrayBuffer(),view=new DataView(data),bytes=new Uint8Array(data);
+ const u16=p=>view.getUint16(p,true),u32=p=>view.getUint32(p,true);
+ let eocd=-1;for(let p=bytes.length-22;p>=Math.max(0,bytes.length-65557);p--){if(u32(p)===0x06054b50){eocd=p;break}}
+ if(eocd<0)throw new Error('קובץ DOCX אינו ארכיון תקין');
+ const entries=u16(eocd+10),cd=u32(eocd+16);let p=cd,entry=null;
+ for(let i=0;i<entries;i++){
+  if(u32(p)!==0x02014b50)throw new Error('מבנה ארכיון לא תקין');
+  const method=u16(p+10),size=u32(p+20),nameLength=u16(p+28),extra=u16(p+30),comment=u16(p+32),offset=u32(p+42);
+  const name=new TextDecoder().decode(bytes.slice(p+46,p+46+nameLength));
+  if(name==='word/document.xml'){entry={method,size,offset};break}
+  p+=46+nameLength+extra+comment;
+ }
+ if(!entry)throw new Error('לא נמצא תוכן המסמך');
+ const local=entry.offset;if(u32(local)!==0x04034b50)throw new Error('מבנה קובץ לא תקין');
+ const start=local+30+u16(local+26)+u16(local+28),compressed=bytes.slice(start,start+entry.size);
+ let raw;if(entry.method===0)raw=compressed;else if(entry.method===8){if(typeof DecompressionStream==='undefined')throw new Error('הדפדפן אינו תומך בפתיחת DOCX מקומית');const stream=new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate-raw'));raw=new Uint8Array(await new Response(stream).arrayBuffer())}else throw new Error('שיטת דחיסה לא נתמכת');
+ const xml=new DOMParser().parseFromString(new TextDecoder().decode(raw),'application/xml');
+ if(xml.querySelector('parsererror'))throw new Error('לא ניתן לקרוא את טקסט המסמך');
+ const ns='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+ const paras=[...xml.getElementsByTagNameNS(ns,'p')];
+ return paras.map(para=>{const parts=[];for(const el of para.getElementsByTagName('*')){if(el.namespaceURI!==ns)continue;if(el.localName==='t')parts.push(el.textContent);if(el.localName==='tab')parts.push('\t');if(el.localName==='br')parts.push('\n')}return parts.join('')}).join('\n').replace(/\n{4,}/g,'\n\n\n').trim();
+}
+$('docxFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;$('fileStatus').textContent='קורא את המסמך...';try{const content=await extractDocx(file);if(!content)throw new Error('לא נמצא טקסט במסמך');$('workDetails').value=content;$('fileStatus').textContent='נקראו '+content.length.toLocaleString('he-IL')+' תווים מתוך '+file.name+'. מומלץ לבדוק את הסדר והטבלאות.';generate();notify('תוכן מסמך ה-Word נטען')}catch(err){$('fileStatus').textContent='לא ניתן לקרוא את המסמך: '+err.message+' ניתן להעתיק ולהדביק את התוכן ידנית.';notify('טעינת Word נכשלה')}});
+setNextWeek();generate();
+</script>
+</body></html>
