@@ -38,7 +38,7 @@ function selected(){return groups.find(x=>x.id===current)||groups[0]}
 function draw(){const sel=$('group');sel.replaceChildren();for(const g of groups){const opt=document.createElement('option');opt.value=g.id;opt.textContent=g.name;sel.append(opt)}const g=selected();current=g.id;sel.value=g.id;$('name').value=g.name;$('to').value=g.to.join('\n');$('cc').value=g.cc.join('\n');counts()}
 function counts(){$('toCount').textContent='('+extract($('to').value).length+')';$('ccCount').textContent='('+extract($('cc').value).length+')'}
 function save(){const g=selected(),name=$('name').value.trim();if(!name){$('status').textContent='יש לתת שם לקבוצה';return false}g.name=name;g.to=extract($('to').value);g.cc=extract($('cc').value);persist();draw();$('status').textContent='הקבוצה נשמרה בדפדפן ('+g.to.length+' אל, '+g.cc.length+' עותק)';return true}
-$('group').addEventListener('change',()=>{save();current=$('group').value;persist();draw()});
+$('group').addEventListener('change',()=>{const next=$('group').value;save();current=next;persist();draw()});
 $('new').onclick=()=>{save();const name=prompt('שם הקבוצה החדשה','פרויקט חדש');if(!name?.trim())return;current='group-'+Date.now();groups.push({id:current,name:name.trim(),to:[],cc:[]});persist();draw();$('status').textContent='נוצרה קבוצה חדשה'};
 $('delete').onclick=()=>{if(groups.length===1){$('status').textContent='יש להשאיר לפחות קבוצה אחת';return}if(!confirm('למחוק את הקבוצה '+selected().name+'?'))return;groups=groups.filter(x=>x.id!==current);current=groups[0].id;persist();draw();$('status').textContent='הקבוצה נמחקה'};
 $('save').onclick=save;
