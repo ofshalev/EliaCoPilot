@@ -132,29 +132,43 @@ async function autoFillStopNames(){
 function clean(s){return String(s||'').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g,'').trim()}
 function linesFromPage(items){const lines=[];for(const it of items){if(!clean(it.str))continue;const x=it.transform[4],y=it.transform[5];let line=lines.find(l=>Math.abs(l.y-y)<4.5);if(!line){line={y,items:[]};lines.push(line)}line.items.push({x,s:clean(it.str)})}return lines.sort((a,b)=>b.y-a.y).map(l=>({y:l.y,items:l.items.sort((a,b)=>b.x-a.x),text:l.items.map(x=>x.s).join(' ')}))}
 function parseSummary(items){
- const lines=linesFromPage(items);
- const allText=lines.map(l=>l.text).join(' ');
- // Recognize the summary by its words, even when headings break across PDF items.
- if(!/תחנות/.test(allText)||!/מושפעות/.test(allText)||!/תחנה/.test(allText))return [];
- const out=[],seen=new Set();
- for(const line of lines){
-  const codes=[];
-  for(const it of line.items)for(const m of it.s.matchAll(/(?<!\d)\d{5}(?!\d)/g))codes.push({code:m[0],x:it.x});
-  if(!codes.length)continue;
-  const noCodes=line.text.replace(/(?<!\d)\d{5}(?!\d)/g,' ');
-  const isAll=/כל\s*הקווים/.test(noCodes);
-  const routes=[...new Set((noCodes.match(/(?<!\d)\d{1,3}[אב]?(?!\d)/g)||[]).map(v=>v.trim()).filter(Boolean))];
-  if(!isAll&&!routes.length)continue;
-  // PDF exports may merge a stop code and "כל הקווים" in a single text item.
-  const ordered=codes.sort((x,y)=>y.x-x.x);
-  const main=ordered[0];
+ const tokens=items.map(it=>({x:Number(it.transform?.[4]||0),y:Number(it.transform?.[5]||0),s:clean(it.str)})).filter(t=>t.s);
+ const pageText=tokens.map(t=>t.s).join(' ');
+ // Final summary may have the title split over several items or pages.
+ // Locate the actual headers, not an exact uninterrupted heading.
+ const affectedHeaders=tokens.filter(t=>/תחנה\s*מושפעת/.test(t.s));
+ const alternativeHeaders=tokens.filter(t=>/תחנה\s*חלופית/.test(t.s));
+ if(!affectedHeaders.length||!alternativeHeaders.length)return [];
+ const affectedX=affectedHeaders[0].x,alternativeX=alternativeHeaders[0].x;
+ // Typical RTL final table: affected stops in a column to the right,
+ // alternative stops in a second column further left.
+ if(Math.abs(affectedX-alternativeX)<30)return [];
+ const columnMiddle=(affectedX+alternativeX)/2;
+ const rightIsAffected=affectedX>alternativeX;
+ const inAffectedColumn=x=>rightIsAffected?x>columnMiddle:x<columnMiddle;
+ const inAlternativeColumn=x=>rightIsAffected?x<columnMiddle:x>columnMiddle;
+ const codes=[];
+ for(const t of tokens)for(const m of t.s.matchAll(/(?<!\d)\d{5}(?!\d)/g))
+  codes.push({code:m[0],x:t.x,y:t.y});
+ const affected=codes.filter(t=>inAffectedColumn(t.x)&&Math.abs(t.y-affectedHeaders[0].y)>12)
+  .sort((a,b)=>b.y-a.y);
+ const alternate=codes.filter(t=>inAlternativeColumn(t.x));
+ const rows=[],seen=new Set();
+ for(const main of affected){
   if(seen.has(main.code))continue;
   seen.add(main.code);
-  const alt=ordered.slice(1).find(x=>x.code!==main.code);
-  out.push({code:main.code,routes:isAll?'כל הקווים':routes.join(', '),
-    alt:alt?.code||'',altName:lookupStopName(alt?.code),detail:'',name:lookupStopName(main.code)});
+  const nearest=alternate.filter(t=>Math.abs(t.y-main.y)<=15)
+   .sort((a,b)=>Math.abs(a.y-main.y)-Math.abs(b.y-main.y))[0];
+  // Route numbers are separate fragments, sometimes in the following line
+  // for a second operator. Capture the table's route column, not map labels.
+  const routeItems=tokens.filter(t=>Math.abs(t.y-main.y)<=20&&
+   (rightIsAffected?(t.x<affectedX-24&&t.x>alternativeX+25):(t.x>affectedX+25&&t.x<alternativeX-24)));
+  const routes=[...new Set(routeItems.flatMap(t=>[...t.s.matchAll(/(?<!\d)\d{1,3}(?!\d)/g)].map(m=>m[0])))];
+  rows.push({code:main.code,name:lookupStopName(main.code),
+   routes:routes.length?routes.join(', '):'כל הקווים',
+   alt:nearest?.code||'',altName:lookupStopName(nearest?.code),detail:''});
  }
- return out;
+ return rows;
 }
 
 function parseSchedule(value){
@@ -225,9 +239,9 @@ function dateFromPdfItems(items){
 function timeFromText(text){const matches=[...clean(text).matchAll(/(?<!\d)([01]?\d|2[0-3]):([0-5]\d)(?!\d)/g)].map(m=>m[0]);return matches.length>=2?matches.slice(0,2):[]}
 function parsePdfPages(pages){
  const all=pages.map(p=>linesFromPage(p).map(l=>l.text).join('\n'));
- const best=all.map((t,i)=>({i,score:(/תחנות\s*מושפעות/.test(t)?100:0)+(/תחנה\s*חלופית/.test(t)?5:0)+((t.match(/(?<!\d)\d{5}(?!\d)/g)||[]).length>3?3:0)})).sort((a,b)=>b.score-a.score)[0];
- let rows=best?parseSummary(pages[best.i]):[];
- if(!rows.length)rows=parseSummary(pages[pages.length-1]);
+ const candidates=pages.map((p,i)=>({i,rows:parseSummary(p),summary:/סיכום/.test(all[i])}));
+ const best=candidates.sort((a,b)=>b.rows.length-a.rows.length||Number(b.summary)-Number(a.summary))[0];
+ let rows=best?.rows||[];
  let eventDate='',times=[];
  const scheduleCandidates=[];
  for(let i=0;i<Math.min(3,all.length);i++){
@@ -238,7 +252,7 @@ function parsePdfPages(pages){
  }
  scheduleCandidates.sort((a,b)=>b.score-a.score||a.page-b.page);
  eventDate=scheduleCandidates[0]?.value||'';
- const nightServiceNote=all.some(t=>/אין\s*השפעה\s*על\s*קווי\s*לילה/.test(t));
+ const nightServiceNote=all.some(t=>/קווי\s*לילה\s*אינם\s*מושפעים|אין\s*השפעה\s*על\s*קווי\s*לילה/.test(t));
  return {rows,eventDate,times,sourcePage:best?.i+1||pages.length,nightServiceNote};
 }
 function editorGroups(){
@@ -295,7 +309,7 @@ $('read').onclick=async()=>{
  $('status').textContent='קורא מסמכים...';$('read').disabled=true;try{
   if(!window.pdfjsLib){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=resolve;s.onerror=()=>reject(Error('ספריית PDF לא נטענה; נדרש חיבור לרשת'));document.head.append(s)})}
   pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  let combined=[],warnings=[];for(const [fileIndex,file] of files.entries()){const data=new Uint8Array(await file.arrayBuffer());const doc=await pdfjsLib.getDocument({data}).promise;const pages=[];for(let i=1;i<=doc.numPages;i++){const p=await doc.getPage(i);pages.push((await p.getTextContent()).items)}const found=parsePdfPages(pages);if(!combined.length){if(found.eventDate)$('date').value=found.eventDate;if(found.times.length===2){$('startTime').value=found.times[0];$('endTime').value=found.times[1]}}combined.push(...found.rows.map(r=>({...r,dates:found.eventDate||'',start:found.times[0]||'',end:found.times[1]||'',sourceId:'pdf-'+fileIndex,sourceName:file.name})));warnings.push(file.name+': זוהו '+found.rows.length+' תחנות; טבלת מקור בעמוד '+found.sourcePage+(found.nightServiceNote?' | שימו לב: צוין שאין השפעה על קווי לילה; יש לבדוק שורות קווים 230/231.':''))}
+  let combined=[],warnings=[];for(const [fileIndex,file] of files.entries()){const data=new Uint8Array(await file.arrayBuffer());const doc=await pdfjsLib.getDocument({data}).promise;const pages=[];for(let i=1;i<=doc.numPages;i++){const p=await doc.getPage(i);pages.push((await p.getTextContent()).items)}const found=parsePdfPages(pages);if(!combined.length){if(found.eventDate)$('date').value=found.eventDate;if(found.times.length===2){$('startTime').value=found.times[0];$('endTime').value=found.times[1]}}combined.push(...found.rows.map(r=>({...r,dates:found.eventDate||'',start:found.times[0]||'',end:found.times[1]||'',sourceId:'pdf-'+fileIndex,sourceName:file.name})));warnings.push(file.name+': זוהו '+found.rows.length+' תחנות; טבלת מקור בעמוד '+found.sourcePage+(found.nightServiceNote?' | שימו לב: קווי הלילה אינם מושפעים לפי הערת המקור. יש לוודא אם יש להסיר 230/231 מהשלטים.':''))}
   const map=new Map();for(const r of combined){const k=[r.sourceId||'',r.code,r.dates||'',r.start||'',r.end||''].join('|');if(!map.has(k))map.set(k,r)}
   setRows([...map.values()]);await autoFillStopNames();$('status').textContent=warnings.join(' | ')+(entries.length?' — יש לבדוק את כל השורות והתאריכים לפני הפקה.':' — לא ניתן לזהות טבלה. הוסיפו תחנות ידנית.');
  }catch(e){$('status').textContent='שגיאה בקריאת PDF: '+e.message+' — ניתן להוסיף תחנות ידנית.'}finally{$('read').disabled=false}
