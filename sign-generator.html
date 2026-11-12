@@ -71,7 +71,9 @@ function parsePdfPages(pages){
  if(!rows.length)rows=parseSummary(pages[pages.length-1]);
  let eventDate='',times=[];
  for(const txt of all.slice(0,Math.min(3,all.length))){if(!eventDate)eventDate=dateFromText(txt);if(!times.length)times=timeFromText(txt)}
- return {rows,eventDate,times,sourcePage:best?.i+1||pages.length};
+ const nightServiceExclusion=all.some(t=>/אין\s*השפעה\s*על\s*קווי\s*לילה/.test(t));
+ const excluded=[];if(nightServiceExclusion){rows=rows.filter(r=>{const onlyNight=/^\s*(?:230\s*[,; ]\s*231|231\s*[,; ]\s*230)\s*$/.test(r.routes);if(onlyNight)excluded.push(r.code);return !onlyNight})}
+ return {rows,eventDate,times,sourcePage:best?.i+1||pages.length,excluded};
 }
 function drawRows(){const tbody=$('rows');tbody.replaceChildren();entries.forEach((r,i)=>{const tr=document.createElement('tr');const fields=[['code','text'],['routes','text'],['alt','text'],['altName','text'],['detail','text']];for(const [key,type] of fields){const td=document.createElement('td');const el=key==='detail'?document.createElement('textarea'):document.createElement('input');if(key!=='detail')el.type='text';el.value=r[key]||'';el.dataset.i=i;el.dataset.field=key;if(key==='detail')el.style.minHeight='48px';if(['code','alt','routes'].includes(key))el.dir='ltr';el.addEventListener('input',()=>{entries[i][key]=el.value});td.append(el);tr.append(td)}const td=document.createElement('td'),b=document.createElement('button');b.className='danger';b.textContent='הסר';b.onclick=()=>{entries.splice(i,1);drawRows();preview()};td.append(b);tr.append(td);tbody.append(tr)});$('count').textContent='('+entries.length+' תחנות)'}
 function setRows(rows){entries=rows.map(r=>({...r}));drawRows();preview()}
@@ -80,7 +82,7 @@ function rowList(v){const x=String(v||'').trim();if(!x)return '';if(/כל\s*הק
 function preview(){
  const pages=$('pages');pages.replaceChildren();const date=$('date').value.trim()||'יש להזין תאריך',start=$('startTime').value,end=$('endTime').value;
  if(!entries.length){pages.append(text('div','עדיין לא זוהו תחנות. ניתן להוסיף תחנות ידנית או לטעון דוגמה.','empty'));return}
- for(const r of entries){if(!r.code.trim())continue;const el=document.createElement('article');el.className='sheet';el.append(text('div','בתאריך '+date,'date'));el.append(text('div','מהשעה '+start+' ועד השעה '+end+' בבוקר למחרת','hours'));el.append(text('div','תחנה זו מבוטלת זמנית','headline'));el.append(text('div',rowList(r.routes),'routes'));
+ for(const r of entries){if(!r.code.trim())continue;const el=document.createElement('article');el.className='sheet';el.append(text('div','בתאריך '+date,'date'));el.append(text('div','מהשעה '+start+' ועד השעה '+end+(end<start?' בבוקר למחרת':''),'hours'));el.append(text('div','תחנה זו מבוטלת זמנית','headline'));el.append(text('div',rowList(r.routes),'routes'));
  if(r.detail.trim())for(const line of r.detail.split('\n').filter(Boolean))el.append(text('div',line,'altblock'));
  else if(r.alt.trim())el.append(text('div','תחנה חלופית '+rowList(r.routes)+'\n'+(r.altName.trim()?r.altName.trim()+' — ':'')+r.alt.trim(),'altblock'));
  el.append(text('div','פרטים נוספים במוקד כל קו *4515','hotline'));el.append(text('div',r.code.trim(),'stop'));pages.append(el)}
@@ -95,7 +97,7 @@ $('read').onclick=async()=>{
  $('status').textContent='קורא מסמכים...';$('read').disabled=true;try{
   if(!window.pdfjsLib){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=resolve;s.onerror=()=>reject(Error('ספריית PDF לא נטענה; נדרש חיבור לרשת'));document.head.append(s)})}
   pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  let combined=[],warnings=[];for(const file of files){const data=new Uint8Array(await file.arrayBuffer());const doc=await pdfjsLib.getDocument({data}).promise;const pages=[];for(let i=1;i<=doc.numPages;i++){const p=await doc.getPage(i);pages.push((await p.getTextContent()).items)}const found=parsePdfPages(pages);combined.push(...found.rows);if(found.eventDate)$('date').value=found.eventDate;if(found.times.length===2){$('startTime').value=found.times[0];$('endTime').value=found.times[1]}warnings.push(file.name+': זוהו '+found.rows.length+' תחנות; טבלת מקור בעמוד '+found.sourcePage)}
+  let combined=[],warnings=[];for(const file of files){const data=new Uint8Array(await file.arrayBuffer());const doc=await pdfjsLib.getDocument({data}).promise;const pages=[];for(let i=1;i<=doc.numPages;i++){const p=await doc.getPage(i);pages.push((await p.getTextContent()).items)}const found=parsePdfPages(pages);combined.push(...found.rows);if(found.eventDate)$('date').value=found.eventDate;if(found.times.length===2){$('startTime').value=found.times[0];$('endTime').value=found.times[1]}warnings.push(file.name+': זוהו '+found.rows.length+' תחנות; טבלת מקור בעמוד '+found.sourcePage+(found.excluded?.length?' | הוחרגו תחנות קווי לילה ללא השפעה: '+found.excluded.join(', '):''))}
   const map=new Map();for(const r of combined)if(!map.has(r.code))map.set(r.code,r);
   setRows([...map.values()]);$('status').textContent=warnings.join(' | ')+(entries.length?' — יש לבדוק את כל השורות והתאריכים לפני הפקה.':' — לא ניתן לזהות טבלה. הוסיפו תחנות ידנית.');
  }catch(e){$('status').textContent='שגיאה בקריאת PDF: '+e.message+' — ניתן להוסיף תחנות ידנית.'}finally{$('read').disabled=false}
