@@ -303,15 +303,24 @@ $('read').onclick=async()=>{
 
 /* Each construction source is rendered into its own A3 landscape PDF.
    No external services receive the user's input PDFs or stop rows. */
-async function loadClientLibrary(globalName,url){
- if(window[globalName])return window[globalName];
- await new Promise((resolve,reject)=>{
-  const script=document.createElement('script');
-  script.src=url;script.onload=resolve;script.onerror=()=>reject(new Error('לא ניתן לטעון ספריית הפקה: '+globalName));
-  document.head.append(script);
- });
- if(!window[globalName])throw new Error('ספריית '+globalName+' אינה זמינה');
- return window[globalName];
+async function loadClientLibrary(globalName,urls){
+ const candidates=Array.isArray(urls)?urls:[urls];
+ const existing=()=>window[globalName];
+ if(existing())return existing();
+ for(const url of candidates){
+  try{
+   await new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src=url;
+    script.async=true;
+    script.onload=()=>existing()?resolve():reject(new Error('הסקריפט נטען ללא ספרייה זמינה'));
+    script.onerror=()=>reject(new Error('קישור הספרייה אינו זמין'));
+    document.head.append(script);
+   });
+   if(existing())return existing();
+  }catch(err){console.warn('Elia CoPilot: failed loading '+globalName+' from '+url,err)}
+ }
+ throw new Error('לא ניתן לטעון את '+globalName+' ממקורות הגיבוי. בדקו חיבור אינטרנט או חסימת CDN בדפדפן.');
 }
 function batchGroups(){
  const groups=new Map();
@@ -342,9 +351,21 @@ $('batchZip').onclick=async()=>{
  try{
   status.textContent='טוען ספריות להפקת PDF ו-ZIP...';
   const [html2canvas,jsPDF,JSZip]=await Promise.all([
-   loadClientLibrary('html2canvas','https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
-   loadClientLibrary('jspdf','https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js').then(v=>v.jsPDF),
-   loadClientLibrary('JSZip','https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js')
+   loadClientLibrary('html2canvas',[
+    'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+    'https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js'
+   ]),
+   loadClientLibrary('jspdf',[
+    'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js',
+    'https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+   ]).then(v=>{if(typeof v.jsPDF!=='function')throw new Error('jsPDF נטען אך לא חשף מנוע PDF');return v.jsPDF}),
+   loadClientLibrary('JSZip',[
+    'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+    'https://unpkg.com/jszip@3.10.1/dist/jszip.min.js'
+   ])
   ]);
   if(document.fonts?.ready)await document.fonts.ready;
   preview();
