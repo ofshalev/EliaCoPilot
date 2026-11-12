@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Elia CoPilot — מחולל שלטים</title>
+<style>
+:root{font-family:Arial,sans-serif;color:#172b46;background:#f3f6fb}*{box-sizing:border-box}body{margin:0}header{background:#14283f;color:white;padding:24px max(22px,calc((100vw - 1080px)/2))}header strong{font-size:28px}header p{opacity:.8;margin:5px 0}nav{display:flex;gap:10px;flex-wrap:wrap;padding:12px max(20px,calc((100vw - 1180px)/2));background:#e5edf7;border-bottom:1px solid #cbd6e3}nav a{font-weight:700;color:#245bb4;text-decoration:none;background:#fff;border-radius:8px;padding:9px 13px}nav a[aria-current]{color:#14263e}main{max-width:1180px;margin:23px auto;padding:0 18px}.grid{display:grid;grid-template-columns:minmax(280px,430px) minmax(300px,1fr);gap:18px}.card{background:white;border:1px solid #dce4ee;border-radius:14px;padding:20px;box-shadow:0 5px 20px #1025400c}h2{margin:0 0 14px;font-size:19px}label{display:block;font-size:13px;font-weight:bold;margin:12px 0 6px}input,textarea,select{width:100%;border:1px solid #cbd5e2;border-radius:8px;padding:10px;background:white;color:#172b46;font:15px Arial,sans-serif}textarea{min-height:70px;resize:vertical}button{background:#2864e2;color:white;border:0;border-radius:8px;padding:11px 17px;font:700 14px Arial;cursor:pointer}button.secondary{background:#eaf0fa;color:#294968}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}.muted{color:#687a8f;font-size:13px;line-height:1.6}.paper{background:white;width:100%;max-width:650px;min-height:650px;margin:0 auto;padding:24px 32px 20px;box-shadow:0 2px 12px #0002;display:flex;flex-direction:column;text-align:center;border:1px solid #d7dce4}.paper h1{font-size:clamp(24px,3vw,40px);margin:30px 0 14px;color:#101010}.paper .routes{font-size:clamp(24px,3vw,38px);font-weight:700;color:#101010;line-height:1.35;white-space:pre-line}.paper .dates{font-size:22px;font-weight:bold;margin:18px 0;white-space:pre-wrap}.paper .alternative{font-size:clamp(20px,2.2vw,30px);color:#101010;white-space:pre-line;margin:22px 0;font-weight:600}.paper .arrow{font-size:86px;font-weight:bold;margin:auto 0 10px;line-height:1}.paper .bottom{display:flex;justify-content:flex-end;direction:ltr;font-size:11px;color:#333;margin-top:auto}.preview-hint{margin-bottom:10px}.notice{border-right:3px solid #2864e2;background:#eef4ff;padding:10px 12px;margin-bottom:16px;font-size:13px}.checkbox{display:flex;align-items:center;gap:8px}.checkbox input{width:auto}@media(max-width:830px){.grid{grid-template-columns:1fr}.paper{min-height:580px}}@media print{@page{size:A4 portrait;margin:12mm}body{background:white}header,nav,.editor,.preview-hint,.actions,.notice{display:none!important}main{max-width:none;margin:0;padding:0}.grid{display:block}.card{padding:0;box-shadow:none;border:none}.paper{box-shadow:none;border:none;max-width:none;width:100%;min-height:260mm;padding:14mm;break-inside:avoid}.paper h1{font-size:38pt}.paper .routes{font-size:32pt}.paper .alternative{font-size:25pt}.paper .dates{font-size:19pt}.paper .arrow{font-size:72pt}}
+</style></head><body>
+<header><strong>Elia CoPilot</strong><p>מחולל שלטים לתחנות תחבורה ציבורית — גרסה ראשונית</p></header>
+<nav aria-label="כלי Elia CoPilot"><a href="./index.html">✉️ מחולל מייל</a><a href="./word-generator.html">📄 מחולל Word</a><a href="./contacts.html">👥 קבוצות נמענים</a><a href="./sign-generator.html" aria-current="page">🪧 מחולל שלטים</a></nav>
+<main><div class="notice">התחלה של כלי השילוט: ניתן להכין שלט ביטול תחנה בודד, לצפות בתצוגה מקדימה ולהדפיס או לשמור כ-PDF דרך הדפדפן. בשלב הבא נוסיף יבוא של רשימות תחנות, קבצים מרובים והתאמה לתבנית השילוט הקבועה.</div>
+<div class="grid">
+<section class="card editor"><h2>פרטי השלט</h2>
+<label for="headline">כותרת</label><select id="headline"><option>תחנה זו מבוטלת</option><option>תחנה זו תבוטל</option><option>תחנה זו מבוטלת לכל הקווים</option><option>שינויים בתחנה זו</option></select>
+<label for="routes">מספרי הקווים (מופרדים בפסיק)</label><input id="routes" value="5, 289" placeholder="5, 289" dir="ltr">
+<label for="dates">ימים ותאריכים (רשות)</label><textarea id="dates" placeholder="בימים א׳–ה׳ 15–19.11.2026"></textarea>
+<label for="alternative">תחנה חלופית (רשות)</label><textarea id="alternative" placeholder="תחנה חלופית לקו 289: שם התחנה – 31435"></textarea>
+<label for="stopCode">קוד התחנה המבוטלת</label><input id="stopCode" placeholder="27050" dir="ltr">
+<label for="stopName">שם התחנה המבוטלת</label><input id="stopName" placeholder="דרך ההגנה/גבעתי">
+<div class="checkbox" style="margin-top:14px"><input id="showArrow" type="checkbox" checked><label for="showArrow" style="margin:0">הצג חץ ימינה</label></div>
+<div class="actions"><button id="print">הדפס / שמור כ-PDF</button><button class="secondary" id="clear">נקה פרטים</button></div>
+<p class="muted">השלט נשאר עריך כאן בדפדפן. ליצירת PDF, לחצו על הדפס ובחרו "Save as PDF". אין העלאת מידע לשרת.</p>
+</section>
+<section class="card"><div class="preview-hint"><h2>תצוגה מקדימה</h2></div><div class="paper" aria-label="תצוגה מקדימה של השלט">
+<h1 id="viewHeadline">תחנה זו מבוטלת</h1><div class="routes" id="viewRoutes"></div><div class="dates" id="viewDates"></div><div class="alternative" id="viewAlternative"></div><div class="arrow" id="viewArrow" aria-hidden="true">➜</div><div class="bottom" id="viewStop"></div>
+</div></section></div></main>
+<script>
+const $=id=>document.getElementById(id);
+function update(){const parts=$('routes').value.split(/[,;\n]+/).map(s=>s.trim()).filter(Boolean);
+const heading=$('headline').value;$('viewHeadline').textContent=heading;
+$('viewRoutes').textContent=heading.includes('לכל הקווים')||!parts.length?'':(parts.length===1?'לקו ':'לקווים ')+parts.join(', ');
+$('viewDates').textContent=$('dates').value.trim();$('viewAlternative').textContent=$('alternative').value.trim();
+$('viewArrow').style.visibility=$('showArrow').checked?'visible':'hidden';
+const code=$('stopCode').value.trim(),name=$('stopName').value.trim();$('viewStop').textContent=[code,name].filter(Boolean).join(' · ');
+}
+document.querySelectorAll('input,textarea,select').forEach(x=>x.addEventListener('input',update));$('print').onclick=()=>window.print();$('clear').onclick=()=>{for(const id of ['routes','dates','alternative','stopCode','stopName'])$(id).value='';$('headline').selectedIndex=0;$('showArrow').checked=true;update()};update();
+</script></body></html>
