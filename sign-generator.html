@@ -61,7 +61,7 @@ main{margin:0;padding:0;max-width:none}.preview-area{background:white;overflow:v
 </section>
 <section class="card controls"><h2>2. בדיקה ותיקון של התחנות <span class="stats" id="count"></span></h2>
 <div class="warning">חשוב: טבלאות ומצגות PDF עלולות לאבד את סדר העמודות בחילוץ טקסט. בדקו לכל תחנה את הקווים, התחנה החלופית ושיוך הקווים אליה. ״כל הקווים״ נשאר כך עד שתזינו קווים מפורשים; המחולל אינו מנחש.</div>
-<div class="tablewrap"><table class="editor-table"><thead><tr><th>קוד תחנה</th><th>שם תחנה מבוטלת / בדיקת קו-נב</th><th>קווים מבוטלים</th><th>תאריכים לתחנה (ריק = ברירת המחדל)</th><th>החל משעה</th><th>עד שעה</th><th>קוד חלופית</th><th>שם חלופית / בדיקת קו-נב</th><th>קווים לחלופית / הערה</th><th></th></tr></thead><tbody id="rows"></tbody></table></div><p class="muted">לצד שם התחנה יש קישור ישיר לקו-נב. בדקו את השם באתר, העתיקו אותו לשדה ושמרו אותו מקומית לשימוש בשלטים הבאים.</p>
+<div class="actions"><button id="autoLookup" class="alt" type="button">חפש שמות תחנות אוטומטית</button></div><p id="lookupStatus" class="muted" role="status">השמות יחופשו אוטומטית אחרי קריאת PDF באמצעות API תחבורה ציבורית, ללא Octobus. נדרש חיבור אינטרנט.</p><div class="tablewrap"><table class="editor-table"><thead><tr><th>קוד תחנה</th><th>שם תחנה מבוטלת / בדיקת קו-נב</th><th>קווים מבוטלים</th><th>תאריכים לתחנה (ריק = ברירת המחדל)</th><th>החל משעה</th><th>עד שעה</th><th>קוד חלופית</th><th>שם חלופית / בדיקת קו-נב</th><th>קווים לחלופית / הערה</th><th></th></tr></thead><tbody id="rows"></tbody></table></div><p class="muted">לצד שם התחנה יש קישור ישיר לקו-נב. בדקו את השם באתר, העתיקו אותו לשדה ושמרו אותו מקומית לשימוש בשלטים הבאים.</p>
 <div class="actions"><button id="make">צור תצוגה מקדימה</button><button id="print">הדפס / שמור PDF A3 אופקי</button><button id="exportJson" class="alt">הורד נתוני עריכה</button><label style="display:inline-block;padding:9px;background:#eaf0fa;border-radius:8px;cursor:pointer">טען נתונים שמורים<input id="importJson" type="file" accept=".json" hidden></label></div>
 <p class="muted">אם לכל תחנה יש כמה תחנות חלופיות, רשמו את כולן בשדה ״קווים לחלופית / הערה״, כל אחת בשורה נפרדת בנוסח: תחנה חלופית לקווים 18, 61: פרישמן/דב הוז — 20664. שדה זה גובר על שדות החלופית הבודדת.</p>
 </section>
@@ -84,6 +84,51 @@ function savedStopNames(){try{return JSON.parse(localStorage.getItem(STOP_NAMES_
 function lookupStopName(code){return savedStopNames()[String(code||'').trim()]||stopNames[String(code||'').trim()]||''}
 function storeStopName(code,name){code=String(code||'').trim();name=String(name||'').trim();if(!/^\d{5}$/.test(code)||!name)return;try{const names=savedStopNames();names[code]=name;localStorage.setItem(STOP_NAMES_KEY,JSON.stringify(names))}catch(e){}}
 function hydrateNames(row){return {...row,name:row.name||lookupStopName(row.code),altName:row.altName||lookupStopName(row.alt)}}
+
+const STOPS_API='https://open-bus-stride-api.hasadna.org.il/gtfs_stops/list';
+const remoteCache=new Map();
+function apiStopName(item){return String(item?.name||item?.stop_name||item?.stopName||'').trim()}
+async function lookupCodeRemote(code){
+ const c=String(code||'').trim();
+ if(!/^\d{5}$/.test(c))return {status:'invalid',name:''};
+ if(remoteCache.has(c))return remoteCache.get(c);
+ try{
+  const response=await fetch(STOPS_API+'?code='+encodeURIComponent(c)+'&limit=100',{headers:{Accept:'application/json'}});
+  if(!response.ok)throw Error('HTTP '+response.status);
+  const json=await response.json();
+  const list=Array.isArray(json)?json:(Array.isArray(json?.data)?json.data:(Array.isArray(json?.items)?json.items:[]));
+  const matching=list.filter(x=>String(x?.code??x?.stop_code??'')===c);
+  const names=[...new Set(matching.map(apiStopName).filter(Boolean))];
+  const result=names.length===1?{status:'found',name:names[0]}:
+   names.length>1?{status:'ambiguous',name:'',names}:{status:'missing',name:''};
+  remoteCache.set(c,result);return result;
+ }catch(err){return {status:'error',name:'',message:String(err.message||err)}}
+}
+let lookupGeneration=0;
+async function autoFillStopNames(){
+ const token=++lookupGeneration;
+ const codes=[...new Set(entries.flatMap(r=>[r.code,r.alt]).map(x=>String(x||'').trim()).filter(x=>/^\d{5}$/.test(x)))];
+ if(!codes.length){$('lookupStatus').textContent='אין עדיין קודי תחנות לחיפוש';return}
+ $('lookupStatus').textContent='מחפש שמות תחנות... '+codes.length+' קודים';
+ const queue=[...codes],results=new Map();
+ async function worker(){while(queue.length){const code=queue.shift();if(!code)break;results.set(code,lookupStopName(code)?{status:'cached',name:lookupStopName(code)}:await lookupCodeRemote(code))}}
+ await Promise.all(Array.from({length:Math.min(4,queue.length)},()=>worker()));
+ if(token!==lookupGeneration)return;
+ const ambiguous=new Set(),unavailable=new Set();let filled=0;
+ for(const r of entries)for(const [codeKey,nameKey] of [['code','name'],['alt','altName']]){
+  const code=String(r[codeKey]||'').trim(),res=results.get(code);
+  if(!code||!res)continue;
+  if(!String(r[nameKey]||'').trim()&&res.name){r[nameKey]=res.name;storeStopName(code,res.name);filled++}
+  if(res.status==='ambiguous')ambiguous.add(code);
+  if(res.status==='error'||res.status==='missing')unavailable.add(code);
+ }
+ drawRows();preview();
+ let msg='חיפוש הושלם: '+filled+' שמות מולאו אוטומטית.';
+ if(ambiguous.size)msg+=' שמות לא חד-משמעיים: '+[...ambiguous].join(', ')+'.';
+ if(unavailable.size)msg+=' לא נמצאו או השירות אינו זמין: '+[...unavailable].join(', ')+'.';
+ $('lookupStatus').textContent=msg;
+}
+
 function clean(s){return String(s||'').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g,'').trim()}
 function linesFromPage(items){const lines=[];for(const it of items){if(!clean(it.str))continue;const x=it.transform[4],y=it.transform[5];let line=lines.find(l=>Math.abs(l.y-y)<4.5);if(!line){line={y,items:[]};lines.push(line)}line.items.push({x,s:clean(it.str)})}return lines.sort((a,b)=>b.y-a.y).map(l=>({y:l.y,items:l.items.sort((a,b)=>b.x-a.x),text:l.items.map(x=>x.s).join(' ')}))}
 function parseSummary(items){
@@ -229,9 +274,10 @@ function preview(){
 function update(){preview()}
 for(const id of ['date','startTime','endTime'])$(id).addEventListener('input',update);
 function missingStopNames(){return entries.filter(r=>r.code.trim()&&!((r.name||lookupStopName(r.code)).trim()))}
+$('autoLookup').onclick=autoFillStopNames;
 $('make').onclick=preview;$('print').onclick=()=>{preview();const missing=missingStopNames();if(missing.length&&!confirm('חסרים שמות לתחנות: '+missing.map(r=>r.code).join(', ')+'. להדפיס בכל זאת?'))return;window.print()};
 $('emptyRow').onclick=()=>{entries.push({code:'',name:'',routes:'',dates:'',start:'',end:'',alt:'',altName:'',detail:''});drawRows();preview()};
-$('sample').onclick=()=>{$('date').value='16.11.2026';$('startTime').value='22:00';$('endTime').value='05:00';setRows(sample);$('status').textContent='נטענה דוגמת בן יהודה/טרומפלדור (7 שלטים). זו דוגמת ביקורת, לא תוצאה של קריאה אוטומטית.'};
+$('sample').onclick=async()=>{$('date').value='16.11.2026';$('startTime').value='22:00';$('endTime').value='05:00';setRows(sample);await autoFillStopNames();$('status').textContent='נטענה דוגמת בן יהודה/טרומפלדור (7 שלטים). זו דוגמת ביקורת, לא תוצאה של קריאה אוטומטית.'};
 $('read').onclick=async()=>{
  const files=[...$('pdf').files];if(!files.length){$('status').textContent='יש לבחור קובץ PDF אחד לפחות';return}
  $('status').textContent='קורא מסמכים...';$('read').disabled=true;try{
@@ -239,7 +285,7 @@ $('read').onclick=async()=>{
   pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   let combined=[],warnings=[];for(const file of files){const data=new Uint8Array(await file.arrayBuffer());const doc=await pdfjsLib.getDocument({data}).promise;const pages=[];for(let i=1;i<=doc.numPages;i++){const p=await doc.getPage(i);pages.push((await p.getTextContent()).items)}const found=parsePdfPages(pages);if(!combined.length){if(found.eventDate)$('date').value=found.eventDate;if(found.times.length===2){$('startTime').value=found.times[0];$('endTime').value=found.times[1]}}combined.push(...found.rows.map(r=>({...r,dates:found.eventDate||'',start:found.times[0]||'',end:found.times[1]||''})));warnings.push(file.name+': זוהו '+found.rows.length+' תחנות; טבלת מקור בעמוד '+found.sourcePage+(found.nightServiceNote?' | שימו לב: צוין שאין השפעה על קווי לילה; יש לבדוק שורות קווים 230/231.':''))}
   const map=new Map();for(const r of combined){const k=[r.code,r.dates||'',r.start||'',r.end||''].join('|');if(!map.has(k))map.set(k,r)}
-  setRows([...map.values()]);$('status').textContent=warnings.join(' | ')+(entries.length?' — יש לבדוק את כל השורות והתאריכים לפני הפקה.':' — לא ניתן לזהות טבלה. הוסיפו תחנות ידנית.');
+  setRows([...map.values()]);await autoFillStopNames();$('status').textContent=warnings.join(' | ')+(entries.length?' — יש לבדוק את כל השורות והתאריכים לפני הפקה.':' — לא ניתן לזהות טבלה. הוסיפו תחנות ידנית.');
  }catch(e){$('status').textContent='שגיאה בקריאת PDF: '+e.message+' — ניתן להוסיף תחנות ידנית.'}finally{$('read').disabled=false}
 };
 $('exportJson').onclick=()=>{const data={version:1,eventDate:$('date').value,startTime:$('startTime').value,endTime:$('endTime').value,entries};const u=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download='EliaCoPilot_Sign_Draft.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)};
