@@ -198,7 +198,7 @@ function preview(){
  for(const r of entries){if(!r.code.trim())continue;const el=document.createElement('article');const altLines=(r.detail||'').split('\n').filter(Boolean);const totalLength=(r.routes||'').length+(r.detail||'').length+(r.altName||'').length;el.className='sheet'+((r.detail||'').trim()||(r.alt||'').trim()?' has-alternatives':'')+(altLines.length>=3||totalLength>180?' dense':'');const rowDate=(r.dates||'').trim()||date,rowStart=(r.start||'').trim()||start,rowEnd=(r.end||'').trim()||end;el.append(text('div',formatSchedule(rowDate),'date'));el.append(text('div','מהשעה '+rowStart+' ועד השעה '+rowEnd+(rowEnd<rowStart?' בבוקר למחרת':''),'hours'));el.append(text('div','תחנה זו מבוטלת זמנית','headline'));el.append(text('div',rowList(r.routes),'routes'));
  if(r.detail.trim())for(const line of r.detail.split('\n').filter(Boolean))el.append(text('div',line,'altblock'));
  else if(r.alt.trim())el.append(text('div','תחנה חלופית '+rowList(r.routes)+'\n'+(r.altName.trim()?r.altName.trim()+' — ':'')+r.alt.trim(),'altblock'));
- el.append(text('div','פרטים נוספים במוקד כל קו *4515','hotline'));el.append(text('div',r.code.trim(),'stop'));pages.append(el)}
+ const hotline=text('div','פרטים נוספים במוקד כל קו ','hotline');const number=document.createElement('bdi');number.dir='ltr';number.textContent='*4515';hotline.append(number);el.append(hotline);el.append(text('div',r.code.trim(),'stop'));pages.append(el)}
 }
 function update(){preview()}
 for(const id of ['date','startTime','endTime'])$(id).addEventListener('input',update);
