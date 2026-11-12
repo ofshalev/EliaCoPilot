@@ -85,10 +85,49 @@ function formatSchedule(value){
  const span=sameMonth?(consecutive?dd(dates[0])+'–'+dotDate(dates[dates.length-1]):dates.map(dd).join('+')+'.'+String(dates[0].getUTCMonth()+1).padStart(2,'0')+'.'+dates[0].getUTCFullYear()):(consecutive?dotDate(dates[0])+' – '+dotDate(dates[dates.length-1]):dates.map(dotDate).join(' + '));
  return 'בימים '+days+' '+span;
 }
+function dateCandidates(text){
+ const raw=clean(text).replace(/[–—־]/g,'-').replace(/[＋]/g,'+').replace(/\s+/g,' ');
+ const patterns=[
+  /(?<!\d)(\d{1,2}\s*[-+]\s*\d{1,2}[./]\d{1,2}[./]20\d{2})(?!\d)/g,
+  /(?<!\d)(\d{1,2}[./]\d{1,2}[./]20\d{2}\s*[-+]\s*\d{1,2}[./]\d{1,2}[./]20\d{2})(?!\d)/g,
+  /(?<!\d)(\d{1,2}(?:\s*\+\s*\d{1,2}){2,}[./]\d{1,2}[./]20\d{2})(?!\d)/g,
+  /(?<!\d)(\d{1,2}[./]\d{1,2}[./]20\d{2})(?!\d)/g
+ ];
+ const result=[];
+ for(let i=0;i<patterns.length;i++)for(const m of raw.matchAll(patterns[i])){
+  const v=m[1].replace(/\s*([-+])\s*/g,'$1');
+  const dates=parseSchedule(v);
+  if(!dates.length)continue;
+  const nearby=raw.slice(Math.max(0,m.index-35),Math.min(raw.length,m.index+m[0].length+25));
+  const score=(dates.length>1?100:0)+(i===0||i===1?30:0)+(/ימים?|בתאריך|תאריכים/.test(nearby)?20:0);
+  result.push({value:v,score,count:dates.length});
+ }
+ return result;
+}
 function dateFromText(text){
- const ls=clean(text).split('\n').filter(Boolean);
- for(const line of ls){if(!/20\d{2}/.test(line))continue;const match=line.match(/(?<!\d)((?:\d{1,2}\s*[+\-]\s*)+\d{1,2}[./]\d{1,2}[./]20\d{2})/)||line.match(/(?<!\d)(\d{1,2}[./]\d{1,2}[./]20\d{2}\s*[-+]\s*\d{1,2}[./]\d{1,2}[./]20\d{2})/)||line.match(/(?<!\d)(\d{1,2}[./]\d{1,2}[./]20\d{2})/);if(match&&parseSchedule(match[1]).length)return match[1];}
- return '';
+ const lines=clean(text).split('\n').filter(Boolean);
+ const found=[];
+ for(const line of lines)found.push(...dateCandidates(line));
+ if(!found.length)found.push(...dateCandidates(lines.join(' ')));
+ found.sort((a,b)=>b.score-a.score||b.count-a.count);
+ return found[0]?.value||'';
+}
+function dateFromPdfItems(items){
+ const lines=linesFromPage(items),candidates=[];
+ for(const line of lines){
+  const fragments=line.items.map(x=>x.s);
+  // Exports of Hebrew PowerPoint often reverse the visual order of PDF fragments.
+  // Evaluate both directions and adjacent fragments instead of dropping the first day.
+  for(const sequence of [fragments,fragments.slice().reverse()]){
+   const options=[sequence.join(' '),sequence.join('')];
+   for(let i=0;i<sequence.length;i++){
+    for(let n=1;n<=3&&i+n<=sequence.length;n++)options.push(sequence.slice(i,i+n).join(' '));
+   }
+   for(const opt of options)candidates.push(...dateCandidates(opt));
+  }
+ }
+ candidates.sort((a,b)=>b.score-a.score||b.count-a.count);
+ return candidates[0]?.value||'';
 }
 function timeFromText(text){const matches=[...clean(text).matchAll(/(?<!\d)([01]?\d|2[0-3]):([0-5]\d)(?!\d)/g)].map(m=>m[0]);return matches.length>=2?matches.slice(0,2):[]}
 function parsePdfPages(pages){
@@ -97,7 +136,15 @@ function parsePdfPages(pages){
  let rows=best?parseSummary(pages[best.i]):[];
  if(!rows.length)rows=parseSummary(pages[pages.length-1]);
  let eventDate='',times=[];
- for(const txt of all.slice(0,Math.min(3,all.length))){if(!eventDate)eventDate=dateFromText(txt);if(!times.length)times=timeFromText(txt)}
+ const scheduleCandidates=[];
+ for(let i=0;i<Math.min(3,all.length);i++){
+  const fromItems=dateFromPdfItems(pages[i]);
+  const fromText=dateFromText(all[i]);
+  for(const value of [fromItems,fromText])if(value) scheduleCandidates.push({value,score:parseSchedule(value).length>1?100:1,page:i+1});
+  if(!times.length)times=timeFromText(all[i]);
+ }
+ scheduleCandidates.sort((a,b)=>b.score-a.score||a.page-b.page);
+ eventDate=scheduleCandidates[0]?.value||'';
  const nightServiceNote=all.some(t=>/אין\s*השפעה\s*על\s*קווי\s*לילה/.test(t));
  return {rows,eventDate,times,sourcePage:best?.i+1||pages.length,nightServiceNote};
 }
