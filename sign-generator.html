@@ -10,7 +10,7 @@
 .sheet .routes{font-weight:900;font-size:clamp(31px,4.8vw,60px);line-height:1.25;margin:0 0 22px}
 .sheet .altblock{font-weight:750;white-space:pre-line;font-size:clamp(25px,3.3vw,40px);line-height:1.35;margin:14px 0}
 .sheet .hotline{font-size:clamp(22px,2.6vw,31px);font-weight:600;margin:auto 0 55px}
-.sheet .stop{position:absolute;bottom:23px;left:25px;direction:ltr;font-size:14px;font-weight:400}
+.sheet .stop{position:absolute;bottom:23px;left:25px;direction:rtl;text-align:left;font-size:14px;font-weight:400;max-width:70%}.sheet.missing-name .stop{outline:1px dashed #c77}
 .sheet .arrow{font-size:55px;line-height:1;margin:13px auto}
 .sheet.has-alternatives .headline{font-size:clamp(37px,5.3vw,65px);margin:auto 0 16px}
 .sheet.has-alternatives .routes{font-size:clamp(28px,4vw,48px);margin-bottom:8px}
@@ -61,7 +61,7 @@ main{margin:0;padding:0;max-width:none}.preview-area{background:white;overflow:v
 </section>
 <section class="card controls"><h2>2. בדיקה ותיקון של התחנות <span class="stats" id="count"></span></h2>
 <div class="warning">חשוב: טבלאות ומצגות PDF עלולות לאבד את סדר העמודות בחילוץ טקסט. בדקו לכל תחנה את הקווים, התחנה החלופית ושיוך הקווים אליה. ״כל הקווים״ נשאר כך עד שתזינו קווים מפורשים; המחולל אינו מנחש.</div>
-<div class="tablewrap"><table class="editor-table"><thead><tr><th>קוד תחנה</th><th>קווים מבוטלים</th><th>תאריכים לתחנה (ריק = ברירת המחדל)</th><th>החל משעה</th><th>עד שעה</th><th>קוד חלופית</th><th>שם חלופית</th><th>קווים לחלופית / הערה</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="tablewrap"><table class="editor-table"><thead><tr><th>קוד תחנה</th><th>שם תחנה מבוטלת</th><th>קווים מבוטלים</th><th>תאריכים לתחנה (ריק = ברירת המחדל)</th><th>החל משעה</th><th>עד שעה</th><th>קוד חלופית</th><th>שם חלופית</th><th>קווים לחלופית / הערה</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
 <div class="actions"><button id="make">צור תצוגה מקדימה</button><button id="print">הדפס / שמור PDF A3 אופקי</button><button id="exportJson" class="alt">הורד נתוני עריכה</button><label style="display:inline-block;padding:9px;background:#eaf0fa;border-radius:8px;cursor:pointer">טען נתונים שמורים<input id="importJson" type="file" accept=".json" hidden></label></div>
 <p class="muted">אם לכל תחנה יש כמה תחנות חלופיות, רשמו את כולן בשדה ״קווים לחלופית / הערה״, כל אחת בשורה נפרדת בנוסח: תחנה חלופית לקווים 18, 61: פרישמן/דב הוז — 20664. שדה זה גובר על שדות החלופית הבודדת.</p>
 </section>
@@ -78,7 +78,12 @@ const sample=[
 {code:'25566',routes:'18, 61, 66, 90',alt:'20664',altName:'פרישמן/דב הוז',detail:''}
 ];
 let entries=[];
-const stopNames={'20664':'פרישמן/דב הוז','25609':'דיזנגוף סנטר/דיזנגוף'};
+const stopNames={'20664':'פרישמן/דב הוז','25609':'דיזנגוף סנטר/דיזנגוף','25813':'ביה״ס גרץ/מאנגר','25794':'דיזנגוף/ארלוזורוב'};
+const STOP_NAMES_KEY='elia_copilot_stop_names_v1';
+function savedStopNames(){try{return JSON.parse(localStorage.getItem(STOP_NAMES_KEY))||{}}catch{return {}}}
+function lookupStopName(code){return savedStopNames()[String(code||'').trim()]||stopNames[String(code||'').trim()]||''}
+function storeStopName(code,name){code=String(code||'').trim();name=String(name||'').trim();if(!/^\d{5}$/.test(code)||!name)return;try{const names=savedStopNames();names[code]=name;localStorage.setItem(STOP_NAMES_KEY,JSON.stringify(names))}catch(e){}}
+function hydrateNames(row){return {...row,name:row.name||lookupStopName(row.code),altName:row.altName||lookupStopName(row.alt)}}
 function clean(s){return String(s||'').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g,'').trim()}
 function linesFromPage(items){const lines=[];for(const it of items){if(!clean(it.str))continue;const x=it.transform[4],y=it.transform[5];let line=lines.find(l=>Math.abs(l.y-y)<4.5);if(!line){line={y,items:[]};lines.push(line)}line.items.push({x,s:clean(it.str)})}return lines.sort((a,b)=>b.y-a.y).map(l=>({y:l.y,items:l.items.sort((a,b)=>b.x-a.x),text:l.items.map(x=>x.s).join(' ')}))}
 function parseSummary(items){
@@ -102,7 +107,7 @@ function parseSummary(items){
   seen.add(main.code);
   const alt=ordered.slice(1).find(x=>x.code!==main.code);
   out.push({code:main.code,routes:isAll?'כל הקווים':routes.join(', '),
-    alt:alt?.code||'',altName:stopNames[alt?.code]||'',detail:''});
+    alt:alt?.code||'',altName:lookupStopName(alt?.code),detail:'',name:lookupStopName(main.code)});
  }
  return out;
 }
@@ -191,8 +196,8 @@ function parsePdfPages(pages){
  const nightServiceNote=all.some(t=>/אין\s*השפעה\s*על\s*קווי\s*לילה/.test(t));
  return {rows,eventDate,times,sourcePage:best?.i+1||pages.length,nightServiceNote};
 }
-function drawRows(){const tbody=$('rows');tbody.replaceChildren();entries.forEach((r,i)=>{const tr=document.createElement('tr');const fields=[['code','text'],['routes','text'],['dates','text'],['start','text'],['end','text'],['alt','text'],['altName','text'],['detail','text']];for(const [key,type] of fields){const td=document.createElement('td');const el=key==='detail'?document.createElement('textarea'):document.createElement('input');if(key!=='detail')el.type='text';el.value=r[key]||'';el.dataset.i=i;el.dataset.field=key;if(key==='detail')el.style.minHeight='48px';if(['code','alt','routes','dates','start','end'].includes(key))el.dir='ltr';if(['dates','start','end'].includes(key))el.placeholder='ברירת המחדל';el.addEventListener('input',()=>{entries[i][key]=el.value});td.append(el);tr.append(td)}const td=document.createElement('td'),b=document.createElement('button');b.className='danger';b.textContent='הסר';b.onclick=()=>{entries.splice(i,1);drawRows();preview()};td.append(b);tr.append(td);tbody.append(tr)});$('count').textContent='('+entries.length+' תחנות)'}
-function setRows(rows){entries=rows.map(r=>({...r}));drawRows();preview()}
+function drawRows(){const tbody=$('rows');tbody.replaceChildren();entries.forEach((r,i)=>{const tr=document.createElement('tr');const fields=[['code','text'],['name','text'],['routes','text'],['dates','text'],['start','text'],['end','text'],['alt','text'],['altName','text'],['detail','text']];for(const [key,type] of fields){const td=document.createElement('td');const el=key==='detail'?document.createElement('textarea'):document.createElement('input');if(key!=='detail')el.type='text';el.value=r[key]||'';el.dataset.i=i;el.dataset.field=key;if(key==='detail')el.style.minHeight='48px';if(['code','alt','routes','dates','start','end'].includes(key))el.dir='ltr';if(['dates','start','end'].includes(key))el.placeholder='ברירת המחדל';el.addEventListener('input',()=>{entries[i][key]=el.value;if(key==='code'){entries[i].name=lookupStopName(el.value);tr.querySelector('[data-field="name"]').value=entries[i].name}else if(key==='alt'){entries[i].altName=lookupStopName(el.value);tr.querySelector('[data-field="altName"]').value=entries[i].altName}if(key==='name')storeStopName(entries[i].code,el.value);if(key==='altName')storeStopName(entries[i].alt,el.value);preview()});td.append(el);tr.append(td)}const td=document.createElement('td'),b=document.createElement('button');b.className='danger';b.textContent='הסר';b.onclick=()=>{entries.splice(i,1);drawRows();preview()};td.append(b);tr.append(td);tbody.append(tr)});$('count').textContent='('+entries.length+' תחנות)'}
+function setRows(rows){entries=rows.map(hydrateNames);drawRows();preview()}
 function text(tag,value,className){const el=document.createElement(tag);if(className)el.className=className;el.textContent=value;return el}
 function rowList(v){const x=String(v||'').trim();if(!x)return '';if(/כל\s*הקווים/.test(x))return 'לכל הקווים';const a=x.split(/[,;\s]+/).filter(Boolean);return (a.length===1?'לקו ':'לקווים ')+a.join(', ')}
 function createDateNode(raw){
@@ -219,12 +224,13 @@ function preview(){
  for(const r of entries){if(!r.code.trim())continue;const el=document.createElement('article');const altLines=(r.detail||'').split('\n').filter(Boolean);const totalLength=(r.routes||'').length+(r.detail||'').length+(r.altName||'').length;el.className='sheet'+((r.detail||'').trim()||(r.alt||'').trim()?' has-alternatives':'')+(altLines.length>=3||totalLength>180?' dense':'');const rowDate=(r.dates||'').trim()||date,rowStart=(r.start||'').trim()||start,rowEnd=(r.end||'').trim()||end;el.append(createDateNode(rowDate));el.append(text('div','מהשעה '+rowStart+' ועד השעה '+rowEnd+(rowEnd<rowStart?' בבוקר למחרת':''),'hours'));el.append(text('div','תחנה זו מבוטלת זמנית','headline'));el.append(text('div',rowList(r.routes),'routes'));
  if(r.detail.trim())for(const line of r.detail.split('\n').filter(Boolean))el.append(text('div',line,'altblock'));
  else if(r.alt.trim())el.append(text('div','תחנה חלופית '+rowList(r.routes)+'\n'+(r.altName.trim()?r.altName.trim()+' — ':'')+r.alt.trim(),'altblock'));
- const hotline=text('div','פרטים נוספים במוקד כל קו ','hotline');const number=document.createElement('bdi');number.dir='ltr';number.textContent='*8787';hotline.append(number);el.append(hotline);el.append(text('div',r.code.trim(),'stop'));pages.append(el)}
+ const hotline=text('div','פרטים נוספים במוקד כל קו ','hotline');const number=document.createElement('bdi');number.dir='ltr';number.textContent='*8787';hotline.append(number);el.append(hotline);const stop=document.createElement('div');stop.className='stop';const stopName=document.createElement('span');stopName.dir='rtl';stopName.textContent=(r.name||lookupStopName(r.code)).trim();const stopCode=document.createElement('bdi');stopCode.dir='ltr';stopCode.textContent=r.code.trim();if(stopName.textContent){stop.append(stopName,document.createTextNode(' — '),stopCode)}else{stop.append(stopCode);el.classList.add('missing-name')}el.append(stop);pages.append(el)}
 }
 function update(){preview()}
 for(const id of ['date','startTime','endTime'])$(id).addEventListener('input',update);
-$('make').onclick=preview;$('print').onclick=()=>{preview();window.print()};
-$('emptyRow').onclick=()=>{entries.push({code:'',routes:'',dates:'',start:'',end:'',alt:'',altName:'',detail:''});drawRows();preview()};
+function missingStopNames(){return entries.filter(r=>r.code.trim()&&!((r.name||lookupStopName(r.code)).trim()))}
+$('make').onclick=preview;$('print').onclick=()=>{preview();const missing=missingStopNames();if(missing.length&&!confirm('חסרים שמות לתחנות: '+missing.map(r=>r.code).join(', ')+'. להדפיס בכל זאת?'))return;window.print()};
+$('emptyRow').onclick=()=>{entries.push({code:'',name:'',routes:'',dates:'',start:'',end:'',alt:'',altName:'',detail:''});drawRows();preview()};
 $('sample').onclick=()=>{$('date').value='16.11.2026';$('startTime').value='22:00';$('endTime').value='05:00';setRows(sample);$('status').textContent='נטענה דוגמת בן יהודה/טרומפלדור (7 שלטים). זו דוגמת ביקורת, לא תוצאה של קריאה אוטומטית.'};
 $('read').onclick=async()=>{
  const files=[...$('pdf').files];if(!files.length){$('status').textContent='יש לבחור קובץ PDF אחד לפחות';return}
@@ -237,5 +243,5 @@ $('read').onclick=async()=>{
  }catch(e){$('status').textContent='שגיאה בקריאת PDF: '+e.message+' — ניתן להוסיף תחנות ידנית.'}finally{$('read').disabled=false}
 };
 $('exportJson').onclick=()=>{const data={version:1,eventDate:$('date').value,startTime:$('startTime').value,endTime:$('endTime').value,entries};const u=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download='EliaCoPilot_Sign_Draft.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)};
-$('importJson').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.entries))throw Error('קובץ לא תקין');$('date').value=d.eventDate||'';$('startTime').value=d.startTime||'22:00';$('endTime').value=d.endTime||'05:00';setRows(d.entries.filter(x=>x&&typeof x.code==='string').map(x=>({code:x.code,routes:x.routes||'',alt:x.alt||'',altName:x.altName||'',detail:x.detail||'',dates:x.dates||'',start:x.start||'',end:x.end||''})));$('status').textContent='טיוטה נטענה בהצלחה'}catch(err){$('status').textContent='שגיאה בטעינת JSON: '+err.message}};
+$('importJson').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.entries))throw Error('קובץ לא תקין');$('date').value=d.eventDate||'';$('startTime').value=d.startTime||'22:00';$('endTime').value=d.endTime||'05:00';setRows(d.entries.filter(x=>x&&typeof x.code==='string').map(x=>({code:x.code,name:x.name||'',routes:x.routes||'',alt:x.alt||'',altName:x.altName||'',detail:x.detail||'',dates:x.dates||'',start:x.start||'',end:x.end||''})));$('status').textContent='טיוטה נטענה בהצלחה'}catch(err){$('status').textContent='שגיאה בטעינת JSON: '+err.message}};
 </script></body></html>
