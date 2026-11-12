@@ -39,40 +39,27 @@ const stopNames={'20664':'פרישמן/דב הוז','25609':'דיזנגוף סנ
 function clean(s){return String(s||'').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g,'').trim()}
 function linesFromPage(items){const lines=[];for(const it of items){if(!clean(it.str))continue;const x=it.transform[4],y=it.transform[5];let line=lines.find(l=>Math.abs(l.y-y)<4.5);if(!line){line={y,items:[]};lines.push(line)}line.items.push({x,s:clean(it.str)})}return lines.sort((a,b)=>b.y-a.y).map(l=>({y:l.y,items:l.items.sort((a,b)=>b.x-a.x),text:l.items.map(x=>x.s).join(' ')}))}
 function parseSummary(items){
- const lines=linesFromPage(items),out=[];
- // Summary tables may split the heading across text lines. Work with the whole page
- // to find the table region rather than requiring a single line to contain the heading.
- const joined=lines.map(l=>l.text).join('\n');
- const titleIndex=lines.findIndex(l=>/תחנות/.test(l.text)&&/מושפעות/.test(joined));
- const headingIndex=lines.findIndex((l,i)=>i>=Math.max(0,titleIndex)&&/מק.?ט/.test(l.text));
- // Code/route columns vary with layout, but the far-right 5-digit number in each
- // affected-stops row is the cancelled stop, not a free-floating map label.
- const candidates=[];
- for(let i=headingIndex>=0?headingIndex+1:0;i<lines.length;i++){
-  const line=lines[i],txt=line.text;
-  const matches=[];
-  for(const it of line.items)for(const m of it.s.matchAll(/(?<!\d)\d{5}(?!\d)/g))matches.push({code:m[0],x:it.x});
-  if(!matches.length)continue;
-  matches.sort((a,b)=>b.x-a.x);
-  const main=matches[0];
-  // Later numeric rows of a slide's map are not a summary: require a table
-  // heading and a route/all-routes indication on at least one nearby row.
-  const withoutCodes=txt.replace(/(?<!\d)\d{5}(?!\d)/g,' ');
-  const all=/כל\s*הקווים/.test(withoutCodes);
-  const routeNumbers=[...new Set((withoutCodes.match(/(?<!\d)\d{1,3}[אב]?(?!\d)/g)||[]).map(v=>v.trim()).filter(Boolean))];
-  candidates.push({main,matches,all,routeNumbers,line});
- }
- if(headingIndex<0||!candidates.length)return [];
- // Table rows use consistent horizontal stop-code positions. PDF export sometimes
- // combines "25566כל הקווים" into one item shifted left of the normal column;
- // detect those rows with their explicit label as well.
- for(const c of candidates){
-  const {main,matches,all,routeNumbers}=c;
-  const hasRoute=all||routeNumbers.length>0;
-  if(!hasRoute)continue;
-  const alt=matches.slice(1).find(m=>m.code!==main.code);
-  if(out.some(r=>r.code===main.code))continue;
-  out.push({code:main.code,routes:all?'כל הקווים':routeNumbers.join(', '),alt:alt?.code||'',altName:stopNames[alt?.code]||'',detail:''});
+ const lines=linesFromPage(items);
+ const allText=lines.map(l=>l.text).join(' ');
+ // Recognize the summary by its words, even when headings break across PDF items.
+ if(!/תחנות/.test(allText)||!/מושפעות/.test(allText)||!/תחנה/.test(allText))return [];
+ const out=[],seen=new Set();
+ for(const line of lines){
+  const codes=[];
+  for(const it of line.items)for(const m of it.s.matchAll(/(?<!\d)\d{5}(?!\d)/g))codes.push({code:m[0],x:it.x});
+  if(!codes.length)continue;
+  const noCodes=line.text.replace(/(?<!\d)\d{5}(?!\d)/g,' ');
+  const isAll=/כל\s*הקווים/.test(noCodes);
+  const routes=[...new Set((noCodes.match(/(?<!\d)\d{1,3}[אב]?(?!\d)/g)||[]).map(v=>v.trim()).filter(Boolean))];
+  if(!isAll&&!routes.length)continue;
+  // PDF exports may merge a stop code and "כל הקווים" in a single text item.
+  const ordered=codes.sort((x,y)=>y.x-x.x);
+  const main=ordered[0];
+  if(seen.has(main.code))continue;
+  seen.add(main.code);
+  const alt=ordered.slice(1).find(x=>x.code!==main.code);
+  out.push({code:main.code,routes:isAll?'כל הקווים':routes.join(', '),
+    alt:alt?.code||'',altName:stopNames[alt?.code]||'',detail:''});
  }
  return out;
 }
@@ -88,9 +75,8 @@ function parsePdfPages(pages){
  if(!rows.length)rows=parseSummary(pages[pages.length-1]);
  let eventDate='',times=[];
  for(const txt of all.slice(0,Math.min(3,all.length))){if(!eventDate)eventDate=dateFromText(txt);if(!times.length)times=timeFromText(txt)}
- const nightServiceExclusion=all.some(t=>/אין\s*השפעה\s*על\s*קווי\s*לילה/.test(t));
- const excluded=[];if(nightServiceExclusion){rows=rows.filter(r=>{const onlyNight=/^\s*(?:230\s*[,; ]\s*231|231\s*[,; ]\s*230)\s*$/.test(r.routes);if(onlyNight)excluded.push(r.code);return !onlyNight})}
- return {rows,eventDate,times,sourcePage:best?.i+1||pages.length,excluded};
+ const nightServiceNote=all.some(t=>/אין\s*השפעה\s*על\s*קווי\s*לילה/.test(t));
+ return {rows,eventDate,times,sourcePage:best?.i+1||pages.length,nightServiceNote};
 }
 function drawRows(){const tbody=$('rows');tbody.replaceChildren();entries.forEach((r,i)=>{const tr=document.createElement('tr');const fields=[['code','text'],['routes','text'],['alt','text'],['altName','text'],['detail','text']];for(const [key,type] of fields){const td=document.createElement('td');const el=key==='detail'?document.createElement('textarea'):document.createElement('input');if(key!=='detail')el.type='text';el.value=r[key]||'';el.dataset.i=i;el.dataset.field=key;if(key==='detail')el.style.minHeight='48px';if(['code','alt','routes'].includes(key))el.dir='ltr';el.addEventListener('input',()=>{entries[i][key]=el.value});td.append(el);tr.append(td)}const td=document.createElement('td'),b=document.createElement('button');b.className='danger';b.textContent='הסר';b.onclick=()=>{entries.splice(i,1);drawRows();preview()};td.append(b);tr.append(td);tbody.append(tr)});$('count').textContent='('+entries.length+' תחנות)'}
 function setRows(rows){entries=rows.map(r=>({...r}));drawRows();preview()}
@@ -114,7 +100,7 @@ $('read').onclick=async()=>{
  $('status').textContent='קורא מסמכים...';$('read').disabled=true;try{
   if(!window.pdfjsLib){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=resolve;s.onerror=()=>reject(Error('ספריית PDF לא נטענה; נדרש חיבור לרשת'));document.head.append(s)})}
   pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  let combined=[],warnings=[];for(const file of files){const data=new Uint8Array(await file.arrayBuffer());const doc=await pdfjsLib.getDocument({data}).promise;const pages=[];for(let i=1;i<=doc.numPages;i++){const p=await doc.getPage(i);pages.push((await p.getTextContent()).items)}const found=parsePdfPages(pages);combined.push(...found.rows);if(found.eventDate)$('date').value=found.eventDate;if(found.times.length===2){$('startTime').value=found.times[0];$('endTime').value=found.times[1]}warnings.push(file.name+': זוהו '+found.rows.length+' תחנות; טבלת מקור בעמוד '+found.sourcePage+(found.excluded?.length?' | הוחרגו תחנות קווי לילה ללא השפעה: '+found.excluded.join(', '):''))}
+  let combined=[],warnings=[];for(const file of files){const data=new Uint8Array(await file.arrayBuffer());const doc=await pdfjsLib.getDocument({data}).promise;const pages=[];for(let i=1;i<=doc.numPages;i++){const p=await doc.getPage(i);pages.push((await p.getTextContent()).items)}const found=parsePdfPages(pages);combined.push(...found.rows);if(found.eventDate)$('date').value=found.eventDate;if(found.times.length===2){$('startTime').value=found.times[0];$('endTime').value=found.times[1]}warnings.push(file.name+': זוהו '+found.rows.length+' תחנות; טבלת מקור בעמוד '+found.sourcePage+(found.nightServiceNote?' | שימו לב: צוין שאין השפעה על קווי לילה; יש לבדוק שורות קווים 230/231.':''))}
   const map=new Map();for(const r of combined)if(!map.has(r.code))map.set(r.code,r);
   setRows([...map.values()]);$('status').textContent=warnings.join(' | ')+(entries.length?' — יש לבדוק את כל השורות והתאריכים לפני הפקה.':' — לא ניתן לזהות טבלה. הוסיפו תחנות ידנית.');
  }catch(e){$('status').textContent='שגיאה בקריאת PDF: '+e.message+' — ניתן להוסיף תחנות ידנית.'}finally{$('read').disabled=false}
