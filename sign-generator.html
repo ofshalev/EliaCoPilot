@@ -78,7 +78,7 @@ const sample=[
 {code:'25566',routes:'18, 61, 66, 90',alt:'20664',altName:'פרישמן/דב הוז',detail:''}
 ];
 let entries=[];
-const stopNames={'20664':'פרישמן/דב הוז','25609':'דיזנגוף סנטר/דיזנגוף','25813':'ביה״ס גרץ/מאנגר','25794':'דיזנגוף/ארלוזורוב'};
+const stopNames={'20664':'פרישמן/דב הוז','25609':'דיזנגוף סנטר/דיזנגוף','25813':'ביה״ס גרץ/מאנגר','25794':'דיזנגוף/ארלוזורוב','21553':'שד׳ הר ציון/דרך שלמה'};
 const STOP_NAMES_KEY='elia_copilot_stop_names_v1';
 function savedStopNames(){try{return JSON.parse(localStorage.getItem(STOP_NAMES_KEY))||{}}catch{return {}}}
 function lookupStopName(code){return savedStopNames()[String(code||'').trim()]||stopNames[String(code||'').trim()]||''}
