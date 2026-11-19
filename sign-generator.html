@@ -133,44 +133,51 @@ function clean(s){return String(s||'').replace(/[\u200e\u200f\u202a-\u202e\u2066
 function linesFromPage(items){const lines=[];for(const it of items){if(!clean(it.str))continue;const x=it.transform[4],y=it.transform[5];let line=lines.find(l=>Math.abs(l.y-y)<4.5);if(!line){line={y,items:[]};lines.push(line)}line.items.push({x,s:clean(it.str)})}return lines.sort((a,b)=>b.y-a.y).map(l=>({y:l.y,items:l.items.sort((a,b)=>b.x-a.x),text:l.items.map(x=>x.s).join(' ')}))}
 function parseSummary(items){
  const tokens=items.map(it=>({x:Number(it.transform?.[4]||0),y:Number(it.transform?.[5]||0),s:clean(it.str)})).filter(t=>t.s);
- const pageText=tokens.map(t=>t.s).join(' ');
- // Final summary may have the title split over several items or pages.
- // Locate the actual headers, not an exact uninterrupted heading.
  const affectedHeaders=tokens.filter(t=>/תחנה\s*מושפעת/.test(t.s));
  const alternativeHeaders=tokens.filter(t=>/תחנה\s*חלופית/.test(t.s));
  if(!affectedHeaders.length||!alternativeHeaders.length)return [];
  const affectedX=affectedHeaders[0].x,alternativeX=alternativeHeaders[0].x;
- // Typical RTL final table: affected stops in a column to the right,
- // alternative stops in a second column further left.
  if(Math.abs(affectedX-alternativeX)<30)return [];
- const columnMiddle=(affectedX+alternativeX)/2;
- const rightIsAffected=affectedX>alternativeX;
- const inAffectedColumn=x=>rightIsAffected?x>columnMiddle:x<columnMiddle;
- const inAlternativeColumn=x=>rightIsAffected?x<columnMiddle:x>columnMiddle;
+ const middle=(affectedX+alternativeX)/2,rightIsAffected=affectedX>alternativeX;
+ const inAffectedColumn=x=>rightIsAffected?x>middle:x<middle;
+ const inAlternativeColumn=x=>rightIsAffected?x<middle:x>middle;
+ const routeColumn=x=>rightIsAffected?
+  (x<affectedX-24&&x>alternativeX+25):
+  (x>affectedX+25&&x<alternativeX-24);
  const codes=[];
  for(const t of tokens)for(const m of t.s.matchAll(/(?<!\d)\d{5}(?!\d)/g))
   codes.push({code:m[0],x:t.x,y:t.y});
- const affected=codes.filter(t=>inAffectedColumn(t.x)&&Math.abs(t.y-affectedHeaders[0].y)>12)
+ const affected=codes.filter(t=>inAffectedColumn(t.x)&&t.y<affectedHeaders[0].y-12)
   .sort((a,b)=>b.y-a.y);
- const alternate=codes.filter(t=>inAlternativeColumn(t.x));
- const rows=[],seen=new Set();
- for(const main of affected){
-  if(seen.has(main.code))continue;
-  seen.add(main.code);
-  const nearest=alternate.filter(t=>Math.abs(t.y-main.y)<=15)
-   .sort((a,b)=>Math.abs(a.y-main.y)-Math.abs(b.y-main.y))[0];
-  // Route numbers are separate fragments, sometimes in the following line
-  // for a second operator. Capture the table's route column, not map labels.
-  const routeItems=tokens.filter(t=>Math.abs(t.y-main.y)<=20&&
-   (rightIsAffected?(t.x<affectedX-24&&t.x>alternativeX+25):(t.x>affectedX+25&&t.x<alternativeX-24)));
+ if(!affected.length)return [];
+ const alternate=codes.filter(t=>inAlternativeColumn(t.x)&&t.y<affectedHeaders[0].y-12);
+ // Assign every PDF fragment to a physical table row, bounded by the
+ // midpoints between consecutive affected-stop codes. A fixed +/-20pt
+ // window leaks routes from adjacent stops (e.g. 16/236 into stop 20506).
+ const physical=affected.map((main,i)=>({
+  main,
+  top:i===0?affectedHeaders[0].y-12:(affected[i-1].y+main.y)/2,
+  bottom:i===affected.length-1?-Infinity:(main.y+affected[i+1].y)/2
+ }));
+ const grouped=new Map();
+ for(const band of physical){
+  const inRow=t=>t.y<=band.top&&t.y>band.bottom;
+  const routeItems=tokens.filter(t=>inRow(t)&&routeColumn(t.x));
   const routes=[...new Set(routeItems.flatMap(t=>[...t.s.matchAll(/(?<!\d)\d{1,3}(?!\d)/g)].map(m=>m[0])))];
-  rows.push({code:main.code,name:lookupStopName(main.code),
-   routes:routes.length?routes.join(', '):'כל הקווים',
-   alt:nearest?.code||'',altName:lookupStopName(nearest?.code),detail:''});
+  const altCodes=alternate.filter(inRow).map(x=>x.code);
+  const id=band.main.code;
+  if(!grouped.has(id))grouped.set(id,{code:id,name:lookupStopName(id),routes:[],altCodes:[]});
+  const row=grouped.get(id);
+  for(const route of routes)if(!row.routes.includes(route))row.routes.push(route);
+  for(const alt of altCodes)if(!row.altCodes.includes(alt))row.altCodes.push(alt);
  }
- return rows;
+ return [...grouped.values()].map(r=>({
+  code:r.code,name:r.name,routes:r.routes.join(', '),
+  alt:r.altCodes.length===1?r.altCodes[0]:'',
+  altName:r.altCodes.length===1?lookupStopName(r.altCodes[0]):'',
+  detail:r.altCodes.length>1?'תחנות חלופיות לבדיקה: '+r.altCodes.join(', '):''
+ }));
 }
-
 function parseSchedule(value){
  const v=clean(value).replace(/[–—]/g,'-').replace(/\s+/g,' ');
  const compact=v.match(/(?<!\d)((?:\d{1,2}\s*[+\-]\s*)+)(\d{1,2})[./](\d{1,2})[./](20\d{2})(?!\d)/);
