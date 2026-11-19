@@ -75,15 +75,42 @@ function paint(canvas,sign,reportOverflow=false){
 }
 function render(){const canvas=$('canvas');canvas.width=900;canvas.height=baseCanvas?Math.round(baseCanvas.height*900/baseCanvas.width):1249;paint(canvas,signs[selected],true)}
 $('template').addEventListener('change',async()=>{const f=$('template').files?.[0];if(!f)return;try{const b=await f.arrayBuffer();await storeTemplate(b);await preparePdf(b);status('התבנית נשמרה בדפדפן בהצלחה')}catch(e){status('שגיאה בטעינת התבנית: '+e.message)}});
+// Export a standalone multi-page PDF without relying on third-party CDN scripts.
+// Each page is the original PDF artwork (rendered as a background) plus that sign's text.
+function buildNoticePdf(){
+ const encoder=new TextEncoder(),parts=[],offsets=[0];let position=0;
+ const put=data=>{const bytes=typeof data==='string'?encoder.encode(data):data;parts.push(bytes);position+=bytes.length};
+ const n=signs.length,ids=Array.from({length:n},(_,i)=>({page:3+i*3,content:4+i*3,image:5+i*3}));
+ const object=(id,body)=>{offsets[id]=position;put(id+' 0 obj\n');put(body);put('\nendobj\n')};
+ put('%PDF-1.4\n%EliaCoPilot\n');
+ object(1,'<< /Type /Catalog /Pages 2 0 R >>');
+ object(2,'<< /Type /Pages /Kids ['+ids.map(x=>x.page+' 0 R').join(' ')+'] /Count '+n+' >>');
+ const canvas=document.createElement('canvas');canvas.width=1800;canvas.height=Math.round(baseCanvas.height*1800/baseCanvas.width);
+ const w=baseCanvas.width,h=baseCanvas.height;
+ for(let i=0;i<n;i++){
+  const id=ids[i];paint(canvas,signs[i]);
+  const jpeg=Uint8Array.from(atob(canvas.toDataURL('image/jpeg',.95).split(',')[1]),c=>c.charCodeAt(0));
+  const drawing='q\n'+w+' 0 0 '+h+' 0 0 cm\n/Im0 Do\nQ\n';
+  object(id.page,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+w+' '+h+'] /Resources << /XObject << /Im0 '+id.image+' 0 R >> >> /Contents '+id.content+' 0 R >>');
+  object(id.content,'<< /Length '+encoder.encode(drawing).length+' >>\nstream\n'+drawing+'endstream');
+  offsets[id.image]=position;put(id.image+' 0 obj\n');
+  put('<< /Type /XObject /Subtype /Image /Width '+canvas.width+' /Height '+canvas.height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jpeg.length+' >>\nstream\n');
+  put(jpeg);put('\nendstream\nendobj\n');
+ }
+ const xref=position,total=3+n*3;
+ put('xref\n0 '+total+'\n0000000000 65535 f \n');
+ for(let i=1;i<total;i++)put(String(offsets[i]).padStart(10,'0')+' 00000 n \n');
+ put('trailer\n<< /Size '+total+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF');
+ return new Blob(parts,{type:'application/pdf'});
+}
 $('save').onclick=async()=>{
  try{
   if(!baseCanvas){status('יש לטעון תחילה את קובץ התבנית המקורי');return}
   $('save').disabled=true;status('מייצר '+signs.length+' שלטים...');
-  const jsPDF=(await library('jspdf','https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js')).jsPDF;
-  const c=document.createElement('canvas');c.width=1800;c.height=Math.round(baseCanvas.height*1800/baseCanvas.width);
-  const doc=new jsPDF({orientation:'portrait',unit:'pt',format:[baseCanvas.width,baseCanvas.height],compress:true});
-  for(let i=0;i<signs.length;i++){if(i)doc.addPage([baseCanvas.width,baseCanvas.height],'portrait');paint(c,signs[i]);doc.addImage(c.toDataURL('image/jpeg',.96),'JPEG',0,0,baseCanvas.width,baseCanvas.height,undefined,'FAST')}
-  doc.save('EliaCoPilot_Notice_Signs_'+signs.length+'.pdf');status('הושלם: נוצר PDF עם '+signs.length+' שלטים');
+  const blob=buildNoticePdf(),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='EliaCoPilot_Notice_Signs_'+signs.length+'.pdf';
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+  status('הושלם: נוצר PDF עם '+signs.length+' שלטים');
  }catch(e){status('שגיאה: '+e.message)}finally{$('save').disabled=false}
 };
 loadSet();refresh();readTemplate().then(b=>{if(b)return preparePdf(b);$('templateState').textContent='לא נמצאה תבנית שמורה בדפדפן זה';status('יש לטעון את התבנית פעם אחת במכשיר ובדפדפן הזה')}).catch(e=>status('לא ניתן לשחזר תבנית שמורה: '+e.message));
