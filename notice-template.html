@@ -20,7 +20,7 @@
 <div class="two"><div><label for="top">מיקום אנכי (%)</label><input id="top" type="number" min="27" max="83" value="36"></div><div><label for="width">רוחב טקסט (%)</label><input id="width" type="number" min="35" max="94" value="84"></div></div>
 <label><input id="bold" type="checkbox" checked style="width:auto;margin-left:6px">טקסט מודגש</label>
 <div class="field-break"><h2>רקע מקורי</h2><label for="template">טעינת קובץ PDF של התבנית</label><input id="template" type="file" accept=".pdf,application/pdf">
-<p class="note">בפעם הראשונה יש לבחור ״נא לשים לב(2).pdf״. התבנית נשמרת בדפדפן ואינה נשלחת לשרת.</p></div>
+<p class="note">כדי להציג את הגרפיקה והלוגואים המקוריים, בחרו כאן את ״נא לשים לב(2).pdf״. הקובץ יישמר בדפדפן הזה לשימוש חוזר ואינו נשלח לשרת.</p></div>
 <div><button id="save">הורד סדרת שלטים כ-PDF</button><button id="reset" class="secondary">נקה את טקסט השלט</button></div>
 <p id="status" class="status" role="status"></p>
 <p class="note">ההורדה תייצר PDF אחד עם עמוד נפרד לכל שלט, לפי הסדר ברשימה. מומלץ לבדוק את כל השלטים לפני הדפסה.</p>
@@ -62,7 +62,7 @@ function wrap(ctx,t,max){const lines=[];for(const paragraph of t.split(/\r?\n/))
 function paint(canvas,sign,reportOverflow=false){
  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
  if(baseCanvas)ctx.drawImage(baseCanvas,0,0,canvas.width,canvas.height);
- else{ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#b52b32';ctx.fillRect(canvas.width*.08,canvas.height*.135,canvas.width*.84,canvas.height*.115);ctx.fillStyle='#fff';ctx.font='bold '+Math.round(canvas.width*.075)+'px Arial';ctx.textAlign='center';ctx.fillText('נא לשים לב!',canvas.width/2,canvas.height*.208)}
+ else{ctx.fillStyle='#f4f7fb';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#435b79';ctx.font='bold '+Math.round(canvas.width*.035)+'px Arial';ctx.textAlign='center';ctx.fillText('יש להעלות את קובץ ה-PDF המקורי',canvas.width/2,canvas.height*.45);return}
  const factor=canvas.width/900,top=Number(sign.top)||36,width=(Number(sign.width)||84)/100,max=width*canvas.width,sz=(Number(sign.size)||39)*factor;
  ctx.font=(sign.bold?'bold ':'')+sz+'px Arial';ctx.fillStyle='#111';ctx.textAlign=sign.align||'center';ctx.textBaseline='top';ctx.direction='rtl';
  const lines=wrap(ctx,sign.message,max);
@@ -86,5 +86,5 @@ $('save').onclick=async()=>{
   doc.save('EliaCoPilot_Notice_Signs_'+signs.length+'.pdf');status('הושלם: נוצר PDF עם '+signs.length+' שלטים');
  }catch(e){status('שגיאה: '+e.message)}finally{$('save').disabled=false}
 };
-loadSet();refresh();readTemplate().then(b=>{if(b)return preparePdf(b);status('יש לבחור את קובץ התבנית המקורי בפעם הראשונה')}).catch(e=>status('לא ניתן לשחזר תבנית שמורה: '+e.message));
+loadSet();refresh();readTemplate().then(b=>{if(b)return preparePdf(b);status('לא נטענה תבנית: העלו את קובץ נא לשים לב(2).pdf כדי להציג את הלוגואים והרקע המקוריים')}).catch(e=>status('לא ניתן לשחזר תבנית שמורה: '+e.message));
 </script></body></html>
