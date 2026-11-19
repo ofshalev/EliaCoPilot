@@ -178,6 +178,53 @@ function parseSummary(items){
   detail:r.altCodes.length>1?'תחנות חלופיות לבדיקה: '+r.altCodes.join(', '):''
  }));
 }
+
+/* The current Elia six-column summary uses:
+   affected stop | operator | routes | alternative stop | operator | routes.
+   Coordinates are read by table row, never by text-stream order. */
+function parseSplitSummary(items){
+ const tokens=items.map(it=>({x:Number(it.transform?.[4]||0),y:Number(it.transform?.[5]||0),s:clean(it.str)})).filter(t=>t.s);
+ const joined=tokens.map(t=>t.s).join(' ');
+ if(!/מושפעת/.test(joined)||!/חלופית/.test(joined)||!/מפעיל/.test(joined)||!/קווים/.test(joined))return [];
+ const codes=[];
+ for(const t of tokens)for(const m of t.s.matchAll(/(?<!\d)\d{4,5}(?!\d)/g))codes.push({...t,code:m[0]});
+ if(codes.length<4)return [];
+ // Choose the two most frequent horizontal columns of stop codes.
+ const clusters=[];
+ for(const c of codes){
+  let g=clusters.find(v=>Math.abs(v.x-c.x)<32);
+  if(!g){g={x:c.x,items:[]};clusters.push(g)}
+  g.items.push(c);
+ }
+ const major=clusters.filter(g=>g.items.length>=3).sort((a,b)=>b.items.length-a.items.length);
+ if(major.length<2)return [];
+ const pair=major.slice(0,2).sort((a,b)=>b.x-a.x);
+ const affectedCol=pair[0],altCol=pair[1];
+ if(affectedCol.x-altCol.x<120)return [];
+ // An affected stop is the rightmost code column in the Hebrew RTL layout.
+ // Avoid treating ordinary two-column route sheets as split summary tables.
+ const operatorMarkers=tokens.filter(t=>/מפעיל/.test(t.s));
+ if(operatorMarkers.length<2)return [];
+ const affected=affectedCol.items.sort((a,b)=>b.y-a.y);
+ const alternatives=altCol.items;
+ const headerY=Math.max(...tokens.filter(t=>/מושפעת|חלופית|קווים|מפעיל/.test(t.s)).map(t=>t.y));
+ const output=[];
+ for(let i=0;i<affected.length;i++){
+  const main=affected[i];
+  const top=i===0?headerY-8:(affected[i-1].y+main.y)/2;
+  const bottom=i===affected.length-1?-Infinity:(main.y+affected[i+1].y)/2;
+  if(main.y>=top)continue;
+  const rowAlt=alternatives.filter(t=>t.y<=top&&t.y>bottom).sort((a,b)=>Math.abs(a.y-main.y)-Math.abs(b.y-main.y))[0];
+  if(!rowAlt)continue;
+  const routeTokens=tokens.filter(t=>t.y<=top&&t.y>bottom&&t.x>altCol.x+65&&t.x<affectedCol.x-75).sort((a,b)=>a.x-b.x);
+  const routeText=routeTokens.map(t=>t.s).join('').replace(/[،，]/g,',');
+  const routes=[...new Set([...routeText.matchAll(/(?<!\d)\d{1,3}\s*[א-ת]?(?!\d)/g)].map(m=>m[0].replace(/\s/g,'')))];
+  if(!routes.length)continue;
+  output.push({code:main.code,alt:rowAlt.code,routes});
+ }
+ return output;
+}
+
 function parseSchedule(value){
  const v=clean(value).replace(/[–—]/g,'-').replace(/\s+/g,' ');
  const compact=v.match(/(?<!\d)((?:\d{1,2}\s*[+\-]\s*)+)(\d{1,2})[./](\d{1,2})[./](20\d{2})(?!\d)/);
@@ -246,21 +293,48 @@ function dateFromPdfItems(items){
 function timeFromText(text){const matches=[...clean(text).matchAll(/(?<!\d)([01]?\d|2[0-3]):([0-5]\d)(?!\d)/g)].map(m=>m[0]);return matches.length>=2?matches.slice(0,2):[]}
 function parsePdfPages(pages){
  const all=pages.map(p=>linesFromPage(p).map(l=>l.text).join('\n'));
- const candidates=pages.map((p,i)=>({i,rows:parseSummary(p),summary:/סיכום/.test(all[i])}));
- const best=candidates.sort((a,b)=>b.rows.length-a.rows.length||Number(b.summary)-Number(a.summary))[0];
- let rows=best?.rows||[];
+ const split=pages.map((p,i)=>({page:i+1,rows:parseSplitSummary(p)})).filter(p=>p.rows.length);
+ let rows=[],sourcePage=0,importWarnings=[];
+ if(split.length){
+  const groups=new Map();
+  let sourceRows=0;
+  for(const page of split)for(const item of page.rows){
+   sourceRows++;
+   if(!groups.has(item.code))groups.set(item.code,{code:item.code,name:lookupStopName(item.code),mappings:new Map()});
+   const group=groups.get(item.code);
+   if(!group.mappings.has(item.alt))group.mappings.set(item.alt,new Set());
+   for(const route of item.routes)group.mappings.get(item.alt).add(route);
+  }
+  rows=[...groups.values()].map(g=>{
+   const allRoutes=[...new Set([...g.mappings.values()].flatMap(routes=>[...routes]))];
+   const mappings=[...g.mappings.entries()].map(([alt,routeSet])=>({alt,routes:[...routeSet]}));
+   const detail=mappings.length>1?mappings.map(m=>'תחנה חלופית '+rowList(m.routes.join(', '))+'\n'+(lookupStopName(m.alt)?lookupStopName(m.alt)+' — ':'')+m.alt).join('\n'):'';
+   const conflicts=allRoutes.filter(route=>mappings.filter(m=>m.routes.includes(route)).length>1);
+   if(conflicts.length)importWarnings.push('תחנה '+g.code+': קווים '+conflicts.join(', ')+' מופיעים עם יותר מחלופה אחת');
+   return {code:g.code,name:g.name,routes:allRoutes.join(', '),alt:mappings.length===1?mappings[0].alt:'',altName:mappings.length===1?lookupStopName(mappings[0].alt):'',detail};
+  });
+  sourcePage=split[0].page;
+  importWarnings.unshift('נקראו '+sourceRows+' שיוכי תחנה-קו-חלופה מתוך '+split.length+' עמודי סיכום');
+  if(all.some(t=>/לא כל המפעילים/.test(t)))importWarnings.push('אזהרת מקור: לא כל המפעילים עוצרים בכל התחנות; יש לאמת שיוכי קווים לפני הפצה');
+ }else{
+  // Backwards compatibility with the earlier two-column summary layout.
+  const candidates=pages.map((p,i)=>({i,rows:parseSummary(p),summary:/סיכום/.test(all[i])}));
+  const best=candidates.sort((a,b)=>b.rows.length-a.rows.length||Number(b.summary)-Number(a.summary))[0];
+  rows=best?.rows||[];
+  sourcePage=best?.i+1||pages.length;
+ }
  let eventDate='',times=[];
  const scheduleCandidates=[];
  for(let i=0;i<Math.min(3,all.length);i++){
   const fromItems=dateFromPdfItems(pages[i]);
   const fromText=dateFromText(all[i]);
-  for(const value of [fromItems,fromText])if(value) scheduleCandidates.push({value,score:parseSchedule(value).length>1?100:1,page:i+1});
+  for(const value of [fromItems,fromText])if(value)scheduleCandidates.push({value,score:parseSchedule(value).length>1?100:1,page:i+1});
   if(!times.length)times=timeFromText(all[i]);
  }
  scheduleCandidates.sort((a,b)=>b.score-a.score||a.page-b.page);
  eventDate=scheduleCandidates[0]?.value||'';
  const nightServiceNote=all.some(t=>/קווי\s*לילה\s*אינם\s*מושפעים|אין\s*השפעה\s*על\s*קווי\s*לילה/.test(t));
- return {rows,eventDate,times,sourcePage:best?.i+1||pages.length,nightServiceNote};
+ return {rows,eventDate,times,sourcePage,nightServiceNote,importWarnings};
 }
 function editorGroups(){
  const groups=new Map();
@@ -316,7 +390,7 @@ $('read').onclick=async()=>{
  $('status').textContent='קורא מסמכים...';$('read').disabled=true;try{
   if(!window.pdfjsLib){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=resolve;s.onerror=()=>reject(Error('ספריית PDF לא נטענה; נדרש חיבור לרשת'));document.head.append(s)})}
   pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  let combined=[],warnings=[];for(const [fileIndex,file] of files.entries()){const data=new Uint8Array(await file.arrayBuffer());const doc=await pdfjsLib.getDocument({data}).promise;const pages=[];for(let i=1;i<=doc.numPages;i++){const p=await doc.getPage(i);pages.push((await p.getTextContent()).items)}const found=parsePdfPages(pages);if(!combined.length){if(found.eventDate)$('date').value=found.eventDate;if(found.times.length===2){$('startTime').value=found.times[0];$('endTime').value=found.times[1]}}combined.push(...found.rows.map(r=>({...r,dates:found.eventDate||'',start:found.times[0]||'',end:found.times[1]||'',sourceId:'pdf-'+fileIndex,sourceName:file.name})));warnings.push(file.name+': זוהו '+found.rows.length+' תחנות; טבלת מקור בעמוד '+found.sourcePage+(found.nightServiceNote?' | שימו לב: קווי הלילה אינם מושפעים לפי הערת המקור. יש לוודא אם יש להסיר 230/231 מהשלטים.':''))}
+  let combined=[],warnings=[];for(const [fileIndex,file] of files.entries()){const data=new Uint8Array(await file.arrayBuffer());const doc=await pdfjsLib.getDocument({data}).promise;const pages=[];for(let i=1;i<=doc.numPages;i++){const p=await doc.getPage(i);pages.push((await p.getTextContent()).items)}const found=parsePdfPages(pages);if(!combined.length){if(found.eventDate)$('date').value=found.eventDate;if(found.times.length===2){$('startTime').value=found.times[0];$('endTime').value=found.times[1]}}combined.push(...found.rows.map(r=>({...r,dates:found.eventDate||'',start:found.times[0]||'',end:found.times[1]||'',sourceId:'pdf-'+fileIndex,sourceName:file.name})));warnings.push(file.name+': זוהו '+found.rows.length+' תחנות; טבלת מקור בעמוד '+found.sourcePage+(found.importWarnings?.length?' | '+found.importWarnings.join(' | '):'')+(found.nightServiceNote?' | שימו לב: קווי הלילה אינם מושפעים לפי הערת המקור. יש לוודא אם יש להסיר 230/231 מהשלטים.':''))}
   const map=new Map();for(const r of combined){const k=[r.sourceId||'',r.code,r.dates||'',r.start||'',r.end||''].join('|');if(!map.has(k))map.set(k,r)}
   setRows([...map.values()]);await autoFillStopNames();$('status').textContent=warnings.join(' | ')+(entries.length?' — יש לבדוק את כל השורות והתאריכים לפני הפקה.':' — לא ניתן לזהות טבלה. הוסיפו תחנות ידנית.');
  }catch(e){$('status').textContent='שגיאה בקריאת PDF: '+e.message+' — ניתן להוסיף תחנות ידנית.'}finally{$('read').disabled=false}
