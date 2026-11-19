@@ -414,7 +414,7 @@ function preview(){
    pages.append(warning);
   }
  }
- else if(r.alt.trim())el.append(text('div','תחנה חלופית '+rowList(r.routes)+'\n'+(r.altName.trim()?r.altName.trim()+' — ':'')+r.alt.trim(),'altblock'));
+ else if(r.alt.trim())el.append(text('div','תחנה חלופית '+rowList(r.routes)+'\n'+((r.altName||lookupStopName(r.alt)).trim()? (r.altName||lookupStopName(r.alt)).trim()+' — ':'שם תחנה חסר — ')+r.alt.trim(),'altblock'));
  const hotline=text('div','פרטים נוספים במוקד כל קו ','hotline');const number=document.createElement('bdi');number.dir='ltr';number.textContent='*8787';hotline.append(number);el.append(hotline);const stop=document.createElement('div');stop.className='stop';const stopName=document.createElement('span');stopName.dir='rtl';stopName.textContent=(r.name||lookupStopName(r.code)).trim();const stopCode=document.createElement('bdi');stopCode.dir='ltr';stopCode.textContent=r.code.trim();if(stopName.textContent){stop.append(stopName,document.createTextNode(' — '),stopCode)}else{stop.append(stopCode);el.classList.add('missing-name')}el.append(stop);pages.append(el)}}
 }
 function update(){preview()}
