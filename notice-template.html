@@ -1,43 +1,90 @@
 <!doctype html>
 <html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Elia CoPilot — הודעה על רקע קבוע</title>
+<title>Elia CoPilot — מחולל סדרת הודעות</title>
 <style>
 :root{font-family:Arial,sans-serif;background:#f3f6fb;color:#172b46}*{box-sizing:border-box}body{margin:0}header{background:#14283f;color:#fff;padding:22px max(22px,calc((100vw - 1100px)/2))}header strong{font-size:27px}header p{margin:5px 0;color:#cbd9e8}nav{display:flex;gap:9px;flex-wrap:wrap;padding:12px max(20px,calc((100vw - 1180px)/2));background:#e5edf7}nav a{padding:9px 12px;background:white;border-radius:8px;color:#245bb4;text-decoration:none;font-weight:700}nav [aria-current]{color:#14263e}main{max-width:1200px;margin:24px auto;padding:0 16px}.card{background:white;padding:19px;border:1px solid #dae3ef;border-radius:12px;margin-bottom:16px}h2{margin:0 0 13px;font-size:20px}label{display:block;font-weight:700;font-size:13px;margin:10px 0 5px}textarea,input,select{font:15px Arial;width:100%;border:1px solid #c8d5e3;border-radius:7px;padding:9px}textarea{min-height:160px;resize:vertical;line-height:1.5}input[type=range]{padding:0}button{background:#2463e6;color:#fff;border:0;border-radius:8px;padding:11px 17px;font:700 14px Arial;cursor:pointer;margin:10px 0 0 8px}button.secondary{background:#eaf0fa;color:#254969}.layout{display:grid;grid-template-columns:minmax(275px,360px) minmax(0,1fr);gap:16px;align-items:start}.preview{background:#e0e6ee;padding:15px;overflow:auto;text-align:center}.preview canvas{max-width:100%;height:auto;box-shadow:0 2px 9px #0002;background:white}.note{font-size:13px;color:#526983;line-height:1.6}.status{font-size:13px;color:#245d39;min-height:18px} .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:850px){.layout{grid-template-columns:1fr}}
+.sign-list{display:flex;flex-direction:column;gap:7px;max-height:330px;overflow:auto;margin:12px 0}.sign-option{padding:10px 12px;border:1px solid #d5dfea;border-radius:8px;background:#f8fbff;color:#193c60;text-align:right;cursor:pointer;font:14px Arial;width:100%;margin:0;overflow-wrap:anywhere}.sign-option.active{border:2px solid #2864e2;background:#e9f1ff}.sign-option small{display:block;font-weight:400;margin-top:4px;color:#526983}.action-row{display:flex;gap:7px;flex-wrap:wrap}.action-row button{margin:4px 0}.code-note{color:#5d7185;font-size:12px}.preview-count{color:#536b84;font-size:13px;margin:2px 0 12px}.field-break{border-top:1px solid #e1e8f0;margin-top:18px;padding-top:12px}#stopCode{direction:ltr;text-align:left}.stop-hint{font-size:12px;color:#61758a}
 </style></head><body>
-<header><strong>Elia CoPilot</strong><p>תבנית הודעה — נא לשים לב!</p></header>
+<header><strong>Elia CoPilot</strong><p>מחולל סדרת הודעות — נא לשים לב!</p></header>
 <nav aria-label="כלי Elia CoPilot"><a href="./index.html">✉️ מחולל מייל</a><a href="./word-generator.html">📄 מחולל Word</a><a href="./contacts.html">👥 קבוצות נמענים</a><a href="./sign-generator.html">🪧 מחולל שלטים</a><a href="./notice-template.html" aria-current="page">📢 הודעה על רקע קבוע</a></nav>
 <main><div class="layout"><section class="card">
-<h2>טקסט להודעה</h2>
-<p class="note">העיצוב המקורי נשמר: הלוגואים, הכותרת האדומה והרקע. הטקסט החדש יופיע באזור הלבן שמתחת לכותרת, בלי למחוק את התבנית.</p>
-<label for="template">תבנית PDF מקורית (נדרשת טעינה ראשונה בלבד)</label><input id="template" type="file" accept=".pdf,application/pdf">
-<p class="note">בחרו את הקובץ ״נא לשים לב(2).pdf״. הקובץ נשמר בדפדפן הזה בלבד, לשימוש חוזר גם אחרי רענון.</p>
-<label for="message">תוכן ההודעה</label><textarea id="message" placeholder="כתבו כאן את נוסח ההודעה..."></textarea>
+<h2>סדרת שלטים <span id="signCount" class="preview-count"></span></h2>
+<p class="note">הוסיפו שלטים לפי הצורך. לכל שלט טקסט משלו וקוד תחנה המופיע בפינה השמאלית התחתונה.</p>
+<div class="action-row"><button id="addSign" type="button">+ הוסף שלט</button><button id="duplicateSign" type="button" class="secondary">שכפל שלט</button><button id="removeSign" type="button" class="secondary">הסר שלט</button></div>
+<div id="signList" class="sign-list" aria-label="רשימת שלטים"></div>
+<h2 class="field-break">עריכת השלט הנבחר</h2>
+<label for="stopCode">קוד תחנה — תווית בפינה השמאלית התחתונה</label>
+<input id="stopCode" type="text" inputmode="numeric" maxlength="15" placeholder="לדוגמה: 20506">
+<label for="message">טקסט מרכזי של השלט</label><textarea id="message" placeholder="הקלידו את נוסח ההודעה..."></textarea>
 <div class="two"><div><label for="size">גודל טקסט</label><input id="size" type="number" min="18" max="100" value="39"></div><div><label for="align">יישור</label><select id="align"><option value="center">מרכז</option><option value="right">ימין</option><option value="left">שמאל</option></select></div></div>
 <div class="two"><div><label for="top">מיקום אנכי (%)</label><input id="top" type="number" min="27" max="83" value="36"></div><div><label for="width">רוחב טקסט (%)</label><input id="width" type="number" min="35" max="94" value="84"></div></div>
 <label><input id="bold" type="checkbox" checked style="width:auto;margin-left:6px">טקסט מודגש</label>
-<div><button id="save">הורד PDF</button><button id="reset" class="secondary">איפוס נוסח</button></div>
+<div class="field-break"><h2>רקע מקורי</h2><label for="template">טעינת קובץ PDF של התבנית</label><input id="template" type="file" accept=".pdf,application/pdf">
+<p class="note">בפעם הראשונה יש לבחור ״נא לשים לב(2).pdf״. התבנית נשמרת בדפדפן ואינה נשלחת לשרת.</p></div>
+<div><button id="save">הורד סדרת שלטים כ-PDF</button><button id="reset" class="secondary">נקה את טקסט השלט</button></div>
 <p id="status" class="status" role="status"></p>
-<p class="note">PDF חדש נוצר מקומית בדפדפן. ודאו שהטקסט לא חופף לכותרת או לשורת המידע בתחתית לפני הדפסה.</p>
-</section><section class="card"><h2>תצוגה מקדימה</h2><div class="preview"><canvas id="canvas" aria-label="תצוגת ההודעה"></canvas></div></section></div></main>
+<p class="note">ההורדה תייצר PDF אחד עם עמוד נפרד לכל שלט, לפי הסדר ברשימה. מומלץ לבדוק את כל השלטים לפני הדפסה.</p>
+</section><section class="card"><h2>תצוגת השלט הנבחר</h2><p id="previewCount" class="preview-count"></p><div class="preview"><canvas id="canvas" aria-label="תצוגת השלט הנבחר"></canvas></div></section></div></main>
 <script>
 'use strict';
-const $=id=>document.getElementById(id),settings=['message','size','align','top','width','bold'];
-const STORE='elia_notice_editor_v1';let pdfBytes=null,baseCanvas=null,renderTimer=0;
+const $=id=>document.getElementById(id),FIELDS=['message','stopCode','size','align','top','width','bold'];
+const STORE='elia_notice_sign_set_v2',OLD_STORE='elia_notice_editor_v1';
+let signs=[],selected=0,baseCanvas=null,renderTimer=0,isLoading=false;
+const initial=()=>({message:'',stopCode:'',size:'39',align:'center',top:'36',width:'84',bold:true});
 function status(s){$('status').textContent=s}
-function loadSettings(){try{const o=JSON.parse(localStorage.getItem(STORE)||'{}');for(const k of settings)if(o[k]!==undefined)$(k).type==='checkbox'?$(k).checked=!!o[k]:$(k).value=o[k]}catch(e){}}
-function saveSettings(){const o={};for(const k of settings)o[k]=$(k).type==='checkbox'?$(k).checked:$(k).value;localStorage.setItem(STORE,JSON.stringify(o))}
+function normalized(v){return {...initial(),...v,stopCode:String(v?.stopCode||'').slice(0,15),message:String(v?.message||'')}}
+function loadSet(){
+ try{const data=JSON.parse(localStorage.getItem(STORE)||'null');if(data?.signs?.length){signs=data.signs.map(normalized);selected=Math.min(Math.max(0,Number(data.selected)||0),signs.length-1);return}}catch(e){}
+ try{const old=JSON.parse(localStorage.getItem(OLD_STORE)||'null');signs=[normalized(old||{})]}catch(e){signs=[initial()]}
+}
+function persist(){try{localStorage.setItem(STORE,JSON.stringify({signs,selected}))}catch(e){status('לא ניתן לשמור את הטיוטה בדפדפן')}}
+function syncEditor(){isLoading=true;const r=signs[selected];for(const k of FIELDS)if($(k).type==='checkbox')$(k).checked=!!r[k];else $(k).value=r[k];isLoading=false}
+function updateList(){
+ $('signCount').textContent='('+signs.length+')';
+ $('previewCount').textContent='שלט '+(selected+1)+' מתוך '+signs.length;
+ const list=$('signList');list.replaceChildren();
+ signs.forEach((r,i)=>{const b=document.createElement('button');b.type='button';b.className='sign-option'+(i===selected?' active':'');b.setAttribute('aria-pressed',String(i===selected));const title=document.createElement('strong');title.textContent='שלט '+(i+1)+(r.stopCode?' — תחנה '+r.stopCode:'');const excerpt=document.createElement('small');excerpt.textContent=(r.message||'ללא טקסט').replace(/\s+/g,' ').slice(0,75);b.append(title,excerpt);b.onclick=()=>{selected=i;syncEditor();updateList();render();persist()};list.append(b)});
+ $('removeSign').disabled=signs.length===1;
+}
+function refresh(){syncEditor();updateList();render();persist()}
+function capture(){if(isLoading)return;const r=signs[selected];for(const k of FIELDS)r[k]=$(k).type==='checkbox'?$(k).checked:$(k).value;persist();updateList();clearTimeout(renderTimer);renderTimer=setTimeout(render,70)}
+for(const k of FIELDS)$(k).addEventListener('input',capture);
+$('addSign').onclick=()=>{signs.push(initial());selected=signs.length-1;refresh()};
+$('duplicateSign').onclick=()=>{signs.splice(selected+1,0,{...signs[selected]});selected++;refresh()};
+$('removeSign').onclick=()=>{if(signs.length<=1)return;signs.splice(selected,1);selected=Math.min(selected,signs.length-1);refresh()};
+$('reset').onclick=()=>{signs[selected].message='';refresh()};
 function db(){return new Promise((resolve,reject)=>{const req=indexedDB.open('elia_notice_pdf_v1',1);req.onupgradeneeded=()=>req.result.createObjectStore('files');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
 async function storeTemplate(buffer){const d=await db();await new Promise((resolve,reject)=>{const tx=d.transaction('files','readwrite');tx.objectStore('files').put(buffer,'template');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});d.close()}
 async function readTemplate(){const d=await db();const bytes=await new Promise((resolve,reject)=>{const tx=d.transaction('files','readonly');const q=tx.objectStore('files').get('template');q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});d.close();return bytes}
 async function library(globalName,url){if(window[globalName])return window[globalName];await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=url;s.onload=resolve;s.onerror=()=>reject(new Error('ספריית PDF לא נטענה'));document.head.append(s)});return window[globalName]}
 async function preparePdf(buffer){status('מכין תצוגה מקדימה...');const pdfjs=await library('pdfjsLib','https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');pdfjs.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';const pdf=await pdfjs.getDocument({data:new Uint8Array(buffer.slice(0))}).promise;const page=await pdf.getPage(1);const view=page.getViewport({scale:900/page.getViewport({scale:1}).width});const c=document.createElement('canvas');c.width=Math.round(view.width);c.height=Math.round(view.height);await page.render({canvasContext:c.getContext('2d'),viewport:view}).promise;baseCanvas=c;status('התבנית מוכנה');render()}
 function wrap(ctx,t,max){const lines=[];for(const paragraph of t.split(/\r?\n/)){if(!paragraph.trim()){lines.push('');continue}let line='';for(const word of paragraph.split(/\s+/)){const candidate=line?line+' '+word:word;if(line&&ctx.measureText(candidate).width>max){lines.push(line);line=word}else line=candidate}lines.push(line)}return lines}
-function paint(canvas){const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);if(baseCanvas)ctx.drawImage(baseCanvas,0,0,canvas.width,canvas.height);else{ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#b52b32';ctx.fillRect(canvas.width*.08,canvas.height*.135,canvas.width*.84,canvas.height*.115);ctx.fillStyle='#fff';ctx.font='bold '+Math.round(canvas.width*.075)+'px Arial';ctx.textAlign='center';ctx.fillText('נא לשים לב!',canvas.width/2,canvas.height*.208)}const factor=canvas.width/900,top=Number($('top').value)||36,width=(Number($('width').value)||84)/100,max=width*canvas.width,sz=(Number($('size').value)||39)*factor;ctx.font=($('bold').checked?'bold ':'')+sz+'px Arial';ctx.fillStyle='#111';ctx.textAlign=$('align').value;ctx.textBaseline='top';ctx.direction='rtl';const lines=wrap(ctx,$('message').value,max);const x=$('align').value==='center'?canvas.width/2:($('align').value==='right'?(canvas.width+max)/2:(canvas.width-max)/2);let y=canvas.height*top/100;for(const line of lines){ctx.fillText(line,x,y,max);y+=sz*1.45}if(y>canvas.height*.92)status('אזהרה: הטקסט ארוך מדי ועלול לחפוף לתחתית השלט')}
-function render(){const canvas=$('canvas');canvas.width=900;canvas.height=baseCanvas?Math.round(baseCanvas.height*900/baseCanvas.width):1249;paint(canvas)}
-function schedule(){saveSettings();clearTimeout(renderTimer);renderTimer=setTimeout(render,80)}
-for(const k of settings)$(k).addEventListener('input',schedule);
-$('template').addEventListener('change',async()=>{const f=$('template').files?.[0];if(!f)return;try{const b=await f.arrayBuffer();await storeTemplate(b);pdfBytes=b;await preparePdf(b);status('התבנית נשמרה בדפדפן בהצלחה')}catch(e){status('שגיאה בטעינת התבנית: '+e.message)}});
-$('reset').onclick=()=>{$('message').value='';schedule()};
-$('save').onclick=async()=>{try{if(!baseCanvas){status('יש לטעון תחילה את תבנית ה-PDF המקורית');return}status('מייצר PDF...');const jsPDF=(await library('jspdf','https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js')).jsPDF;const c=document.createElement('canvas');c.width=1800;c.height=Math.round(baseCanvas.height*1800/baseCanvas.width);paint(c);const doc=new jsPDF({orientation:'portrait',unit:'pt',format:[baseCanvas.width,baseCanvas.height],compress:true});doc.addImage(c.toDataURL('image/jpeg',.95),'JPEG',0,0,baseCanvas.width,baseCanvas.height);doc.save('EliaCoPilot_Notice.pdf');status('קובץ ה-PDF נוצר והורד')}catch(e){status('שגיאה: '+e.message)}};
-loadSettings();render();readTemplate().then(b=>{if(b){pdfBytes=b;return preparePdf(b)}status('יש לבחור את קובץ התבנית המקורי בפעם הראשונה')}).catch(e=>status('לא ניתן לשחזר תבנית שמורה: '+e.message));
+function paint(canvas,sign,reportOverflow=false){
+ const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
+ if(baseCanvas)ctx.drawImage(baseCanvas,0,0,canvas.width,canvas.height);
+ else{ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#b52b32';ctx.fillRect(canvas.width*.08,canvas.height*.135,canvas.width*.84,canvas.height*.115);ctx.fillStyle='#fff';ctx.font='bold '+Math.round(canvas.width*.075)+'px Arial';ctx.textAlign='center';ctx.fillText('נא לשים לב!',canvas.width/2,canvas.height*.208)}
+ const factor=canvas.width/900,top=Number(sign.top)||36,width=(Number(sign.width)||84)/100,max=width*canvas.width,sz=(Number(sign.size)||39)*factor;
+ ctx.font=(sign.bold?'bold ':'')+sz+'px Arial';ctx.fillStyle='#111';ctx.textAlign=sign.align||'center';ctx.textBaseline='top';ctx.direction='rtl';
+ const lines=wrap(ctx,sign.message,max);
+ const x=sign.align==='center'?canvas.width/2:(sign.align==='right'?(canvas.width+max)/2:(canvas.width-max)/2);
+ let y=canvas.height*top/100;
+ for(const line of lines){ctx.fillText(line,x,y,max);y+=sz*1.45}
+ if(reportOverflow&&y>canvas.height*.89)status('אזהרה: טקסט השלט קרוב מדי לתחתית ועלול לחפוף לתבנית');
+ const code=String(sign.stopCode||'').trim();
+ if(code){ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.textBaseline='bottom';ctx.fillStyle='#222';ctx.font=(13*factor)+'px Arial';ctx.fillText(code,canvas.width*.042,canvas.height*.926,canvas.width*.5);ctx.restore()}
+}
+function render(){const canvas=$('canvas');canvas.width=900;canvas.height=baseCanvas?Math.round(baseCanvas.height*900/baseCanvas.width):1249;paint(canvas,signs[selected],true)}
+$('template').addEventListener('change',async()=>{const f=$('template').files?.[0];if(!f)return;try{const b=await f.arrayBuffer();await storeTemplate(b);await preparePdf(b);status('התבנית נשמרה בדפדפן בהצלחה')}catch(e){status('שגיאה בטעינת התבנית: '+e.message)}});
+$('save').onclick=async()=>{
+ try{
+  if(!baseCanvas){status('יש לטעון תחילה את קובץ התבנית המקורי');return}
+  $('save').disabled=true;status('מייצר '+signs.length+' שלטים...');
+  const jsPDF=(await library('jspdf','https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js')).jsPDF;
+  const c=document.createElement('canvas');c.width=1800;c.height=Math.round(baseCanvas.height*1800/baseCanvas.width);
+  const doc=new jsPDF({orientation:'portrait',unit:'pt',format:[baseCanvas.width,baseCanvas.height],compress:true});
+  for(let i=0;i<signs.length;i++){if(i)doc.addPage([baseCanvas.width,baseCanvas.height],'portrait');paint(c,signs[i]);doc.addImage(c.toDataURL('image/jpeg',.96),'JPEG',0,0,baseCanvas.width,baseCanvas.height,undefined,'FAST')}
+  doc.save('EliaCoPilot_Notice_Signs_'+signs.length+'.pdf');status('הושלם: נוצר PDF עם '+signs.length+' שלטים');
+ }catch(e){status('שגיאה: '+e.message)}finally{$('save').disabled=false}
+};
+loadSet();refresh();readTemplate().then(b=>{if(b)return preparePdf(b);status('יש לבחור את קובץ התבנית המקורי בפעם הראשונה')}).catch(e=>status('לא ניתן לשחזר תבנית שמורה: '+e.message));
 </script></body></html>
