@@ -122,11 +122,12 @@ function alternativeCodesInDetail(detail){
 function describeAlternativeLine(line){
  const match=String(line||'').match(/^(.*?)(?:\s*[—–-]\s*)(\d{4,5})\s*$/);
  if(!match)return line;
- const code=match[2],name=lookupStopName(code);
- if(!name)return line+' (שם תחנה חסר — יש להשלים לפני הפצה)';
- // The PDF's six-column table has no names; enrich only an unnamed entry.
- const prefix=match[1].trim();
- if(prefix.includes(':')||prefix.includes('：'))return prefix+' — '+code;
+ const prefix=match[1].trim(),code=match[2],name=lookupStopName(code);
+ // The detailed field may already contain a full stop name before the code.
+ // Only a bare "alternative for routes..." heading needs a name appended.
+ const bareRouteHeading=/^תחנה\s+חלופית\s+לקווים?\s+[\d,\s]+$/u.test(prefix);
+ if(!bareRouteHeading)return prefix+' — '+code;
+ if(!name)return prefix+'\nשם תחנה חסר — '+code;
  return prefix+'\n'+name+' — '+code;
 }
 let lookupGeneration=0;
