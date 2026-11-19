@@ -11,7 +11,7 @@
 .sheet .altblock{font-weight:750;white-space:pre-line;font-size:clamp(25px,3.3vw,40px);line-height:1.35;margin:14px 0}
 .sheet .hotline{font-size:clamp(22px,2.6vw,31px);font-weight:600;margin:auto 0 55px}
 .lookup-link{display:inline-block;color:#245bb4;text-decoration:underline;font-size:12px;margin-top:5px;white-space:nowrap}.lookup-link[hidden]{display:none!important}.sheet .stop{position:absolute;bottom:23px;left:25px;direction:rtl;text-align:left;font-size:14px;font-weight:400;max-width:70%}.sheet.missing-name .stop{outline:1px dashed #c77}
-.sheet .arrow{font-size:55px;line-height:1;margin:13px auto}
+.sheet .arrow{font-size:55px;line-height:1;margin:13px auto}.preview-omission{max-width:1000px;margin:-12px auto 18px;padding:7px 12px;background:#fff3d9;border-right:3px solid #d78e12;font-size:13px;color:#533b14}
 .sheet.has-alternatives .headline{font-size:clamp(37px,5.3vw,65px);margin:auto 0 16px}
 .sheet.has-alternatives .routes{font-size:clamp(28px,4vw,48px);margin-bottom:8px}
 .sheet.has-alternatives .hotline{margin:auto 0 36px}
@@ -25,7 +25,7 @@
 @page{size:A3 landscape;margin:0}
 @media print{
 html,body{background:#fff!important;margin:0;padding:0}
-header,nav,.controls,.preview-header,.event-preview-header{display:none!important}
+header,nav,.controls,.preview-header,.event-preview-header,.preview-omission{display:none!important}
 main{margin:0;padding:0;max-width:none}.preview-area{background:white;overflow:visible;padding:0}
 .sheet{width:420mm;max-width:none;height:297mm;min-height:297mm;aspect-ratio:auto;margin:0;box-shadow:none;padding:18mm 18mm 13mm;break-after:page;page-break-after:always}
 .sheet:last-child{break-after:auto;page-break-after:auto}
@@ -116,10 +116,23 @@ async function lookupCodeRemote(code){
   remoteCache.set(c,result);return result;
  }catch(err){return {status:'error',name:'',message:String(err.message||err)}}
 }
+function alternativeCodesInDetail(detail){
+ return String(detail||'').split('\n').map(line=>line.match(/(?:—|–|-)\s*(\d{4,5})\s*$/)?.[1]).filter(Boolean);
+}
+function describeAlternativeLine(line){
+ const match=String(line||'').match(/^(.*?)(?:\s*[—–-]\s*)(\d{4,5})\s*$/);
+ if(!match)return line;
+ const code=match[2],name=lookupStopName(code);
+ if(!name)return line;
+ // The PDF's six-column table has no names; enrich only an unnamed entry.
+ const prefix=match[1].trim();
+ if(prefix.includes(':')||prefix.includes('：'))return prefix+' — '+code;
+ return prefix+'\n'+name+' — '+code;
+}
 let lookupGeneration=0;
 async function autoFillStopNames(){
  const token=++lookupGeneration;
- const codes=[...new Set(entries.flatMap(r=>[r.code,r.alt]).map(x=>String(x||'').trim()).filter(x=>/^\d{5}$/.test(x)))];
+ const codes=[...new Set(entries.flatMap(r=>[r.code,r.alt,...alternativeCodesInDetail(r.detail)]).map(x=>String(x||'').trim()).filter(x=>/^\d{5}$/.test(x)))];
  if(!codes.length){$('lookupStatus').textContent='אין עדיין קודי תחנות לחיפוש';return}
  $('lookupStatus').textContent='מחפש שמות תחנות... '+codes.length+' קודים';
  const queue=[...codes],results=new Map();
@@ -134,6 +147,8 @@ async function autoFillStopNames(){
   if(res.status==='ambiguous')ambiguous.add(code);
   if(res.status==='error'||res.status==='missing')unavailable.add(code);
  }
+ // Multi-alternative entries store codes inside the detailed text, not r.alt.
+ for(const code of codes){const res=results.get(code);if(res?.name)storeStopName(code,res.name);else if(res?.status==='ambiguous')ambiguous.add(code);else if(res?.status==='error'||res?.status==='missing')unavailable.add(code)}
  drawRows();preview();
  let msg='חיפוש הושלם: '+filled+' שמות מולאו אוטומטית.';
  if(ambiguous.size)msg+=' שמות לא חד-משמעיים: '+[...ambiguous].join(', ')+'.';
@@ -386,7 +401,19 @@ function preview(){
  const pages=$('pages');pages.replaceChildren();const date=$('date').value.trim(),start=$('startTime').value,end=$('endTime').value;
  if(!entries.length){pages.append(text('div','עדיין לא זוהו תחנות. ניתן להוסיף תחנות ידנית או לטעון דוגמה.','empty'));return}
  for(const group of batchGroups()){const groupHeader=document.createElement('div');groupHeader.className='event-preview-header';const groupName=document.createElement('strong');groupName.textContent=eventLabel(group.name);const groupCount=document.createElement('span');groupCount.textContent=group.indices.length+' שלטים • קובץ מקור: '+group.name;groupHeader.append(groupName,groupCount);pages.append(groupHeader);for(const i of group.indices){const r=entries[i];if(!r.code.trim())continue;const el=document.createElement('article');const altLines=(r.detail||'').split('\n').filter(Boolean);const totalLength=(r.routes||'').length+(r.detail||'').length+(r.altName||'').length;el.className='sheet'+((r.detail||'').trim()||(r.alt||'').trim()?' has-alternatives':'')+(altLines.length>=3||totalLength>180?' dense':'');el.dataset.sourceId=r.sourceId||'manual';el.dataset.sourceName=r.sourceName||'ידני';const rowDate=(r.dates||'').trim()||date,rowStart=(r.start||'').trim()||start,rowEnd=(r.end||'').trim()||end;el.append(createDateNode(rowDate));el.append(text('div','מהשעה '+rowStart+' ועד השעה '+rowEnd+(rowEnd<rowStart?' בבוקר למחרת':''),'hours'));el.append(text('div','תחנה זו מבוטלת זמנית','headline'));el.append(text('div',rowList(r.routes),'routes'));
- if(r.detail.trim())for(const line of r.detail.split('\n').filter(Boolean))el.append(text('div',line,'altblock'));
+ if(r.detail.trim()){
+  const detailLines=r.detail.split('\n').filter(Boolean);
+  // Keep whole alternative entries together (heading + stop name/code).
+  // Long signs intentionally display at most two alternatives; the omitted ones
+  // remain editable in the table and are explicitly reported beside the preview.
+  const visible=detailLines.slice(0,2);
+  for(const line of visible)el.append(text('div',describeAlternativeLine(line),'altblock'));
+  if(detailLines.length>visible.length){
+   const warning=document.createElement('div');warning.className='preview-omission';
+   warning.textContent='תחנה '+r.code+': '+(detailLines.length-visible.length)+' חלופות נוספות לא הוצגו בשלט כדי למנוע חיתוך. הן נשמרו בטבלת העריכה.';
+   pages.append(warning);
+  }
+ }
  else if(r.alt.trim())el.append(text('div','תחנה חלופית '+rowList(r.routes)+'\n'+(r.altName.trim()?r.altName.trim()+' — ':'')+r.alt.trim(),'altblock'));
  const hotline=text('div','פרטים נוספים במוקד כל קו ','hotline');const number=document.createElement('bdi');number.dir='ltr';number.textContent='*8787';hotline.append(number);el.append(hotline);const stop=document.createElement('div');stop.className='stop';const stopName=document.createElement('span');stopName.dir='rtl';stopName.textContent=(r.name||lookupStopName(r.code)).trim();const stopCode=document.createElement('bdi');stopCode.dir='ltr';stopCode.textContent=r.code.trim();if(stopName.textContent){stop.append(stopName,document.createTextNode(' — '),stopCode)}else{stop.append(stopCode);el.classList.add('missing-name')}el.append(stop);pages.append(el)}}
 }
