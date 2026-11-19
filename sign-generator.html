@@ -78,11 +78,11 @@ const sample=[
 {code:'25566',routes:'18, 61, 66, 90',alt:'20664',altName:'פרישמן/דב הוז',detail:''}
 ];
 let entries=[];
-const stopNames={'20664':'פרישמן/דב הוז','25609':'דיזנגוף סנטר/דיזנגוף','25813':'ביה״ס גרץ/מאנגר','25794':'דיזנגוף/ארלוזורוב','21553':'שד׳ הר ציון/דרך שלמה'};
+const stopNames={'30530':'אוניברסיטת בר אילן/דרך אשכול','20664':'פרישמן/דב הוז','25609':'דיזנגוף סנטר/דיזנגוף','25813':'ביה״ס גרץ/מאנגר','25794':'דיזנגוף/ארלוזורוב','21553':'שד׳ הר ציון/דרך שלמה'};
 const STOP_NAMES_KEY='elia_copilot_stop_names_v1';
 function savedStopNames(){try{return JSON.parse(localStorage.getItem(STOP_NAMES_KEY))||{}}catch{return {}}}
 function lookupStopName(code){return savedStopNames()[String(code||'').trim()]||stopNames[String(code||'').trim()]||''}
-function storeStopName(code,name){code=String(code||'').trim();name=String(name||'').trim();if(!/^\d{5}$/.test(code)||!name)return;try{const names=savedStopNames();names[code]=name;localStorage.setItem(STOP_NAMES_KEY,JSON.stringify(names))}catch(e){}}
+function storeStopName(code,name){code=String(code||'').trim();name=String(name||'').trim();if(!/^\d{4,5}$/.test(code)||!name)return;try{const names=savedStopNames();names[code]=name;localStorage.setItem(STOP_NAMES_KEY,JSON.stringify(names))}catch(e){}}
 function normalizeRouteNumbers(value){
  const raw=String(value||'');
  if(/כל\s*הקווים/.test(raw))return raw;
@@ -102,7 +102,7 @@ const remoteCache=new Map();
 function apiStopName(item){return String(item?.name||item?.stop_name||item?.stopName||'').trim()}
 async function lookupCodeRemote(code){
  const c=String(code||'').trim();
- if(!/^\d{5}$/.test(c))return {status:'invalid',name:''};
+ if(!/^\d{4,5}$/.test(c))return {status:'invalid',name:''};
  if(remoteCache.has(c))return remoteCache.get(c);
  try{
   const response=await fetch(STOPS_API+'?code='+encodeURIComponent(c)+'&limit=100',{headers:{Accept:'application/json'}});
@@ -123,7 +123,7 @@ function describeAlternativeLine(line){
  const match=String(line||'').match(/^(.*?)(?:\s*[—–-]\s*)(\d{4,5})\s*$/);
  if(!match)return line;
  const code=match[2],name=lookupStopName(code);
- if(!name)return line;
+ if(!name)return line+' (שם תחנה חסר — יש להשלים לפני הפצה)';
  // The PDF's six-column table has no names; enrich only an unnamed entry.
  const prefix=match[1].trim();
  if(prefix.includes(':')||prefix.includes('：'))return prefix+' — '+code;
@@ -132,7 +132,7 @@ function describeAlternativeLine(line){
 let lookupGeneration=0;
 async function autoFillStopNames(){
  const token=++lookupGeneration;
- const codes=[...new Set(entries.flatMap(r=>[r.code,r.alt,...alternativeCodesInDetail(r.detail)]).map(x=>String(x||'').trim()).filter(x=>/^\d{5}$/.test(x)))];
+ const codes=[...new Set(entries.flatMap(r=>[r.code,r.alt,...alternativeCodesInDetail(r.detail)]).map(x=>String(x||'').trim()).filter(x=>/^\d{4,5}$/.test(x)))];
  if(!codes.length){$('lookupStatus').textContent='אין עדיין קודי תחנות לחיפוש';return}
  $('lookupStatus').textContent='מחפש שמות תחנות... '+codes.length+' קודים';
  const queue=[...codes],results=new Map();
@@ -420,8 +420,10 @@ function preview(){
 function update(){preview()}
 for(const id of ['date','startTime','endTime'])$(id).addEventListener('input',update);
 function missingStopNames(){return entries.filter(r=>r.code.trim()&&!((r.name||lookupStopName(r.code)).trim()))}
+function missingAlternativeNames(){const missing=new Set();for(const r of entries){if(r.alt&&!(r.altName||lookupStopName(r.alt)).trim())missing.add(r.alt);for(const c of alternativeCodesInDetail(r.detail))if(!lookupStopName(c))missing.add(c)}return [...missing]}
+function missingNamesAlert(){const stops=missingStopNames().map(r=>r.code);const alts=missingAlternativeNames();return [...(stops.length?['חסרים שמות לתחנות מבוטלות: '+[...new Set(stops)].join(', ')]:[]),...(alts.length?['חסרים שמות לתחנות חלופיות: '+alts.join(', ')]:[])].join('\n')}
 $('autoLookup').onclick=autoFillStopNames;
-$('make').onclick=preview;$('print').onclick=()=>{preview();const missing=missingStopNames();if(missing.length&&!confirm('חסרים שמות לתחנות: '+missing.map(r=>r.code).join(', ')+'. להדפיס בכל זאת?'))return;window.print()};
+$('make').onclick=preview;$('print').onclick=()=>{preview();const warning=missingNamesAlert();if(warning&&!confirm(warning+'\nלהדפיס בכל זאת?'))return;window.print()};
 $('emptyRow').onclick=()=>{entries.push({code:'',name:'',routes:'',dates:'',start:'',end:'',alt:'',altName:'',detail:'',sourceId:'manual',sourceName:'ידני'});drawRows();preview()};
 $('sample').onclick=async()=>{$('date').value='16.11.2026';$('startTime').value='22:00';$('endTime').value='05:00';setRows(sample.map(r=>({...r,sourceId:'sample',sourceName:'דוגמה — בן יהודה טרומפלדור'})));await autoFillStopNames();$('status').textContent='נטענה דוגמת בן יהודה/טרומפלדור (7 שלטים). זו דוגמת ביקורת, לא תוצאה של קריאה אוטומטית.'};
 $('read').onclick=async()=>{
@@ -479,8 +481,8 @@ $('batchZip').onclick=async()=>{
  const button=$('batchZip'),status=$('batchStatus');
  const groups=batchGroups();
  if(!groups.length){status.textContent='אין שלטים להפקה. יש לטעון PDF או להזין תחנות.';return}
- const missing=missingStopNames();
- if(missing.length&&!confirm('חסרים שמות לתחנות: '+[...new Set(missing.map(r=>r.code))].join(', ')+'. להמשיך ליצירת ZIP?'))return;
+ const warning=missingNamesAlert();
+ if(warning&&!confirm(warning+'\nלהמשיך ליצירת ZIP?'))return;
  button.disabled=true;
  try{
   status.textContent='טוען ספריות להפקת PDF ו-ZIP...';
