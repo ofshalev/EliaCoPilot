@@ -373,8 +373,17 @@ if(!event){$('missing').hidden=false}else{
  };
  function signIcon(kind){
   const t=presets[kind]||presets['no-entry'];
-  const html='<div class="closure-sign '+kind+'" title="'+t.label+'">'+t.glyph+'</div>';
-  return L.divIcon({className:'',html,iconSize:[32,32],iconAnchor:[16,16]});
+  // Inline vector traffic symbols stay legible at different map zoom levels.
+  const arrow=kind==='no-left'
+   ?'<path d="M23 11H14Q8 11 8 17V21M8 21L4 17M8 21L12 17" stroke="#202b33" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'
+   :'<path d="M9 11H18Q24 11 24 17V21M24 21L20 17M24 21L28 17" stroke="#202b33" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>';
+  const body=kind==='no-entry'
+   ?'<circle cx="16" cy="16" r="13" fill="#eb1b28"/><path d="M8 16H24" stroke="white" stroke-width="5" stroke-linecap="round"/>'
+   :kind==='work'
+    ?'<path d="M16 2L30 29H2Z" fill="#ffd62d" stroke="#27313a" stroke-width="2.5"/><path d="M16 10v9" stroke="#283138" stroke-width="3"/><circle cx="16" cy="24" r="1.6" fill="#283138"/>'
+    :'<circle cx="16" cy="16" r="13" fill="white" stroke="#eb1b28" stroke-width="3"/>'+arrow+'<path d="M7 7L25 25" stroke="#eb1b28" stroke-width="3.5"/>';
+  const html='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="34" height="34" role="img" aria-label="'+t.label+'" style="filter:drop-shadow(0 1px 2px #20304466)">'+body+'</svg>';
+  return L.divIcon({className:'',html,iconSize:[34,34],iconAnchor:[17,17]});
  }
  function ensureMap(){
   if(map)return true;
