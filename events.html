@@ -309,7 +309,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  <div><label for="projectFilter">פרויקט</label><select id="projectFilter"><option value="">כל הפרויקטים</option><option value="הקו הסגול">הקו הסגול</option><option value="הקו החום">הקו החום</option><option value="הקו הירוק">הקו הירוק</option></select></div>
  <div><label for="statusFilter">סטטוס</label><select id="statusFilter"><option value="">כל הסטטוסים</option><option>מתוכנן</option><option>בטיפול</option><option>ממתין לאישור</option><option>מאושר</option><option>בוטל</option><option>הושלם</option></select></div>
  <div><label for="search">חיפוש חופשי</label><input id="search" placeholder="אירוע, מקטע, מיקום..."></div>
- <div class="sort-filter"><label for="sortEvents">מיון</label><button type="button" class="alt" id="sortEvents" aria-pressed="true">סדר עולה ↑</button></div></div>
+ </div>
  <div id="eventsList" class="events-list"></div>
 </section>
 </main>
@@ -1176,7 +1176,6 @@ function widestEventSpan(e){
  return {date:continuousRange?compactContinuousPeriod(from,to):workDates.length?compactWorkDates(workDates):compactContinuousPeriod(from,to),start,end,hasDay:entries.some(x=>x.type==='עבודות יום'),
   unusualNight:entries.some(x=>x.type==='עבודות לילה'&&x.start!=='22:00')};
 }
-let ascendingSort=true;
 function render(){
  $('totalEvents').textContent=events.length+' אירועים';
  const term=$('search').value.trim().toLowerCase();
@@ -1186,7 +1185,7 @@ function render(){
  const compare=(a,b)=>(projectOrder[a.railLine]??3)-(projectOrder[b.railLine]??3)||
   String(a.segment||'').localeCompare(String(b.segment||''),'en',{numeric:true})||
   String(a.dateFrom||'').localeCompare(String(b.dateFrom||''));
- const filtered=[...events].sort((a,b)=>ascendingSort?compare(a,b):-compare(a,b)).filter(e=>{
+ const filtered=[...events].sort(compare).filter(e=>{
   if(project&&e.railLine!==project)return false;
   if(status&&e.eventStatus!==status)return false;
   return !term||[e.eventTitle,e.street,e.segment,e.workId,e.description,e.city,...eventBlockages(e).map(blockageTitle)].join(' ').toLowerCase().includes(term);
@@ -1221,12 +1220,6 @@ function render(){
 }
 for(const el of ['projectFilter','statusFilter'])$(el).onchange=render;
 $('search').oninput=render;
-$('sortEvents').onclick=()=>{
- ascendingSort=!ascendingSort;
- $('sortEvents').textContent=ascendingSort?'סדר עולה ↑':'סדר יורד ↓';
- $('sortEvents').setAttribute('aria-pressed',String(ascendingSort));
- render();
-};
 $('exportEvents').onclick=()=>{const blob=new Blob([JSON.stringify({version:1,events},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='EliaCoPilot_Events.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2500)};
 $('importEvents').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;try{const obj=JSON.parse(await file.text());const incoming=Array.isArray(obj)?obj:obj.events;if(!Array.isArray(incoming))throw Error('קובץ לא תקין');if(!confirm('למזג את האירועים מהקובץ למאגר המקומי?'))return;const map=new Map(events.map(x=>[x.id,x]));for(const ev of incoming)if(ev&&typeof ev.id==='string'&&ev.eventTitle)map.set(ev.id,ev);events=[...map.values()];save();render()}catch(err){alert('שגיאה בייבוא: '+err.message)}e.target.value=''};
 render();
