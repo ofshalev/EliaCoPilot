@@ -71,6 +71,10 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .project-p .project-code{background:#7844aa}.project-b .project-code{background:#89552f}.project-g .project-code{background:#238455}
 .segment-label{font-weight:800;font-size:15px;direction:ltr;unicode-bidi:isolate}
 .event-title{display:block;margin-bottom:4px}
+.event-title-row{display:flex;align-items:center;gap:8px;direction:rtl;margin-bottom:4px}
+.event-title-row .event-title{margin:0;min-width:0}
+.event-title-row .presentation-icon{flex:0 0 auto;display:inline-flex;justify-content:center;align-items:center;width:29px;height:29px;padding:0;font-size:21px;line-height:1;border:1px solid #b9cce1;border-radius:7px;color:#295b9e;background:#e9f0fb}
+.event-title-row .presentation-icon:hover,.event-title-row .presentation-icon:focus-visible{background:#dce9fc;outline-color:#2864e2}
 .event-card strong{font-size:15px}.event-meta{color:#64778d;font-size:13px;line-height:1.8}.event-meta .time-alert{color:#c62828;font-weight:700}.event-title .time-alert{color:#c62828;font-weight:700}.event-title-period{white-space:nowrap}.event-card .actions{margin-top:0}
 .pill{font-size:12px;background:#eef3f9;color:#345a80;padding:4px 9px;border-radius:20px;display:inline-block;margin-inline-start:7px}.empty{padding:25px;text-align:center;color:#72859a}
 .tasks{display:flex;flex-wrap:wrap;gap:14px;padding:8px 0}.tasks label{display:flex;align-items:center;gap:7px;font-weight:400}
@@ -1210,7 +1214,14 @@ function render(){
   txt(tag(heading,'span','pill'),e.eventStatus||'מתוכנן');
   const name=eventBlockages(e).length>1?multiBlockageTitle(eventBlockages(e))
    :(e.eventTitle||'אירוע ללא שם').replace(/^חסימת\s+(?=צומת(?:\s|$))/,'').trim();
-  txt(tag(info,'strong','event-title'),name);
+  const titleRow=tag(info,'div','event-title-row');
+  const ppt=tag(titleRow,'button','alt presentation-icon');
+  ppt.type='button';
+  ppt.textContent='▣';
+  ppt.title='ערוך מצגת';
+  ppt.setAttribute('aria-label','ערוך מצגת: '+name);
+  ppt.onclick=()=>{window.location.href='presentation-editor.html?event='+encodeURIComponent(e.id)};
+  txt(tag(titleRow,'strong','event-title'),name);
   txt(tag(info,'div','event-meta'),e.city||'');
   const whenEl=tag(info,'div','event-meta');
   const addWhen=(value,red=false)=>{const el=tag(whenEl,'span',red?'time-alert':'');el.textContent=value;};
@@ -1224,7 +1235,7 @@ function render(){
   }
   const done=outputFields.filter(f=>e[f]).length;
   txt(tag(info,'div','event-meta'),(e.workId?'מספר עבודה / בקשה: '+e.workId+' · ':'')+'תוצרים: '+done+' מתוך '+outputFields.length);
-  const actions=tag(row,'div','actions');const ppt=tag(actions,'button','alt');ppt.textContent='▣ מצגת';ppt.title='פתח עורך מצגת לאירוע';ppt.setAttribute('aria-label','פתח עורך מצגת לאירוע');ppt.onclick=()=>{window.location.href='presentation-editor.html?event='+encodeURIComponent(e.id)};const edit=tag(actions,'button','alt');edit.textContent='ערוך';edit.onclick=()=>editEvent(e.id);const del=tag(actions,'button','danger');del.textContent='מחק';del.onclick=()=>deleteEvent(e.id);
+  const actions=tag(row,'div','actions');const edit=tag(actions,'button','alt');edit.textContent='ערוך';edit.onclick=()=>editEvent(e.id);const del=tag(actions,'button','danger');del.textContent='מחק';del.onclick=()=>deleteEvent(e.id);
  }
 }
 for(const el of ['projectFilter','statusFilter'])$(el).onchange=render;
