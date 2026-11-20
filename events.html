@@ -1203,21 +1203,20 @@ function render(){
   txt(tag(heading,'span','project-code'),code);
   txt(tag(heading,'span','segment-label'),e.segment||'מקטע לא הוגדר');
   txt(tag(heading,'span','pill'),e.eventStatus||'מתוכנן');
-  const title=tag(info,'strong','event-title');
   const name=eventBlockages(e).length>1?multiBlockageTitle(eventBlockages(e))
    :(e.eventTitle||'אירוע ללא שם').replace(/^חסימת\s+(?=צומת(?:\s|$))/,'').trim();
-  const span=widestEventSpan(e);
-  txt(tag(title,'span'),name);
-  if(span.date!=='—'){
-   txt(tag(title,'span','event-title-period'),' — '+span.date);
-  }
-  if(span.start&&span.end){
-   txt(tag(title,'span','event-title-time-prefix'),' | ');
-   txt(tag(title,'span',(span.hasDay||span.unusualNight)?'time-alert':''),span.start);
-   txt(tag(title,'span'),'–');
-   txt(tag(title,'span',span.hasDay?'time-alert':''),span.end);
-  }
+  txt(tag(info,'strong','event-title'),name);
   txt(tag(info,'div','event-meta'),(eventBlockages(e).length>1?[e.city]:[e.city,e.street,e.direction]).filter(Boolean).join(' · '));
+  const whenEl=tag(info,'div','event-meta');
+  const addWhen=(value,red=false)=>{const el=tag(whenEl,'span',red?'time-alert':'');el.textContent=value;};
+  const span=widestEventSpan(e);
+  addWhen(span.date);
+  if(span.start&&span.end){
+   addWhen(' | ');
+   addWhen(span.start,span.hasDay||span.unusualNight);
+   addWhen('–');
+   addWhen(span.end,span.hasDay);
+  }
   const done=outputFields.filter(f=>e[f]).length;
   txt(tag(info,'div','event-meta'),(e.workId?'מספר עבודה / בקשה: '+e.workId+' · ':'')+'תוצרים: '+done+' מתוך '+outputFields.length);
   const actions=tag(row,'div','actions');const edit=tag(actions,'button','alt');edit.textContent='ערוך';edit.onclick=()=>editEvent(e.id);const del=tag(actions,'button','danger');del.textContent='מחק';del.onclick=()=>deleteEvent(e.id);
