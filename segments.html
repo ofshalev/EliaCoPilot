@@ -15,6 +15,13 @@ main{max-width:1080px;margin:26px auto;padding:0 18px}
 .card{background:white;border:1px solid #dce4ee;border-radius:14px;padding:24px;box-shadow:0 5px 20px #1025400c}
 h1{margin:0 0 12px;font-size:25px}p{line-height:1.7}
 .note{color:#52677d;margin:0}
+.segment-sections{display:grid;gap:18px}
+.segment-section{background:#fff;border:2px solid var(--line-color);border-radius:14px;padding:20px 22px;box-shadow:0 5px 20px #1025400c;min-height:120px}
+.segment-section h2{font-size:23px;margin:0;color:var(--line-color);font-weight:800}
+.segment-purple{--line-color:#7844aa}
+.segment-brown{--line-color:#89552f}
+.segment-green{--line-color:#238455}
+@media(max-width:600px){.segment-section{padding:16px}.segment-section h2{font-size:21px}}
 /* Shared automatic work-week indicator */
 header.hero,body>header{display:flex;align-items:center;justify-content:space-between;gap:22px;flex-wrap:wrap;position:relative}
 .elia-weeks{position:absolute;top:10px;left:18px;display:flex;direction:ltr;align-items:flex-start;gap:16px;margin:0;white-space:nowrap;font-family:Arial,sans-serif}
@@ -30,7 +37,11 @@ header.hero,body>header{display:flex;align-items:center;justify-content:space-be
 <body>
 <header><div><strong>Elia CoPilot</strong><p>ניהול מקטעי עבודות</p></div><div class="elia-weeks" aria-label="שבוע הבא והשבוע הנוכחי"><div class="elia-week-block"><span class="elia-week-label">שבוע הבא</span><span class="elia-week-next" id="eliaNextWeek">–</span></div><div class="elia-week-block elia-week-block-current"><span class="elia-week-label">שבוע נוכחי</span><span class="elia-week-current" id="eliaCurrentWeek">–</span></div></div></header>
 <nav aria-label="כלי Elia CoPilot"><a href="./events.html">📅 אירועים</a><a href="./segments.html" aria-current="page">🛣️ מקטעים</a><a href="./index.html">✉️ מחולל מייל</a><a href="./word-generator.html">📄 מחולל Word</a><a href="./contacts.html">👥 קבוצות נמענים</a><a href="./sign-generator.html">🪧 מחולל שלטים</a><a href="./notice-template.html">📢 הודעה על רקע קבוע</a></nav>
-<main><section class="card"><h1>מקטעים</h1><p class="note">כאן נרכז את מקטעי העבודה. מבנה המקטעים והקשר שלהם לאירועים יוגדרו בהמשך.</p></section></main>
+<main><div class="segment-sections">
+<section class="segment-section segment-purple" aria-labelledby="purple-line-heading"><h2 id="purple-line-heading">הקו הסגול</h2></section>
+<section class="segment-section segment-brown" aria-labelledby="brown-line-heading"><h2 id="brown-line-heading">הקו החום</h2></section>
+<section class="segment-section segment-green" aria-labelledby="green-line-heading"><h2 id="green-line-heading">הקו הירוק</h2></section>
+</div></main>
 <script>
 /* ISO 8601 week numbers, calculated for Israel's local calendar date. */
 (function(){
