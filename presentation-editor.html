@@ -166,7 +166,20 @@ if(!event){$('missing').hidden=false}else{
   const list=[];let d=first;for(let i=0;i<366&&d<=last;i++,d=plusDate(d,1))list.push(d);return list;
  })():sortedDates;
  const dayIndices=[...new Set(allDays.map(d=>new Date(d+'T12:00:00').getDay()))].sort((a,b)=>a-b);
- const daysText=dayIndices.length?dayIndices.map(i=>shortDay[i]).join('+'):'—';
+ // Combine consecutive weekdays: א'-ג'+ה' instead of א'+ב'+ג'+ה'.
+ function compactWeekdays(indices){
+  if(!indices.length)return '—';
+  const parts=[];
+  for(let i=0;i<indices.length;){
+   let j=i;
+   while(j+1<indices.length&&indices[j+1]===indices[j]+1)j++;
+   const day=n=>shortDay[n]+"'";
+   parts.push(j===i?day(indices[i]):day(indices[i])+'-'+day(indices[j]));
+   i=j+1;
+  }
+  return 'ימים '+parts.join('+');
+ }
+ const daysText=compactWeekdays(dayIndices);
  const valid=hours.filter(h=>/^\d{2}:\d{2}$/.test(h.from||'')&&/^\d{2}:\d{2}$/.test(h.to||''));
  const mins=t=>Number(t.slice(0,2))*60+Number(t.slice(3));
  const fmt=m=>String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
