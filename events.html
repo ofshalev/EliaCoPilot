@@ -263,7 +263,7 @@ function updateStreetChoices(preserve=false){
  if(fixed)$('street').value=options[0];
  else if(multiple){
   const match=preserve?options.find(name=>existing===name||existing.startsWith(name+' ')||existing.startsWith(name+'/')):null;
-  select.value=match||options.includes(previousChoice)&&preserve?match||previousChoice:'';
+  select.value=match||(preserve&&options.includes(previousChoice)?previousChoice:'');
   $('street').value=select.value;
  }else $('street').value='';
  if(junction&&!$('crossStreetList').children.length)resetCrossStreets();
