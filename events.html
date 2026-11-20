@@ -137,7 +137,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  
  <div class="project-fields full" dir="rtl">
  <div class="project-line-field"><label for="railLine">קו / פרויקט</label><select id="railLine"><option value="">בחר קו</option><option>הקו הסגול</option><option>הקו החום</option><option>הקו הירוק</option><option>אחר</option></select></div>
- <div class="project-segment-field"><label for="segment">מקטע *</label><select id="segment" required><option value="">בחר מקטע</option></select></div>
+ <div class="project-segment-field"><label for="segment">מקטע</label><select id="segment" required><option value="">בחר מקטע</option></select></div>
  <div class="project-city-display"><span class="field-caption">עיר</span><strong id="cityDisplay">תיקבע לפי המקטע</strong><input id="city" type="hidden" value=""></div>
  </div>
  <div class="location-row full">
@@ -284,8 +284,30 @@ function updateSegments(){
  }
  if([...list.options].some(o=>o.value===prior))list.value=prior;
 }
-$('railLine').onchange=()=>{$('segment').value='';updateSegments();updateLocationType();updateStreetChoices();showCity('')};
-$('segment').onchange=()=>{applySegmentCity();updateStreetChoices()};
+function clearSegmentLocationDetails(){
+ // Changing segments invalidates all location-specific values from the previous section.
+ $('street').value='';
+ $('streetChoice').value='';
+ $('fromStreet').value='';
+ $('toStreet').value='';
+ $('bothDirections').checked=false;
+ $('direction').value='';
+ resetCrossStreets();
+ $('formStatus').textContent='';
+}
+$('railLine').onchange=()=>{
+ $('segment').value='';
+ clearSegmentLocationDetails();
+ updateSegments();
+ updateLocationType();
+ updateStreetChoices();
+ showCity('');
+};
+$('segment').onchange=()=>{
+ clearSegmentLocationDetails();
+ applySegmentCity();
+ updateStreetChoices();
+};
 function updateLocationType(){if($('locationType').value==='צומת'&&!$('crossStreetList').children.length)resetCrossStreets()}
 $('locationType').addEventListener('change',()=>{updateLocationType();updateStreetChoices(true)});
 const DATE_LABELS=['יום ראשון','יום שני','יום שלישי','יום רביעי','יום חמישי'];
