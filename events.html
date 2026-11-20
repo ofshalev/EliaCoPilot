@@ -189,6 +189,8 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .compact-clock-prompt{font-size:12px;color:#64778d;max-width:155px;text-align:center}
 .compact-calendar-day.focused{outline:2px solid #174a94;outline-offset:-3px}
 .compact-daily-hours{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;align-self:flex-start}
+.compact-day-time-item{position:relative;display:flex;align-items:stretch}
+.compact-day-remove{align-self:start;margin-inline-start:2px;border:1px solid #e1cfce;border-radius:6px;background:#fff4f4;color:#aa4444;padding:1px 5px;min-height:23px;font-size:14px}
 .compact-daily-hour{display:flex;flex-direction:column;gap:2px;text-align:center;padding:6px 9px;border:1px solid #cbd8e8;border-radius:7px;background:#fff;color:#45617e;font-size:11px}
 .compact-daily-hour strong{direction:ltr;font-size:12px}
 .compact-daily-hour.active{border-color:#2864e2;background:#dceaff;box-shadow:inset 0 0 0 1px #2864e2}
@@ -533,7 +535,7 @@ function buildCompactSchedule(block){
   for(const name of ['pointercancel','lostpointercapture'])svg.addEventListener(name,()=>dragging=null);
  }
  let calendarOffset=0,rangeStartPending=false;
- const dateTimes=document.createElement('div');dateTimes.className='compact-daily-hours';datesArea.after(dateTimes);
+ const dateTimes=document.createElement('div');dateTimes.className='compact-daily-hours';
  function renderDateTimes(){
   dateTimes.replaceChildren();
   if(schedule.workType==='עבודות רצופות'){dateTimes.hidden=true;return}
@@ -549,7 +551,16 @@ function buildCompactSchedule(block){
    item.append(dayText,timeText);
    item.title='בחרו כדי לערוך שעות ביום זה';
    item.onclick=()=>{focusedDate=date;renderTimes();renderDates()};
-   dateTimes.append(item);
+   const wrap=document.createElement('div');wrap.className='compact-day-time-item';wrap.append(item);
+   const remove=document.createElement('button');remove.type='button';remove.className='compact-day-remove';
+   remove.textContent='×';remove.title='הסר יום עבודה '+formatDate(date);remove.setAttribute('aria-label',remove.title);
+   remove.onclick=()=>{
+    schedule.selectedDates=schedule.selectedDates.filter(d=>d!==date);
+    if(schedule.dailyHours)delete schedule.dailyHours[date];
+    if(focusedDate===date)focusedDate=schedule.selectedDates[0]||'';
+    renderDates();renderTimes();
+   };
+   wrap.append(remove);dateTimes.append(wrap);
   }
  }
  function renderDates(){
@@ -614,7 +625,7 @@ function buildCompactSchedule(block){
   help.textContent=continuous
    ?(schedule.dateFrom?'התחלה: '+formatDate(schedule.dateFrom)+(schedule.dateTo?' · סיום: '+formatDate(schedule.dateTo):' · בחרו תאריך סיום'):'בחרו תאריך התחלה וסיום')
    :schedule.selectedDates.length?'נבחרו '+schedule.selectedDates.length+' ימים':'בחרו ימי עבודה';
-  datesArea.append(help);
+  datesArea.append(help,dateTimes);
   renderDateTimes();
  }
  kind.onchange=()=>{
@@ -1049,13 +1060,27 @@ function render(){
    addWhen(formatDate(e.dateFrom)+' '+(e.timeFrom||'')+' — '+formatDate(e.dateTo)+' '+(e.timeTo||''));
   }else{
    const selected=Array.isArray(e.selectedDates)&&e.selectedDates.length;
-   addWhen(selected?e.selectedDates.map(formatDate).join(' · ')+' | ':formatDate(e.dateFrom)+' ');
-   const unusualNightStart=e.workType==='עבודות לילה'&&e.timeFrom!=='22:00';
-   const dayWork=e.workType==='עבודות יום';
-   addWhen(e.timeFrom||'',dayWork||unusualNightStart);
-   addWhen(selected?'–':' — ');
-   if(!selected)addWhen(formatDate(e.dateTo)+' ');
-   addWhen(e.timeTo||'',dayWork);
+   const perDay=selected&&e.blockages?.[0]?.dailyHours||e.dailyHours||{};
+   const differing=selected&&e.selectedDates.some(d=>{
+    const h=perDay[d];return h&&(h.timeFrom!==e.timeFrom||h.timeTo!==e.timeTo);
+   });
+   if(differing){
+    e.selectedDates.forEach((date,i)=>{
+     if(i)addWhen(' · ');
+     const h=perDay[date]||e;
+     addWhen(formatDate(date)+' ');
+     addWhen(h.timeFrom||'',e.workType==='עבודות יום'||(e.workType==='עבודות לילה'&&h.timeFrom!=='22:00'));
+     addWhen('–');addWhen(h.timeTo||'',e.workType==='עבודות יום');
+    });
+   }else{
+    addWhen(selected?e.selectedDates.map(formatDate).join(' · ')+' | ':formatDate(e.dateFrom)+' ');
+    const unusualNightStart=e.workType==='עבודות לילה'&&e.timeFrom!=='22:00';
+    const dayWork=e.workType==='עבודות יום';
+    addWhen(e.timeFrom||'',dayWork||unusualNightStart);
+    addWhen(selected?'–':' — ');
+    if(!selected)addWhen(formatDate(e.dateTo)+' ');
+    addWhen(e.timeTo||'',dayWork);
+   }
   }
   const done=outputFields.filter(f=>e[f]).length;
   txt(tag(info,'div','event-meta'),(e.workId?'מספר עבודה / בקשה: '+e.workId+' · ':'')+'תוצרים: '+done+' מתוך '+outputFields.length);
