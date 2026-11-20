@@ -207,7 +207,7 @@ if(!event){$('missing').hidden=false}else{
   }
   return parts.join('+');
  }
- const daysText=compactWeekdays(dayIndices);
+ const daysText=dayIndices.length?(dayIndices.length===1?'יום ':'ימים ')+compactWeekdays(dayIndices):'—';
  const valid=hours.filter(h=>/^\d{2}:\d{2}$/.test(h.from||'')&&/^\d{2}:\d{2}$/.test(h.to||''));
  const mins=t=>Number(t.slice(0,2))*60+Number(t.slice(3));
  const fmt=m=>String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
