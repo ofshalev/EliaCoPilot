@@ -178,6 +178,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .compact-calendar-nav[hidden]{visibility:hidden;display:block}
 .compact-calendar-weekdays,.compact-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
 .compact-calendar-weekdays span{background:#f7f9fd;text-align:center;padding:6px 1px;font-size:11px;color:#64778d;border:1px solid #e3eaf3;border-left:0}
+.compact-calendar-weekdays span.selected-weekday{font-weight:900;color:#174a94;background:#dceaff;box-shadow:inset 0 -3px 0 #2864e2}
 .compact-calendar-day,.compact-calendar-inactive{min-width:0;width:100%;height:36px;display:flex;align-items:center;justify-content:center;padding:2px;border-radius:0;border:1px solid #edf1f6;background:white;font-size:12px}
 .compact-calendar-day{color:#22476f;cursor:pointer}
 .compact-calendar-day:hover{background:#f0f6ff}
@@ -529,6 +530,7 @@ function buildCompactSchedule(block){
    const date=localISO(cursor),valid=continuous||nextWeekDates.some(d=>d.date===date);
    const selected=continuous?!!(schedule.dateFrom&&date>=schedule.dateFrom&&date<=(schedule.dateTo||schedule.dateFrom)):schedule.selectedDates.includes(date);
    const endpoint=continuous&&(date===schedule.dateFrom||date===schedule.dateTo);
+   if(selected)weekdays.children[i%7].classList.add('selected-weekday');
    if(!valid){
     const inactive=document.createElement('span');inactive.className='compact-calendar-inactive';inactive.textContent=cursor.getDate();grid.append(inactive);continue;
    }
