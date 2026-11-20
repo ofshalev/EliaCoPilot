@@ -48,8 +48,15 @@ main{margin:0;padding:0;max-width:none}.preview-area{background:white;overflow:v
 
 /* Ensure every part of the printed and previewed sign uses Arial. */
 .sheet, .sheet * { font-family: Arial, Arimo, "Noto Sans Hebrew", "Liberation Sans", sans-serif !important; font-synthesis: weight; }
+
+/* Shared automatic work-week indicator */
+header.hero,body>header{display:flex;align-items:center;justify-content:space-between;gap:22px;flex-wrap:wrap}
+.elia-weeks{display:flex;direction:ltr;align-items:center;gap:12px;margin-inline-start:auto;white-space:nowrap;font-family:Arial,sans-serif}
+.elia-week-next{direction:rtl;text-align:center;background:#e8f1ff;color:#173e75;border:1px solid #9fc4fc;border-radius:11px;padding:9px 16px;font-size:20px;font-weight:800;line-height:1.3}
+.elia-week-current{direction:rtl;color:#d0dbea;opacity:.56;font-size:14px;font-weight:600}
+@media(max-width:600px){.elia-weeks{margin-inline-start:0}.elia-week-next{font-size:17px;padding:8px 12px}}
 </style></head><body>
-<header><strong>Elia CoPilot</strong><p>מחולל שלטים אוטומטי — PDF → A3 אופקי</p></header>
+<header><strong>Elia CoPilot</strong><p>מחולל שלטים אוטומטי — PDF → A3 אופקי</p><div class="elia-weeks" aria-label="שבוע הבא והשבוע הנוכחי"><span class="elia-week-next" id="eliaNextWeek">שבוע הבא</span><span class="elia-week-current" id="eliaCurrentWeek">השבוע הנוכחי</span></div></header>
 <nav aria-label="כלי Elia CoPilot"><a href="./index.html">✉️ מחולל מייל</a><a href="./word-generator.html">📄 מחולל Word</a><a href="./contacts.html">👥 קבוצות נמענים</a><a href="./sign-generator.html" aria-current="page">🪧 מחולל שלטים</a><a href="./notice-template.html" style="font-weight:700;color:#245bb4;text-decoration:none;background:#fff;border-radius:8px;padding:9px 13px">📢 הודעה על רקע קבוע</a></nav>
 <main><section class="card controls">
 <h2>1. העלאת PDF של השפעות על תחבורה ציבורית</h2>
@@ -535,4 +542,15 @@ $('batchZip').onclick=async()=>{
 
 $('exportJson').onclick=()=>{const data={version:2,eventDate:$('date').value,startTime:$('startTime').value,endTime:$('endTime').value,entries};const u=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download='EliaCoPilot_Sign_Draft.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)};
 $('importJson').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.entries))throw Error('קובץ לא תקין');$('date').value=d.eventDate||'';$('startTime').value=d.startTime||'22:00';$('endTime').value=d.endTime||'05:00';setRows(d.entries.filter(x=>x&&typeof x.code==='string').map(x=>({code:x.code,name:x.name||'',routes:x.routes||'',alt:x.alt||'',altName:x.altName||'',detail:x.detail||'',dates:x.dates||'',start:x.start||'',end:x.end||'',sourceId:x.sourceId||'manual',sourceName:x.sourceName||'ידני'})));$('status').textContent='טיוטה נטענה בהצלחה'}catch(err){$('status').textContent='שגיאה בטעינת JSON: '+err.message}};
+</script><script>
+/* ISO 8601 week numbers, calculated for Israel's local calendar date. */
+(function(){
+ const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+ const get=t=>Number(parts.find(p=>p.type===t).value);
+ const today=new Date(Date.UTC(get('year'),get('month')-1,get('day')));
+ function isoWeek(date){const d=new Date(date);const weekday=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-weekday);const yearStart=new Date(Date.UTC(d.getUTCFullYear(),0,1));return Math.ceil((((d-yearStart)/86400000)+1)/7)}
+ const next=new Date(today);next.setUTCDate(today.getUTCDate()+7);
+ document.getElementById('eliaNextWeek').textContent='שבוע '+isoWeek(next);
+ document.getElementById('eliaCurrentWeek').textContent='שבוע '+isoWeek(today);
+})();
 </script></body></html>
