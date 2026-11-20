@@ -787,7 +787,9 @@ function makeExtraBlockage(initial={}){
 }
 $('addBlockage').onclick=()=>{recordActiveSchedule();makeExtraBlockage()};
 function clearSegmentLocationDetails(){
- // Changing segments invalidates all location-specific values from the previous section.
+ // Changing segments invalidates location details, but not the user's selected schedule.
+ const primary=document.querySelector('.primary-blockage');
+ const previousSchedule=scheduleDrafts.get(primary);
  $('street').value='';
  $('streetChoice').value='';
  $('fromStreet').value='';
@@ -795,6 +797,8 @@ function clearSegmentLocationDetails(){
  $('bothDirections').checked=false;
  resetCrossStreets();
  clearExtraBlockages();
+ scheduleDrafts.set(primary,previousSchedule||workScheduleFromLegacy());
+ attachBlockageScheduleControl(primary);
  $('formStatus').textContent='';
 }
 $('railLine').onchange=()=>{
