@@ -73,7 +73,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .event-title{display:block;margin-bottom:4px}
 .event-card{position:relative}
 .event-card-details{min-width:0}
-.event-card .presentation-side{position:absolute;right:31%;top:50%;transform:translateY(-50%);display:inline-flex;justify-content:center;align-items:center;width:34px;height:34px;padding:0;font-size:21px;line-height:1;border:1px solid #b9cce1;border-radius:7px;color:#295b9e;background:#e9f0fb}
+.event-card .presentation-side{position:absolute;right:31%;top:50%;transform:translateY(-50%);display:inline-flex;justify-content:center;align-items:center;gap:5px;min-width:75px;height:34px;padding:0 9px;font-size:13px;font-weight:700;line-height:1;border:1px solid #b9cce1;border-radius:7px;color:#295b9e;background:#e9f0fb}
 .event-card .presentation-side:hover,.event-card .presentation-side:focus-visible{background:#dce9fc;outline:2px solid #2864e2}
 @media(max-width:700px){.event-card .presentation-side{right:auto;left:calc(100% - 40px);top:auto;bottom:12px;transform:none}.event-card-details{padding-bottom:36px}}
 .event-card strong{font-size:15px}.event-meta{color:#64778d;font-size:13px;line-height:1.8}.event-meta .time-alert{color:#c62828;font-weight:700}.event-title .time-alert{color:#c62828;font-weight:700}.event-title-period{white-space:nowrap}.event-card .actions{margin-top:0}
@@ -1229,7 +1229,7 @@ function render(){
   }
   const done=outputFields.filter(f=>e[f]).length;
   txt(tag(info,'div','event-meta'),(e.workId?'מספר עבודה / בקשה: '+e.workId+' · ':'')+'תוצרים: '+done+' מתוך '+outputFields.length);
-  const ppt=tag(row,'button','alt presentation-icon presentation-side');ppt.type='button';ppt.textContent='▣';ppt.title='ערוך מצגת';ppt.setAttribute('aria-label','ערוך מצגת: '+name);ppt.onclick=()=>{window.location.href='presentation-editor.html?event='+encodeURIComponent(e.id)};const actions=tag(row,'div','actions');const edit=tag(actions,'button','alt');edit.textContent='ערוך';edit.onclick=()=>editEvent(e.id);const del=tag(actions,'button','danger');del.textContent='מחק';del.onclick=()=>deleteEvent(e.id);
+  const ppt=tag(row,'button','alt presentation-icon presentation-side');ppt.type='button';ppt.textContent='▣ מצגת';ppt.title='ערוך מצגת';ppt.setAttribute('aria-label','ערוך מצגת: '+name);ppt.onclick=()=>{window.location.href='presentation-editor.html?event='+encodeURIComponent(e.id)};const actions=tag(row,'div','actions');const edit=tag(actions,'button','alt');edit.textContent='ערוך';edit.onclick=()=>editEvent(e.id);const del=tag(actions,'button','danger');del.textContent='מחק';del.onclick=()=>deleteEvent(e.id);
  }
 }
 for(const el of ['projectFilter','statusFilter'])$(el).onchange=render;
