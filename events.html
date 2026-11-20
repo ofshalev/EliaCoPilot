@@ -37,6 +37,13 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .wide{grid-column:span 2}.full{grid-column:1/-1}
 .project-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;direction:rtl}
 .project-fields>div{direction:rtl;min-width:0}
+.project-line-field{grid-column:1}
+.project-segment-field{grid-column:2}
+.project-city-display{grid-column:3;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px}
+.project-city-display .field-caption{font-size:13px;font-weight:700}
+.project-city-display strong{font-size:17px;color:#203b5b}
+.project-city-display .hint{margin:0}
+@media(max-width:520px){.project-line-field,.project-segment-field,.project-city-display{grid-column:auto}}
 @media(max-width:520px){.project-fields{grid-template-columns:1fr;gap:12px}}
 .actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:15px;align-items:center}
 .hint{color:#64778d;font-size:12px;line-height:1.6;margin:5px 0}
@@ -89,10 +96,10 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  <form id="eventForm">
  <div class="formgrid">
  
- <div class="project-fields full">
- <div><label for="railLine">קו / פרויקט</label><select id="railLine"><option value="">בחר קו</option><option>הקו הסגול</option><option>הקו החום</option><option>הקו הירוק</option><option>אחר</option></select></div>
- <div><label for="segment">מקטע</label><select id="segment"><option value="">בחר מקטע (רשות)</option></select></div>
- <div><label for="city">עיר *</label><input required id="city" list="cityOptions" placeholder="תיקבע לפי המקטע או תוזן ידנית"><p class="hint" id="cityHint">בחירת מקטע תעדכן את העיר אוטומטית.</p><datalist id="cityOptions"><option value="תל אביב"><option value="ראשון לציון"><option value="חולון"><option value="בת ים"><option value="גבעת שמואל"><option value="רמת גן"><option value="אור יהודה"><option value="יהוד"><option value="באר יעקב"><option value="הרצליה"></datalist></div>
+ <div class="project-fields full" dir="rtl">
+ <div class="project-line-field"><label for="railLine">קו / פרויקט</label><select id="railLine"><option value="">בחר קו</option><option>הקו הסגול</option><option>הקו החום</option><option>הקו הירוק</option><option>אחר</option></select></div>
+ <div class="project-segment-field"><label for="segment">מקטע</label><select id="segment"><option value="">בחר מקטע (רשות)</option></select></div>
+ <div class="project-city-display"><span class="field-caption">עיר</span><strong id="cityDisplay">תיקבע לפי המקטע</strong><span class="hint" id="cityHint">העיר תוצג אוטומטית</span><input id="city" type="hidden" value=""></div>
  </div>
  <div><label for="locationType">סוג מיקום</label><select id="locationType"><option value="רחוב">רחוב</option><option value="צומת">צומת</option></select></div>
  <div id="streetChoiceWrap"><label for="streetChoice">בחר רחוב לפי מקטע</label><select id="streetChoice"><option value="">בחר מקטע תחילה</option></select></div>
@@ -189,13 +196,12 @@ $('streetChoice').addEventListener('change',()=>{
  if(chosen)$('street').value=chosen;
  $('street').focus();
 });
-function applySegmentCity(){
- const city=cityForSegment($('segment').value),input=$('city');
- input.readOnly=!!city;
- if(city)input.value=city;
- else if($('segment').value)input.value='';
- $('cityHint').textContent=city?'העיר נקבעה אוטומטית לפי המקטע.':'מקטע ללא שיוך עיר מוגדר — ניתן להזין עיר ידנית.';
+function showCity(value){
+ $('city').value=value||'';
+ $('cityDisplay').textContent=value||'טרם הוגדרה';
+ $('cityHint').textContent=value?'נקבעה אוטומטית לפי המקטע':'אין שיוך עיר למקטע הנבחר';
 }
+function applySegmentCity(){showCity(cityForSegment($('segment').value));}
 function updateSegments(){
  const list=$('segment'),prior=list.value;list.replaceChildren();
  const blank=document.createElement('option');blank.value='';blank.textContent='בחר מקטע (רשות)';list.append(blank);
@@ -204,7 +210,7 @@ function updateSegments(){
  }
  if([...list.options].some(o=>o.value===prior))list.value=prior;
 }
-$('railLine').onchange=()=>{$('segment').value='';updateSegments();updateLocationType();updateStreetChoices();$('city').readOnly=false;$('city').value='';$('cityHint').textContent='בחרו מקטע כדי למלא את העיר אוטומטית.'};
+$('railLine').onchange=()=>{$('segment').value='';updateSegments();updateLocationType();updateStreetChoices();showCity('')};
 $('segment').onchange=()=>{applySegmentCity();updateStreetChoices()};
 function updateLocationType(){
  const isJunction=$('locationType').value==='צומת';
@@ -248,7 +254,7 @@ function applyWorkHours(){
  $('timeFrom').value=hours[0];$('timeTo').value=hours[1];
 }
 $('workType').addEventListener('change',applyWorkHours);
-function openNew(){editing=null;$('eventForm').reset();$('formHeading').textContent='צור אירוע חדש';$('saveEvent').textContent='שמור אירוע';updateSegments();updateLocationType();updateStreetChoices();$('city').readOnly=false;$('cityHint').textContent='בחרו מקטע כדי למלא את העיר אוטומטית.';renderDates();$('formPanel').hidden=false;$('formStatus').textContent='';$('formPanel').scrollIntoView({block:'start',behavior:'smooth'})}
+function openNew(){editing=null;$('eventForm').reset();$('formHeading').textContent='צור אירוע חדש';$('saveEvent').textContent='שמור אירוע';updateSegments();updateLocationType();updateStreetChoices();showCity('');renderDates();$('formPanel').hidden=false;$('formStatus').textContent='';$('formPanel').scrollIntoView({block:'start',behavior:'smooth'})}
 $('toggleForm').onclick=()=>{$('formPanel').hidden?openNew():$('formPanel').hidden=true};
 $('cancelForm').onclick=()=>{$('formPanel').hidden=true;editing=null};
 function generateEventTitle(record){
@@ -263,7 +269,7 @@ function generateEventTitle(record){
 function getForm(){const result={};for(const f of fields)result[f]=$(f).value;result.eventTitle=generateEventTitle(result);result.selectedDates=selectedDates();result.dateFrom=result.selectedDates[0]||'';result.dateTo=result.selectedDates.length?dayPlus(result.selectedDates.at(-1),result.timeTo<=result.timeFrom?1:0):'';for(const f of outputFields)result[f]=$(f).checked;return result}
 function putForm(record){
  for(const f of fields)if(f!=='segment')$(f).value=record[f]??'';
- updateSegments();$('segment').value=record.segment||'';if(!record.locationType)$('locationType').value=record.direction==='חסימת צומת'?'צומת':'רחוב';updateLocationType();updateStreetChoices(true);const mappedCity=cityForSegment(record.segment||'');$('city').readOnly=!!mappedCity;if(mappedCity)$('city').value=mappedCity;$('cityHint').textContent=mappedCity?'העיר נקבעה אוטומטית לפי המקטע.':'מקטע ללא שיוך עיר מוגדר — ניתן להזין עיר ידנית.';
+ updateSegments();$('segment').value=record.segment||'';if(!record.locationType)$('locationType').value=record.direction==='חסימת צומת'?'צומת':'רחוב';updateLocationType();updateStreetChoices(true);showCity(cityForSegment(record.segment||'')||record.city||'');
  for(const f of outputFields)$(f).checked=!!record[f];
  const dates=Array.isArray(record.selectedDates)?record.selectedDates:(record.dateFrom?[record.dateFrom]:[]);
  renderDates(dates);
