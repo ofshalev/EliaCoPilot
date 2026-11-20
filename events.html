@@ -90,6 +90,16 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .date-unavailable{color:#abb5c2;background:#fafbfc;font-weight:400}
 .calendar-legend{font-size:12px;color:#6a7e93;padding:10px 12px}
 @media(max-width:600px){.date-option,.date-unavailable{min-height:51px;font-size:13px}}
+
+/* Keep location name, from/to and both-directions together in RTL order. */
+.location-row{display:flex;direction:rtl;align-items:end;gap:15px;flex-wrap:wrap}
+.location-type-field{width:155px;flex:0 0 155px}
+.location-street-field{width:175px;flex:0 0 175px}
+#streetBoundsWrap{flex:1 1 470px;min-width:0}
+.location-row .street-bounds{grid-template-columns:minmax(115px,1fr) minmax(115px,1fr) auto;gap:10px}
+.location-row [hidden]{display:none!important}
+@media(max-width:900px){.location-row{align-items:start}.location-type-field,.location-street-field{flex-basis:145px;width:145px}#streetBoundsWrap{flex-basis:100%}}
+@media(max-width:600px){.location-row .street-bounds{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.location-row .both-directions{grid-column:1/-1}}
 </style>
 </head>
 <body>
@@ -112,16 +122,18 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  <div class="project-segment-field"><label for="segment">מקטע</label><select id="segment"><option value="">בחר מקטע (רשות)</option></select></div>
  <div class="project-city-display"><span class="field-caption">עיר</span><strong id="cityDisplay">תיקבע לפי המקטע</strong><input id="city" type="hidden" value=""></div>
  </div>
- <div><label for="locationType">סוג מיקום</label><select id="locationType"><option value="רחוב">רחוב</option><option value="צומת">צומת</option></select></div>
- <div id="streetChoiceWrap"><label for="streetChoice">בחר רחוב לפי מקטע</label><select id="streetChoice"><option value="">בחר מקטע תחילה</option></select></div>
- <div id="fixedStreetWrap" class="fixed-street" hidden><span class="field-caption">רחוב</span><strong id="fixedStreetDisplay"></strong></div>
- <div class="wide" id="locationInputWrap"><label for="street" id="locationLabel">רחוב / תחום חסימה *</label><input required id="street" placeholder="לדוגמה: אלנבי מהירקון עד פינסקר"><p class="hint" id="locationHint">רשימות הרחובות והצמתים יתווספו בהמשך. בינתיים ניתן להקליד את המיקום.</p></div>
- <div class="full" id="streetBoundsWrap">
+ <div class="location-row full">
+ <div class="location-type-field"><label for="locationType">סוג מיקום</label><select id="locationType"><option value="רחוב">רחוב</option><option value="צומת">צומת</option></select></div>
+ <div id="streetChoiceWrap" class="location-street-field"><label for="streetChoice">בחר רחוב לפי מקטע</label><select id="streetChoice"><option value="">בחר מקטע תחילה</option></select></div>
+ <div id="fixedStreetWrap" class="fixed-street location-street-field" hidden><span class="field-caption">רחוב</span><strong id="fixedStreetDisplay"></strong></div>
+ <div id="locationInputWrap" class="location-street-field"><label for="street" id="locationLabel">רחוב / תחום חסימה *</label><input required id="street" placeholder="לדוגמה: אלנבי מהירקון עד פינסקר"><p class="hint" id="locationHint">רשימות הרחובות והצמתים יתווספו בהמשך. בינתיים ניתן להקליד את המיקום.</p></div>
+ <div id="streetBoundsWrap">
   <div class="street-bounds">
    <div><label for="fromStreet">מ:</label><input id="fromStreet" placeholder="רחוב / צומת התחלה"></div>
    <div><label for="toStreet">עד:</label><input id="toStreet" placeholder="רחוב / צומת סיום"></div>
    <label class="both-directions"><input id="bothDirections" type="checkbox"> בשני הכיוונים</label>
   </div>
+ </div>
  </div>
  <div><label for="workId">מספר עבודה / בקשה</label><input id="workId" placeholder="לדוגמה: 2182" dir="ltr"></div>
  <div><label for="direction">כיוון החסימה</label><select id="direction"><option value="">לא צוין</option><option>לצפון</option><option>לדרום</option><option>למזרח</option><option>למערב</option><option>חסימת צומת</option></select></div>
