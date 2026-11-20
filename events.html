@@ -85,7 +85,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  <h2 id="formHeading">צור אירוע חדש</h2>
  <form id="eventForm">
  <div class="formgrid">
- <div class="wide"><label for="eventTitle">שם האירוע *</label><input required id="eventTitle" placeholder="לדוגמה: חסימת צומת בן יהודה / בן גוריון"></div>
+ 
  <div><label for="city">עיר *</label><input required id="city" list="cityOptions" placeholder="תיקבע לפי המקטע או תוזן ידנית"><p class="hint" id="cityHint">בחירת מקטע תעדכן את העיר אוטומטית.</p><datalist id="cityOptions"><option value="תל אביב-יפו"><option value="ראשון לציון"><option value="חולון"><option value="בת ים"><option value="גבעת שמואל"><option value="רמת גן"></datalist></div>
  <div><label for="railLine">קו / פרויקט</label><select id="railLine"><option value="">בחר קו</option><option>הקו הסגול</option><option>הקו החום</option><option>הקו הירוק</option><option>אחר</option></select></div>
  <div><label for="segment">מקטע</label><select id="segment"><option value="">בחר מקטע (רשות)</option></select></div>
@@ -122,7 +122,7 @@ const LINE_SEGMENTS={
  'הקו החום':['B3','B5','B7','B8','B8.1','BE_2.3'],
  'הקו הירוק':['G1-5.2','G1-5.3','G2-6','G5-7']};
 const outputFields=['hasPpt','hasTable','hasWord','hasSigns','hasEmail'];
-const fields=['eventTitle','city','railLine','segment','workId','street','direction','workType','timeFrom','timeTo','eventStatus','description'];
+const fields=['city','railLine','segment','workId','street','direction','workType','timeFrom','timeTo','eventStatus','description'];
 let events=[],editing=null;
 try{const saved=JSON.parse(localStorage.getItem(KEY));if(Array.isArray(saved))events=saved.filter(x=>x&&x.id)}catch(e){}
 function save(){localStorage.setItem(KEY,JSON.stringify(events))}
@@ -201,7 +201,15 @@ $('workType').addEventListener('change',applyWorkHours);
 function openNew(){editing=null;$('eventForm').reset();$('formHeading').textContent='צור אירוע חדש';$('saveEvent').textContent='שמור אירוע';updateSegments();$('city').readOnly=false;$('cityHint').textContent='בחרו מקטע כדי למלא את העיר אוטומטית.';renderDates();$('formPanel').hidden=false;$('formStatus').textContent='';$('formPanel').scrollIntoView({block:'start',behavior:'smooth'})}
 $('toggleForm').onclick=()=>{$('formPanel').hidden?openNew():$('formPanel').hidden=true};
 $('cancelForm').onclick=()=>{$('formPanel').hidden=true;editing=null};
-function getForm(){const result={};for(const f of fields)result[f]=$(f).value;result.selectedDates=selectedDates();result.dateFrom=result.selectedDates[0]||'';result.dateTo=result.selectedDates.length?dayPlus(result.selectedDates.at(-1),result.timeTo<=result.timeFrom?1:0):'';for(const f of outputFields)result[f]=$(f).checked;return result}
+function generateEventTitle(record){
+ const location=(record.street||'').trim();
+ const direction=(record.direction||'').trim();
+ // A crossing description is already an event type; avoid repeating it.
+ const base=direction==='חסימת צומת'&&!/^חסימת צומת/.test(location)?'חסימת צומת '+location:location;
+ const suffix=direction&&direction!=='חסימת צומת'&&!base.includes(direction)?' — '+direction:'';
+ return (base+suffix).trim()||'אירוע ללא מיקום';
+}
+function getForm(){const result={};for(const f of fields)result[f]=$(f).value;result.eventTitle=generateEventTitle(result);result.selectedDates=selectedDates();result.dateFrom=result.selectedDates[0]||'';result.dateTo=result.selectedDates.length?dayPlus(result.selectedDates.at(-1),result.timeTo<=result.timeFrom?1:0):'';for(const f of outputFields)result[f]=$(f).checked;return result}
 function putForm(record){
  for(const f of fields)if(f!=='segment')$(f).value=record[f]??'';
  updateSegments();$('segment').value=record.segment||'';const mappedCity=cityForSegment(record.segment||'');$('city').readOnly=!!mappedCity;if(mappedCity)$('city').value=mappedCity;$('cityHint').textContent=mappedCity?'העיר נקבעה אוטומטית לפי המקטע.':'מקטע ללא שיוך עיר מוגדר — ניתן להזין עיר ידנית.';
