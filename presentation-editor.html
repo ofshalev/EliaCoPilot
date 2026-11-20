@@ -122,18 +122,22 @@ button.alt{background:#e9eff8;color:#294a6c}
 <div class="background-setup"><label for="backgroundImport">רקעים מקוריים · ייבוא חד־פעמי</label><input type="file" id="backgroundImport" accept=".json,application/json"><div id="backgroundStatus" role="status">יש לטעון את חבילת הרקעים כדי להציג את העיצוב המקורי.</div></div>
 <div class="workspace">
 <section class="panel">
-<h2>פרטי פתיחה — אוטומטיים</h2>
+<div id="coverInputs">
+<h2>שקופית 1 · שער המצגת</h2>
 <label>פרויקט ומקטע</label><div class="readonly" id="projectField"></div>
+<label>חודש ושנה</label><div class="readonly" id="monthField"></div>
+<p class="small">כותרת המשנה קבועה: השפעת עבודות על תח״צ.</p>
+</div>
+<div id="detailsInputs" hidden>
+<h2>שקופית 2 · פרטי העבודות</h2>
 <label>עיר</label><div class="readonly" id="cityField"></div>
 <label>כותרת האירוע</label><div class="readonly" id="locationField"></div>
 <label>סוג העבודות</label><div class="readonly" id="kindField"></div>
 <label>תאריכים</label><div class="readonly" id="datesField"></div>
 <label>ימים</label><div class="readonly" id="weekdaysField"></div>
 <label>שעות (טווח מרבי)</label><div class="readonly" id="timesField"></div>
-<p class="small">הנתונים נקראים אוטומטית מהאירוע. אם נדרש תיקון, חוזרים לכרטיס האירוע ומעדכנים את החסימות או לוח הזמנים.</p>
-<a class="return-event" href="events.html" id="backToEvents">חזרה לעריכת האירוע</a>
+</div>
 <div id="closureTools" hidden>
-<hr class="tools-divider">
 <h2>שקופית 3 · ארגז כלים</h2>
 <label for="blockageSelect">חסימה לעריכה</label><select id="blockageSelect"></select>
 <label for="closureDescription">תיאור החסימה בשקופית</label>
@@ -155,6 +159,8 @@ button.alt{background:#e9eff8;color:#294a6c}
 <div class="actions"><button type="button" id="finishPolygon" hidden>סיים מצולע</button><button type="button" id="cancelPolygon" class="alt" hidden>בטל ציור</button><button type="button" id="undoMap" class="alt">בטל סימון אחרון</button><button type="button" id="clearMap" class="alt">נקה סימונים</button></div>
 <p class="small" id="mapToolStatus" role="status">בחרו כלי, ואז לחצו במפה כדי לסמן.</p>
 </div>
+<p class="small">הנתונים נשמרים לפי אירוע. לשינוי פרטי האירוע הבסיסיים, חזרו לרשימת האירועים.</p>
+<a class="return-event" href="events.html" id="backToEvents">חזרה לעריכת האירוע</a>
 </section>
 <section class="panel">
 <h2>תצוגה מקדימה — שתי שקופיות</h2>
@@ -330,6 +336,7 @@ if(!event){$('missing').hidden=false}else{
  $('previewProject').textContent=project;
  $('previewSegment').textContent=section;
  $('previewMonth').textContent=month;
+ $('monthField').textContent=month;
  $('previewCoverTitle').textContent=project+' — מקטע '+section;
  $('previewDetailsTitle').textContent=city+' · '+typeText+'\n'+(location||'—');
  $('previewDates').textContent=datesText;
@@ -558,6 +565,8 @@ if(!event){$('missing').hidden=false}else{
   $('coverSlide').hidden=n!=='1';
   $('detailsSlide').hidden=n!=='2';
   $('closureSlide').hidden=n!=='3';
+  $('coverInputs').hidden=n!=='1';
+  $('detailsInputs').hidden=n!=='2';
   $('closureTools').hidden=n!=='3';
   if(n==='3'&&ensureMap()){
    const r=getRecord(selectedBlock);
