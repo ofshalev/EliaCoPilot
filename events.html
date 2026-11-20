@@ -135,7 +135,7 @@ function weekNumber(date){const d=new Date(date+'T12:00:00');d.setDate(d.getDate
 $('eliaCurrentWeek').textContent=weekNumber(today);$('eliaNextWeek').textContent=weekNumber(nextStart);
 function cityForSegment(segment){
  if(!segment)return '';
- if(/^PLW1\./.test(segment))return 'תל אביב-יפו';
+ if(/^PLW1\./.test(segment))return 'תל אביב';
  if(/^PLW2\.[123]$/.test(segment))return 'רמת גן';
  if(/^PLW2\.[567]$/.test(segment))return 'גבעת שמואל';
  if(/^PLE2\.2$/.test(segment))return 'אור יהודה';
