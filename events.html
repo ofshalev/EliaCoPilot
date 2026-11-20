@@ -183,7 +183,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
   <div class="clock-time-summary" id="clockSummary" aria-live="polite">22:00–05:00 · 7 שעות</div>
   <div class="clock-adjust"><span>התחלה</span><button type="button" class="alt" id="startMinus" aria-label="הקדם התחלה בשעה">−</button><strong id="startLabel">22:00</strong><button type="button" class="alt" id="startPlus" aria-label="דחה התחלה בשעה">+</button></div>
   <div class="clock-adjust"><span>סיום</span><button type="button" class="alt" id="endMinus" aria-label="הקדם סיום בשעה">−</button><strong id="endLabel">05:00</strong><button type="button" class="alt" id="endPlus" aria-label="דחה סיום בשעה">+</button></div>
-  <p class="hint">אפשר לגרור את הנקודות על השעון או לכוון באמצעות + ו־−. השינוי בקפיצות של שעה.</p>
+  <p class="hint">שעון 12 שעות. גררו את הנקודות או השתמשו ב־+ וב־−, בקפיצות של שעה.</p>
  </div>
  <input id="timeFrom" type="hidden" value="22:00"><input id="timeTo" type="hidden" value="05:00">
  </div>
@@ -366,10 +366,11 @@ const DEFAULT_WORK_HOURS={
 };
 let clockStart=22,clockDuration=7,activeClockHandle=null;
 const clockSvgNS='http://www.w3.org/2000/svg';
-const hourText=hour=>String((hour+24)%24).padStart(2,'0')+':00';
+const hourText=hour=>String(((hour%24)+24)%24).padStart(2,'0')+':00';
 const mod24=x=>((x%24)+24)%24;
+const mod12=x=>((x%12)+12)%12;
 function clockPoint(hour,r=110){
- const angle=hour*Math.PI/12;
+ const angle=hour*Math.PI/6;
  return [150+Math.sin(angle)*r,150-Math.cos(angle)*r];
 }
 function clockElement(parent,tag,attributes={}){
@@ -379,49 +380,62 @@ function clockElement(parent,tag,attributes={}){
 }
 function drawClock(){
  const svg=$('workClock');svg.replaceChildren();
- const start=clockStart,end=mod24(start+clockDuration),full=clockDuration===24;
- clockElement(svg,'circle',{cx:150,cy:150,r:105,fill:'#ffffff',stroke:'#d4e1f0','stroke-width':2});
- if(full){clockElement(svg,'circle',{cx:150,cy:150,r:103,fill:'#06a4df',stroke:'#3153d9','stroke-width':4})}
- else{
-  const a=clockPoint(start,103),b=clockPoint(start+clockDuration,103);
-  clockElement(svg,'path',{d:'M 150 150 L '+a.join(' ')+' A 103 103 0 '+(clockDuration>12?1:0)+' 1 '+b.join(' ')+' Z',fill:'#06a4df',stroke:'#3153d9','stroke-width':4,'stroke-linejoin':'round'});
+ const start=clockStart,end=mod24(start+clockDuration),full=clockDuration===24,wholeFace=clockDuration>=12;
+ clockElement(svg,'circle',{cx:150,cy:150,r:105,fill:'#ffffff',stroke:'#d1dce8','stroke-width':2});
+ if(wholeFace){
+  clockElement(svg,'circle',{cx:150,cy:150,r:103,fill:'#8199b5',stroke:'#405c7d','stroke-width':3});
+ }else{
+  const p1=clockPoint(start,103),p2=clockPoint(start+clockDuration,103);
+  clockElement(svg,'path',{d:'M 150 150 L '+p1.join(' ')+' A 103 103 0 '+(clockDuration>6?1:0)+' 1 '+p2.join(' ')+' Z',
+   fill:'#8199b5',stroke:'#405c7d','stroke-width':3,'stroke-linejoin':'round'});
  }
- for(let hour=0;hour<24;hour++){
-  const p1=clockPoint(hour,114),p2=clockPoint(hour,hour%3===0?124:119);
-  clockElement(svg,'line',{x1:p1[0],y1:p1[1],x2:p2[0],y2:p2[1],stroke:'#8ba1ba','stroke-width':hour%3===0?2:1});
-  if(hour%3===0){
-   const t=clockPoint(hour,139);
-   const el=clockElement(svg,'text',{x:t[0],y:t[1]+4,'text-anchor':'middle','font-size':13,'font-weight':hour%6===0?800:600,fill:'#2d4966'});
-   el.textContent=String(hour).padStart(2,'0');
-  }
+ for(let hour=0;hour<12;hour++){
+  const major=hour%3===0,p1=clockPoint(hour,111),p2=clockPoint(hour,major?123:117);
+  clockElement(svg,'line',{x1:p1[0],y1:p1[1],x2:p2[0],y2:p2[1],stroke:'#8398b0','stroke-width':major?2.4:1.4});
+  const p=clockPoint(hour,137);
+  const label=clockElement(svg,'text',{x:p[0],y:p[1]+5,'text-anchor':'middle','font-size':major?17:13,
+   'font-weight':major?800:600,fill:'#344d68'});
+  label.textContent=String(hour||12);
  }
- const midpoint=clockElement(svg,'text',{x:150,y:146,'text-anchor':'middle','font-size':19,'font-weight':800,fill:full?'#fff':'#173e70'});
- midpoint.textContent=clockDuration+' שעות';
- const hint=clockElement(svg,'text',{x:150,y:168,'text-anchor':'middle','font-size':12,fill:full?'#fff':'#345b83'});
- hint.textContent=full?'24 שעות רצופות':'משך העבודה';
- for(const [type,hour,color] of [['start',start,'#173e90'],['end',end,'#f9f9ff']]){
-  const p=clockPoint(hour,full?(type==='start'?91:115):103),g=clockElement(svg,'g',{'data-handle':type,role:'button','aria-label':type==='start'?'שעת התחלה':'שעת סיום',style:'cursor:grab'});
+ const center=clockElement(svg,'text',{x:150,y:146,'text-anchor':'middle','font-size':20,'font-weight':800,fill:wholeFace?'#ffffff':'#183f67'});
+ center.textContent=clockDuration+' שעות';
+ const hint=clockElement(svg,'text',{x:150,y:168,'text-anchor':'middle','font-size':12,fill:wholeFace?'#ffffff':'#365776'});
+ hint.textContent=full?'ברצף':'משך העבודה';
+ const overlap=wholeFace;
+ for(const [type,hour,fill] of [['start',start,'#263f61'],['end',end,'#ffffff']]){
+  const p=clockPoint(hour,overlap?(type==='start'?92:114):103);
+  const g=clockElement(svg,'g',{'data-handle':type,role:'button','aria-label':type==='start'?'שעת התחלה':'שעת סיום',style:'cursor:grab'});
   clockElement(g,'circle',{cx:p[0],cy:p[1],r:17,fill:'transparent','pointer-events':'all'});
-  clockElement(g,'circle',{cx:p[0],cy:p[1],r:10,fill:color,stroke:'#3153d9','stroke-width':3,'pointer-events':'none'});
+  clockElement(g,'circle',{cx:p[0],cy:p[1],r:10,fill,stroke:'#405c7d','stroke-width':3,'pointer-events':'none'});
  }
- svg.setAttribute('aria-label','שעות עבודה '+hourText(start)+' עד '+hourText(end)+', משך '+clockDuration+' שעות');
+ svg.setAttribute('aria-label','שעון 12 שעות: '+hourText(start)+' עד '+hourText(end)+', משך '+clockDuration+' שעות');
  $('startLabel').textContent=hourText(start);$('endLabel').textContent=hourText(end);
  $('clockSummary').textContent=hourText(start)+'–'+hourText(end)+(start+clockDuration>=24?' (למחרת)':'')+' · '+clockDuration+' שעות';
  $('timeFrom').value=hourText(start);$('timeTo').value=hourText(end);
 }
 function setClock(start,duration){
- clockStart=mod24(start);clockDuration=Math.min(24,Math.max(1,duration));drawClock();
+ clockStart=mod24(start);
+ clockDuration=duration===24?24:Math.min(12,Math.max(1,duration));
+ drawClock();
 }
 function clockHourFromPointer(ev){
  const svg=$('workClock'),rect=svg.getBoundingClientRect();
  const x=(ev.clientX-rect.left)*300/rect.width-150,y=(ev.clientY-rect.top)*300/rect.height-150;
- return mod24(Math.round(Math.atan2(x,-y)*12/Math.PI));
+ return mod12(Math.round(Math.atan2(x,-y)*6/Math.PI));
+}
+function nearestStartHour(dialHour){
+ const choices=[dialHour,dialHour+12];
+ const cyclicDistance=(a,b)=>Math.min(mod24(a-b),mod24(b-a));
+ return choices.sort((a,b)=>cyclicDistance(a,clockStart)-cyclicDistance(b,clockStart))[0];
 }
 function changeClockFromPointer(ev){
  if(!activeClockHandle)return;
- const hour=clockHourFromPointer(ev);
- if(activeClockHandle==='start')setClock(hour,clockDuration);
- else{const diff=mod24(hour-clockStart);setClock(clockStart,diff===0?24:diff)}
+ const dialHour=clockHourFromPointer(ev);
+ if(activeClockHandle==='start')setClock(nearestStartHour(dialHour),clockDuration);
+ else{
+  const interval=mod12(dialHour-mod12(clockStart));
+  setClock(clockStart,interval|| (clockDuration===24?24:12));
+ }
 }
 $('workClock').addEventListener('pointerdown',ev=>{
  const handle=ev.target.closest('[data-handle]');if(!handle)return;
@@ -433,8 +447,8 @@ $('workClock').addEventListener('pointermove',changeClockFromPointer);
 for(const type of ['pointerup','pointercancel','lostpointercapture'])$('workClock').addEventListener(type,()=>activeClockHandle=null);
 $('startMinus').onclick=()=>setClock(clockStart-1,clockDuration);
 $('startPlus').onclick=()=>setClock(clockStart+1,clockDuration);
-$('endMinus').onclick=()=>setClock(clockStart,clockDuration===1?24:clockDuration-1);
-$('endPlus').onclick=()=>setClock(clockStart,clockDuration===24?1:clockDuration+1);
+$('endMinus').onclick=()=>setClock(clockStart,clockDuration===24?12:clockDuration===1?12:clockDuration-1);
+$('endPlus').onclick=()=>setClock(clockStart,clockDuration===24?1:clockDuration===12?1:clockDuration+1);
 function applyWorkHours(){
  const hours=DEFAULT_WORK_HOURS[$('workType').value];if(!hours)return;
  const start=parseInt(hours[0],10),end=parseInt(hours[1],10);
