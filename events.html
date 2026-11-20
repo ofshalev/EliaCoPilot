@@ -447,7 +447,7 @@ function initializeBlockageSchedules(record){
  }
  loadBlockageSchedule(primary);
 }
-function normalizeBlockage(b){return {locationType:b.locationType||'רחוב',street:b.street||'',fromStreet:b.fromStreet||'',toStreet:b.toStreet||'',crossStreets:Array.isArray(b.crossStreets)?b.crossStreets:[],bothDirections:!!b.bothDirections||b.direction==='שני הכיוונים'}}
+function normalizeBlockage(b){return {...b,locationType:b.locationType||'רחוב',street:b.street||'',fromStreet:b.fromStreet||'',toStreet:b.toStreet||'',crossStreets:Array.isArray(b.crossStreets)?b.crossStreets:[],bothDirections:!!b.bothDirections||b.direction==='שני הכיוונים'}}
 function eventBlockages(e){return Array.isArray(e.blockages)&&e.blockages.length?e.blockages.map(normalizeBlockage):[normalizeBlockage(e)]}
 function blockageTitle(b){b=normalizeBlockage(b);if(b.locationType==='צומת')return 'צומת '+[b.street,...b.crossStreets].filter(Boolean).join(' / ');return (b.street+(b.fromStreet?' מ'+b.fromStreet:'')+(b.toStreet?' עד '+b.toStreet:'')+(b.bothDirections?' — שני הכיוונים':'')).trim()}
 function multiBlockageTitle(blockages){
@@ -456,7 +456,12 @@ function multiBlockageTitle(blockages){
 }
 function primaryBlockage(){const junction=$('locationType').value==='צומת',options=baseStreetOptions();return {locationType:$('locationType').value,street:options.length===1?options[0]:$('streetChoice').value,fromStreet:junction?'':$('fromStreet').value.trim(),toStreet:junction?'':$('toStreet').value.trim(),crossStreets:junction?crossStreetValues():[],bothDirections:!junction&&$('bothDirections').checked}}
 function extraBlockageData(section){const junction=section.querySelector('.extra-type').value==='צומת';return {locationType:junction?'צומת':'רחוב',street:section.querySelector('.extra-street').value,fromStreet:junction?'':section.querySelector('.extra-from').value.trim(),toStreet:junction?'':section.querySelector('.extra-to').value.trim(),bothDirections:!junction&&section.querySelector('.extra-both input').checked,crossStreets:junction?[...section.querySelectorAll('.extra-crosses input')].map(x=>x.value.trim()):[]}}
-function clearExtraBlockages(){$('additionalBlockages').replaceChildren()}
+function clearExtraBlockages(){
+ const primary=document.querySelector('.primary-blockage'),editor=$('blockageScheduleEditor');
+ if(primary&&editor.parentElement!==primary)primary.append(editor);
+ activeScheduleBlock=null;
+ $('additionalBlockages').replaceChildren();scheduleDrafts.clear();
+}
 function renumberBlockages(){[...$('additionalBlockages').children].forEach((node,i)=>node.querySelector('.extra-heading strong').textContent='חסימה '+(i+2))}
 function makeExtraBlockage(initial={}){
  const b=normalizeBlockage(initial),section=document.createElement('div');section.className='extra-blockage';
@@ -817,7 +822,15 @@ function render(){
  String(a.segment||'').localeCompare(String(b.segment||''),'en',{numeric:true})||
  String(a.dateFrom||'').localeCompare(String(b.dateFrom||''))).filter(e=>{
  const eventStart=e.dateFrom,eventEnd=e.dateTo||e.dateFrom;
- if(week!=='all'){const start=week==='current'?currentStart:nextStart,last=dayPlus(start,6);if(e.workType!=='עבודות רצופות'&&Array.isArray(e.selectedDates)&&e.selectedDates.length){if(!e.selectedDates.some(d=>d>=start&&d<=last))return false}else if(eventStart>last||eventEnd<start)return false}
+ if(week!=='all'){const start=week==='current'?currentStart:nextStart,last=dayPlus(start,6);if(eventBlockages(e).length>1){
+  if(!eventBlockages(e).some(b=>{
+   const range=scheduleDatesOf(scheduleForBlockage(b,e));
+   if(b.workType==='עבודות רצופות')return range.from<=last&&range.to>=start;
+   return (b.selectedDates||e.selectedDates||[]).some(d=>d>=start&&d<=last);
+  }))return false;
+ }else if(e.workType!=='עבודות רצופות'&&Array.isArray(e.selectedDates)&&e.selectedDates.length){
+  if(!e.selectedDates.some(d=>d>=start&&d<=last))return false;
+ }else if(eventStart>last||eventEnd<start)return false}
  if(city&&e.city!==city)return false;if(status&&e.eventStatus!==status)return false;
  return !term||[e.eventTitle,e.street,e.segment,e.workId,e.description,...eventBlockages(e).map(blockageTitle)].join(' ').toLowerCase().includes(term)
  });
