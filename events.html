@@ -171,6 +171,20 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .compact-work-type{max-width:175px;padding:6px 9px;font-size:12px}
 .compact-schedule-body{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
 .compact-days{flex:1 1 240px;min-width:0}
+.compact-days{max-width:420px}
+.compact-calendar-header{background:#edf3fb;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 10px;border:1px solid #cbd8e8;border-bottom:0;border-radius:9px 9px 0 0;font-size:13px}
+.compact-calendar-header strong{flex:1;text-align:center}
+.compact-calendar-nav{padding:2px 7px;font-size:16px}
+.compact-calendar-nav[hidden]{visibility:hidden;display:block}
+.compact-calendar-weekdays,.compact-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.compact-calendar-weekdays span{background:#f7f9fd;text-align:center;padding:6px 1px;font-size:11px;color:#64778d;border:1px solid #e3eaf3;border-left:0}
+.compact-calendar-day,.compact-calendar-inactive{min-width:0;width:100%;height:36px;display:flex;align-items:center;justify-content:center;padding:2px;border-radius:0;border:1px solid #edf1f6;background:white;font-size:12px}
+.compact-calendar-day{color:#22476f;cursor:pointer}
+.compact-calendar-day:hover{background:#f0f6ff}
+.compact-calendar-day.selected{background:#dceaff;border-color:#2864e2;color:#174a94;font-weight:800;box-shadow:inset 0 0 0 1px #2864e2}
+.compact-calendar-day.endpoint{outline:1px solid #2864e2;outline-offset:-1px}
+.compact-calendar-inactive{background:#fafbfc;color:#acb8c8}
+.compact-calendar-caption{border:1px solid #cbd8e8;border-top:0;border-radius:0 0 9px 9px;padding:6px 9px;color:#617a98;font-size:11px}
 .compact-days-caption{display:block;font-size:12px;color:#4c6580;margin-bottom:8px}
 .compact-day-buttons{display:flex;gap:5px;flex-wrap:wrap}
 .compact-day{border:1px solid #cbd8e8;border-radius:7px;padding:7px 9px;color:#315177;background:white;font-size:12px;min-width:48px}
@@ -483,31 +497,64 @@ function buildCompactSchedule(block){
   });
   for(const name of ['pointercancel','lostpointercapture'])svg.addEventListener(name,()=>dragging=null);
  }
+ let calendarOffset=0,rangeStartPending=false;
  function renderDates(){
   datesArea.replaceChildren();
-  if(schedule.workType==='עבודות רצופות'){
-   for(const [label,key] of [['תאריך התחלה','dateFrom'],['תאריך סיום','dateTo']]){
-    const wrap=document.createElement('label');wrap.textContent=label;
-    const input=document.createElement('input');input.type='date';input.value=schedule[key]||'';
-    input.onchange=()=>schedule[key]=input.value;wrap.append(input);datesArea.append(wrap);
-   }
-   return;
+  const continuous=schedule.workType==='עבודות רצופות';
+  const heading=document.createElement('div');heading.className='compact-calendar-header';
+  const previous=document.createElement('button');previous.type='button';previous.className='alt compact-calendar-nav';previous.textContent='‹';previous.setAttribute('aria-label','חודש קודם');
+  const next=document.createElement('button');next.type='button';next.className='alt compact-calendar-nav';next.textContent='›';next.setAttribute('aria-label','חודש הבא');
+  const monthName=document.createElement('strong');
+  heading.append(previous,monthName,next);datesArea.append(heading);
+  previous.hidden=!continuous;next.hidden=!continuous;
+  const base=new Date(nextStart+'T12:00:00');
+  const month=new Date(base.getFullYear(),base.getMonth()+calendarOffset,1,12);
+  monthName.textContent=new Intl.DateTimeFormat('he-IL',{month:'long',year:'numeric'}).format(month);
+  previous.onclick=()=>{calendarOffset--;renderDates()};
+  next.onclick=()=>{calendarOffset++;renderDates()};
+  const weekdays=document.createElement('div');weekdays.className='compact-calendar-weekdays';
+  for(const day of ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳']){
+   const label=document.createElement('span');label.textContent=day;weekdays.append(label);
   }
-  const heading=document.createElement('span');heading.className='compact-days-caption';heading.textContent='ימי עבודה בשבוע הבא';datesArea.append(heading);
-  const row=document.createElement('div');row.className='compact-day-buttons';datesArea.append(row);
-  const weekday=['א','ב','ג','ד','ה'];
-  nextWeekDates.forEach((item,i)=>{
-   const button=document.createElement('button');button.type='button';button.className='compact-day';
-   button.textContent=weekday[i]+' '+String(Number(item.date.slice(-2)));
-   const selected=schedule.selectedDates.includes(item.date);
-   button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
+  datesArea.append(weekdays);
+  const grid=document.createElement('div');grid.className='compact-calendar-grid';datesArea.append(grid);
+  const first=new Date(month);first.setDate(1-first.getDay());
+  const monthLast=new Date(month.getFullYear(),month.getMonth()+1,0,12);
+  const monthDays=Math.ceil((monthLast.getDate()+month.getDay())/7)*7;
+  const nextWeekLast=nextWeekDates.at(-1).date;
+  const nextWeekFits=new Date(nextWeekLast+'T12:00:00');
+  const extended=!continuous?Math.ceil((Math.max(0,(nextWeekFits-first)/86400000)+1)/7)*7:0;
+  for(let i=0;i<Math.max(monthDays,extended);i++){
+   const cursor=new Date(first);cursor.setDate(first.getDate()+i);
+   const date=localISO(cursor),valid=continuous||nextWeekDates.some(d=>d.date===date);
+   const selected=continuous?!!(schedule.dateFrom&&date>=schedule.dateFrom&&date<=(schedule.dateTo||schedule.dateFrom)):schedule.selectedDates.includes(date);
+   const endpoint=continuous&&(date===schedule.dateFrom||date===schedule.dateTo);
+   if(!valid){
+    const inactive=document.createElement('span');inactive.className='compact-calendar-inactive';inactive.textContent=cursor.getDate();grid.append(inactive);continue;
+   }
+   const button=document.createElement('button');button.type='button';button.className='compact-calendar-day';
+   button.textContent=String(cursor.getDate());button.classList.toggle('selected',selected);
+   button.classList.toggle('endpoint',endpoint);button.setAttribute('aria-pressed',String(!!selected));
+   button.setAttribute('aria-label',formatDate(date));
    button.onclick=()=>{
-    if(selected)schedule.selectedDates=schedule.selectedDates.filter(d=>d!==item.date);
-    else schedule.selectedDates=[...schedule.selectedDates,item.date].sort();
+    if(continuous){
+     if(!schedule.dateFrom||!rangeStartPending){schedule.dateFrom=date;schedule.dateTo='';rangeStartPending=true}
+     else{
+      if(date<schedule.dateFrom){schedule.dateTo=schedule.dateFrom;schedule.dateFrom=date}
+      else schedule.dateTo=date;
+      rangeStartPending=false;
+     }
+    }else if(selected)schedule.selectedDates=schedule.selectedDates.filter(d=>d!==date);
+    else schedule.selectedDates=[...schedule.selectedDates,date].sort();
     renderDates();
    };
-   row.append(button);
-  });
+   grid.append(button);
+  }
+  const help=document.createElement('div');help.className='compact-calendar-caption';
+  help.textContent=continuous
+   ?(schedule.dateFrom?'התחלה: '+formatDate(schedule.dateFrom)+(schedule.dateTo?' · סיום: '+formatDate(schedule.dateTo):' · בחרו תאריך סיום'):'בחרו תאריך התחלה וסיום')
+   :schedule.selectedDates.length?'נבחרו '+schedule.selectedDates.length+' ימים':'בחרו ימי עבודה';
+  datesArea.append(help);
  }
  kind.onchange=()=>{
   schedule.workType=kind.value;
