@@ -35,6 +35,9 @@ button{font:700 14px Arial,sans-serif;border:0;border-radius:8px;padding:10px 15
 button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;color:#9d3434}
 .formgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
 .wide{grid-column:span 2}.full{grid-column:1/-1}
+.project-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;direction:ltr}
+.project-fields>div{direction:rtl;min-width:0}
+@media(max-width:520px){.project-fields{grid-template-columns:1fr;gap:12px}}
 .actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:15px;align-items:center}
 .hint{color:#64778d;font-size:12px;line-height:1.6;margin:5px 0}
 .status-message{font-size:13px;color:#267046;min-height:19px;margin-top:12px}
@@ -86,9 +89,11 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  <form id="eventForm">
  <div class="formgrid">
  
+ <div class="project-fields full">
  <div><label for="railLine">קו / פרויקט</label><select id="railLine"><option value="">בחר קו</option><option>הקו הסגול</option><option>הקו החום</option><option>הקו הירוק</option><option>אחר</option></select></div>
  <div><label for="segment">מקטע</label><select id="segment"><option value="">בחר מקטע (רשות)</option></select></div>
  <div><label for="city">עיר *</label><input required id="city" list="cityOptions" placeholder="תיקבע לפי המקטע או תוזן ידנית"><p class="hint" id="cityHint">בחירת מקטע תעדכן את העיר אוטומטית.</p><datalist id="cityOptions"><option value="תל אביב"><option value="ראשון לציון"><option value="חולון"><option value="בת ים"><option value="גבעת שמואל"><option value="רמת גן"><option value="אור יהודה"><option value="יהוד"><option value="באר יעקב"><option value="הרצליה"></datalist></div>
+ </div>
  <div><label for="locationType">סוג מיקום</label><select id="locationType"><option value="רחוב">רחוב</option><option value="צומת">צומת</option></select></div>
  <div class="wide"><label for="street" id="locationLabel">רחוב / תחום חסימה *</label><input required id="street" placeholder="לדוגמה: אלנבי מהירקון עד פינסקר"><p class="hint" id="locationHint">רשימות הרחובות והצמתים יתווספו בהמשך. בינתיים ניתן להקליד את המיקום.</p></div>
  <div><label for="workId">מספר עבודה / בקשה</label><input id="workId" placeholder="לדוגמה: 2182" dir="ltr"></div>
