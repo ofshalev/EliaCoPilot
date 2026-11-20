@@ -71,7 +71,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .project-p .project-code{background:#7844aa}.project-b .project-code{background:#89552f}.project-g .project-code{background:#238455}
 .segment-label{font-weight:800;font-size:15px;direction:ltr;unicode-bidi:isolate}
 .event-title{display:block;margin-bottom:4px}
-.event-card strong{font-size:15px}.event-meta{color:#64778d;font-size:13px;line-height:1.8}.event-card .actions{margin-top:0}
+.event-card strong{font-size:15px}.event-meta{color:#64778d;font-size:13px;line-height:1.8}.event-meta .time-alert{color:#c62828;font-weight:700}.event-card .actions{margin-top:0}
 .pill{font-size:12px;background:#eef3f9;color:#345a80;padding:4px 9px;border-radius:20px;display:inline-block;margin-inline-start:7px}.empty{padding:25px;text-align:center;color:#72859a}
 .tasks{display:flex;flex-wrap:wrap;gap:14px;padding:8px 0}.tasks label{display:flex;align-items:center;gap:7px;font-weight:400}
 .tasks input{width:auto}.note-banner{padding:11px 14px;border-right:3px solid #3c76d8;background:#eff5ff;border-radius:8px}
@@ -642,12 +642,20 @@ function render(){
   txt(tag(heading,'span','pill'),e.eventStatus||'מתוכנן');
   txt(tag(info,'strong','event-title'),(e.eventTitle||'אירוע ללא שם').replace(/^חסימת\s+(?=צומת(?:\s|$))/,'').trim());
   txt(tag(info,'div','event-meta'),[e.city,e.street,e.direction].filter(Boolean).join(' · '));
-  const when=e.workType==='עבודות רצופות'
-   ?formatDate(e.dateFrom)+' '+(e.timeFrom||'')+' — '+formatDate(e.dateTo)+' '+(e.timeTo||'')
-   :Array.isArray(e.selectedDates)&&e.selectedDates.length
-    ?e.selectedDates.map(formatDate).join(' · ')+' | '+(e.timeFrom||'')+'–'+(e.timeTo||'')
-    :formatDate(e.dateFrom)+' '+(e.timeFrom||'')+' — '+formatDate(e.dateTo)+' '+(e.timeTo||'');
-  txt(tag(info,'div','event-meta'),when);
+  const whenEl=tag(info,'div','event-meta');
+  const addWhen=(value,red=false)=>{const span=tag(whenEl,'span',red?'time-alert':'');span.textContent=value;};
+  if(e.workType==='עבודות רצופות'){
+   addWhen(formatDate(e.dateFrom)+' '+(e.timeFrom||'')+' — '+formatDate(e.dateTo)+' '+(e.timeTo||''));
+  }else{
+   const selected=Array.isArray(e.selectedDates)&&e.selectedDates.length;
+   addWhen(selected?e.selectedDates.map(formatDate).join(' · ')+' | ':formatDate(e.dateFrom)+' ');
+   const unusualNightStart=e.workType==='עבודות לילה'&&e.timeFrom!=='22:00';
+   const dayWork=e.workType==='עבודות יום';
+   addWhen(e.timeFrom||'',dayWork||unusualNightStart);
+   addWhen(selected?'–':' — ');
+   if(!selected)addWhen(formatDate(e.dateTo)+' ');
+   addWhen(e.timeTo||'',dayWork);
+  }
   const done=outputFields.filter(f=>e[f]).length;
   txt(tag(info,'div','event-meta'),(e.workId?'מספר עבודה / בקשה: '+e.workId+' · ':'')+'תוצרים: '+done+' מתוך '+outputFields.length);
   const actions=tag(row,'div','actions');const edit=tag(actions,'button','alt');edit.textContent='ערוך';edit.onclick=()=>editEvent(e.id);const del=tag(actions,'button','danger');del.textContent='מחק';del.onclick=()=>deleteEvent(e.id);
