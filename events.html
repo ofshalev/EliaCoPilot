@@ -148,6 +148,11 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .extra-row .extra-both input{width:auto}
 .extra-crosses{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .extra-crosses input{flex:1 1 130px}
+.extra-junction{margin-top:0;min-width:250px;flex:1 1 300px;align-self:flex-end}
+.extra-junction[hidden]{display:none}
+.extra-junction .extra-crosses{margin-top:0;align-items:center;gap:8px;flex:0 1 auto}
+.extra-junction .cross-street-entry input{width:175px;max-width:36vw}
+.extra-junction .add-cross{flex:0 0 40px}
 .event-blockage-list{margin:4px 0 8px;padding-inline-start:22px;color:#49627f;font-size:13px;line-height:1.9}
 .schedule-layout{display:flex;direction:rtl;align-items:flex-start;gap:20px}
 .schedule-dates{flex:1 1 610px;min-width:0}
@@ -369,11 +374,23 @@ function makeExtraBlockage(initial={}){
  const from=document.createElement('input');from.className='extra-from';from.value=b.fromStreet;from.placeholder='רחוב / צומת התחלה';const fromLabel=labeled('מ:',from);
  const to=document.createElement('input');to.className='extra-to';to.value=b.toStreet;to.placeholder='רחוב / צומת סיום';const toLabel=labeled('עד:',to);
  const both=document.createElement('label');both.className='extra-both';const check=document.createElement('input');check.type='checkbox';check.checked=b.bothDirections;both.append(check,document.createTextNode(' בשני הכיוונים'));row.append(both);
- const cross=document.createElement('div');cross.className='extra-crosses';section.append(cross);
- function addCross(value=''){const inp=document.createElement('input');inp.placeholder='רחוב חוצה';inp.value=value;cross.append(inp)}
+ const junctionWrap=document.createElement('div');junctionWrap.className='junction-cross extra-junction';
+ const cross=document.createElement('div');cross.className='extra-crosses cross-street-list';junctionWrap.append(cross);
+ function addCross(value=''){
+  const wrap=document.createElement('div');wrap.className='cross-street-entry';
+  const slash=document.createElement('span');slash.className='cross-slash';slash.textContent='/';slash.setAttribute('aria-hidden','true');
+  const inp=document.createElement('input');inp.type='text';inp.placeholder='רחוב חוצה';inp.value=value;inp.setAttribute('aria-label','שם רחוב חוצה');
+  wrap.append(slash,inp);
+  if(cross.children.length){
+   const removeCross=document.createElement('button');removeCross.type='button';removeCross.className='alt remove-cross';removeCross.textContent='×';removeCross.title='הסר רחוב חוצה';removeCross.setAttribute('aria-label','הסר רחוב חוצה');
+   removeCross.onclick=()=>wrap.remove();wrap.append(removeCross);
+  }
+  cross.append(wrap);return inp;
+ }
  (b.crossStreets.length?b.crossStreets:['']).forEach(addCross);
- const plus=document.createElement('button');plus.type='button';plus.className='alt';plus.textContent='+ רחוב חוצה';plus.onclick=()=>addCross();section.append(plus);
- function toggle(){const junction=type.value==='צומת';fromLabel.hidden=junction;toLabel.hidden=junction;both.hidden=junction;cross.hidden=!junction;plus.hidden=!junction}type.onchange=toggle;toggle();
+ const plus=document.createElement('button');plus.type='button';plus.className='alt add-cross';plus.textContent='+';plus.title='הוסף רחוב חוצה';plus.setAttribute('aria-label','הוסף רחוב חוצה');plus.onclick=()=>addCross().focus();
+ junctionWrap.append(plus);row.append(junctionWrap);
+ function toggle(){const junction=type.value==='צומת';fromLabel.hidden=junction;toLabel.hidden=junction;both.hidden=junction;junctionWrap.hidden=!junction}type.onchange=toggle;toggle();
  $('additionalBlockages').append(section);renumberBlockages();
 }
 $('addBlockage').onclick=()=>makeExtraBlockage();
