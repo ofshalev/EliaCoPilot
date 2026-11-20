@@ -167,17 +167,18 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .primary-blockage .schedule-hours,.extra-blockage .schedule-hours{flex:0 0 270px}
 #blockageScheduleEditor{display:none!important}
 /* Date grid on the right, one independent clock per selected date to its left. */
-.compact-blockage-schedule .compact-schedule-body{display:flex;direction:rtl;align-items:flex-start;gap:16px;flex-wrap:wrap}
-.compact-blockage-schedule .compact-days{flex:0 0 330px;max-width:420px;width:330px}
-.compact-blockage-schedule .compact-time{flex:1 1 400px;width:auto;min-width:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px;align-items:start;justify-items:stretch}
+.compact-blockage-schedule .compact-schedule-body{display:flex;direction:rtl;align-items:flex-start;gap:10px;flex-wrap:nowrap}
+.compact-blockage-schedule .compact-days{flex:0 0 290px;max-width:290px;width:290px}
+.compact-blockage-schedule .compact-time{flex:1 1 0;width:auto;min-width:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;align-items:start;justify-items:stretch}
 .compact-blockage-schedule .compact-time.continuous-clock-fields{display:flex;flex:1 1 220px;flex-direction:column;align-items:stretch}
-.compact-day-clock{display:flex;flex-direction:column;align-items:center;gap:3px;border:1px solid #d5e0ee;border-radius:9px;background:#fff;padding:8px 4px 10px;min-width:0}
-.compact-day-clock-title{text-align:center;font-size:11px;font-weight:750;color:#24548b;white-space:normal}
-.compact-day-clock .compact-clock{display:block;width:100%;height:auto;max-width:138px;aspect-ratio:1}
-.compact-day-clock .compact-time-step{font-size:11px;gap:4px}
-.compact-day-clock .compact-time-step button{min-width:23px;padding:3px 5px}
-.compact-day-clock .compact-time-step strong{min-width:37px}
-@media(max-width:620px){.compact-blockage-schedule .compact-days{flex:1 1 100%;max-width:100%;width:100%}.compact-blockage-schedule .compact-time{flex:1 1 100%}}
+.compact-day-clock{display:flex;flex-direction:column;align-items:center;gap:3px;border:1px solid #d5e0ee;border-radius:9px;background:#fff;padding:7px 2px 8px;min-width:0}
+.compact-day-clock-title{text-align:center;font-size:10px;font-weight:750;color:#24548b;white-space:normal;min-height:27px}
+.compact-day-clock .compact-clock{display:block;width:100%;height:auto;max-width:125px;aspect-ratio:1;touch-action:none}
+.compact-day-clock .compact-time-step{font-size:10px;gap:2px}
+.compact-day-clock .compact-time-step button{min-width:22px;padding:3px 4px}
+.compact-day-clock .compact-time-step strong{min-width:35px}
+@media(max-width:950px){.compact-blockage-schedule .compact-schedule-body{flex-wrap:wrap}.compact-blockage-schedule .compact-days{flex:1 1 100%;max-width:100%;width:100%}.compact-blockage-schedule .compact-time{flex:1 1 100%;grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(max-width:570px){.compact-blockage-schedule .compact-time{overflow-x:auto;grid-template-columns:repeat(5,minmax(108px,1fr))}}
 .compact-blockage-schedule{border-top:1px solid #dce5f1;margin-top:12px;padding-top:10px;direction:rtl}
 .compact-schedule-top{margin-bottom:8px}
 .compact-work-type{max-width:175px;padding:6px 9px;font-size:12px}
@@ -444,13 +445,14 @@ function scheduleDatesOf(a){
 }
 // Every blockage has its own small live clock and calendar, always visible.
 function recordActiveSchedule(){} // Inputs update scheduleDrafts immediately.
-function compactScheduleClock(svg,schedule){
+function compactScheduleClock(svg,schedule,preview=null){
  svg.replaceChildren();
- const start=parseInt(schedule.timeFrom,10)||0,end=parseInt(schedule.timeTo,10)||0;
+ const start=preview?.start??parseInt(schedule.timeFrom,10)??0;
+ const end=preview?.end??parseInt(schedule.timeTo,10)??0;
  const duration=mod24(end-start)||12;
  clockElement(svg,'circle',{cx:150,cy:150,r:104,fill:'#fff',stroke:'#cedbe9','stroke-width':2});
  const a=clockPoint(start,103),b=clockPoint(start+duration,103);
- if(duration===12)clockElement(svg,'circle',{cx:150,cy:150,r:103,fill:'#dceaff',stroke:'#2864e2','stroke-width':3});
+ if(Math.abs(duration-12)<0.001)clockElement(svg,'circle',{cx:150,cy:150,r:103,fill:'#dceaff',stroke:'#2864e2','stroke-width':3});
  else clockElement(svg,'path',{d:'M 150 150 L '+a.join(' ')+' A 103 103 0 '+(duration>6?1:0)+' 1 '+b.join(' ')+' Z',fill:'#dceaff',stroke:'#2864e2','stroke-width':3});
  for(let h=0;h<12;h++){
   const p=clockPoint(h,132),text=clockElement(svg,'text',{x:p[0],y:p[1]+5,'text-anchor':'middle','font-size':18,fill:'#294b78','font-weight':h%3===0?800:500});
@@ -534,11 +536,32 @@ function buildCompactSchedule(block){
     backward.onclick=()=>change(-1);forward.onclick=()=>change(1);
     wrap.append(backward,value,forward);card.append(wrap);
    }
-   let dragging=null;
+   let dragging=null,preview=null;
    const pointerHour=ev=>{
     const rect=svg.getBoundingClientRect();
     const x=(ev.clientX-rect.left)*300/rect.width-150,y=(ev.clientY-rect.top)*300/rect.height-150;
-    return mod12(Math.round(Math.atan2(x,-y)*6/Math.PI));
+    return mod12(Math.atan2(x,-y)*6/Math.PI);
+   };
+   const cyclicDistance=(a,b)=>Math.min(mod24(a-b),mod24(b-a));
+   const nearest24=(dial,origin)=>{
+    const candidates=[dial,dial+12];
+    return candidates.sort((a,b)=>cyclicDistance(a,origin)-cyclicDistance(b,origin))[0];
+   };
+   const showPreview=ev=>{
+    if(!dragging)return;
+    const hours=ensureDailyHours(date);
+    const dial=pointerHour(ev);
+    const original=parseInt(hours[dragging],10);
+    const candidate=nearest24(dial,original);
+    const start=dragging==='timeFrom'?candidate:parseInt(hours.timeFrom,10);
+    const finish=dragging==='timeTo'?candidate:parseInt(hours.timeTo,10);
+    const span=mod24(finish-start);
+    if(span<0.5||span>12.5)return;
+    preview={start,end:finish};
+    compactScheduleClock(svg,hours,preview);
+    // Display the nearest whole hour while the handle tracks the pointer smoothly.
+    const label=card.querySelectorAll('.compact-time-step strong')[dragging==='timeFrom'?0:1];
+    if(label)label.textContent=hourText(Math.round(candidate));
    };
    svg.addEventListener('pointerdown',ev=>{
     const rect=svg.getBoundingClientRect();
@@ -548,17 +571,33 @@ function buildCompactSchedule(block){
     if(Math.min(distance(start),distance(finish))>38)return;
     dragging=distance(start)<=distance(finish)?'timeFrom':'timeTo';
     svg.setPointerCapture(ev.pointerId);ev.preventDefault();
+    showPreview(ev);
    });
+   svg.addEventListener('pointermove',showPreview);
    svg.addEventListener('pointerup',ev=>{
     if(!dragging)return;
-    const handle=dragging;dragging=null;
-    const hour=pointerHour(ev),original=parseInt(hours[handle],10);
-    const options=[hour,hour+12];
-    const nearest=options.sort((a,b)=>Math.min(mod24(a-original),mod24(original-a))-Math.min(mod24(b-original),mod24(original-b)))[0];
-    if(handle==='timeFrom')setDayHours(date,nearest,hours.timeTo);
-    else setDayHours(date,hours.timeFrom,nearest);
+    const handle=dragging;
+    showPreview(ev);
+    dragging=null;
+    const candidate=preview?.[handle==='timeFrom'?'start':'end'];
+    preview=null;
+    if(candidate===undefined){compactScheduleClock(svg,hours);return}
+    const snapped=mod24(Math.round(candidate));
+    const success=handle==='timeFrom'
+      ?setDayHours(date,snapped,hours.timeTo)
+      :setDayHours(date,hours.timeFrom,snapped);
+    if(!success)renderTimes();
    });
-   for(const ev of ['pointercancel','lostpointercapture'])svg.addEventListener(ev,()=>dragging=null);
+   for(const name of ['pointercancel','lostpointercapture']){
+    svg.addEventListener(name,()=>{
+     if(!dragging)return;
+     dragging=null;preview=null;
+     compactScheduleClock(svg,hours);
+     const labels=card.querySelectorAll('.compact-time-step strong');
+     if(labels[0])labels[0].textContent=hours.timeFrom;
+     if(labels[1])labels[1].textContent=hours.timeTo;
+    });
+   }
    timeArea.append(card);
   }
  }
