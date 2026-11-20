@@ -262,7 +262,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  <div class="project-segment-field"><label for="segment">מקטע</label><select id="segment" required><option value="">בחר מקטע</option></select></div>
  <div class="project-city-display"><span class="field-caption">עיר</span><strong id="cityDisplay">תיקבע לפי המקטע</strong><input id="city" type="hidden" value=""></div>
  </div>
- <div class="primary-blockage full"><div class="extra-heading"><strong>חסימה 1</strong></div><div class="blockage-schedule-head"></div><div class="location-row">
+ <div class="primary-blockage full"><div class="extra-heading"><strong>חסימה 1</strong><button type="button" class="danger" id="removePrimaryBlockage" hidden>הסר חסימה</button></div><div class="blockage-schedule-head"></div><div class="location-row">
  <div class="location-type-field"><label for="locationType">סוג מיקום</label><select id="locationType"><option value="רחוב">רחוב</option><option value="צומת">צומת</option></select></div>
  <div id="streetChoiceWrap" class="location-street-field"><label for="streetChoice">בחר רחוב לפי מקטע</label><select id="streetChoice"><option value="">בחר מקטע תחילה</option></select></div>
  <div id="fixedStreetWrap" class="fixed-street location-street-field" hidden><span class="field-caption">רחוב</span><strong id="fixedStreetDisplay"></strong></div>
@@ -701,10 +701,40 @@ function multiBlockageTitle(blockages){
 }
 function primaryBlockage(){const junction=$('locationType').value==='צומת',options=baseStreetOptions();return {locationType:$('locationType').value,street:options.length===1?options[0]:$('streetChoice').value,fromStreet:junction?'':$('fromStreet').value.trim(),toStreet:junction?'':$('toStreet').value.trim(),crossStreets:junction?crossStreetValues():[],bothDirections:!junction&&$('bothDirections').checked}}
 function extraBlockageData(section){const junction=section.querySelector('.extra-type').value==='צומת';return {locationType:junction?'צומת':'רחוב',street:section.querySelector('.extra-street').value,fromStreet:junction?'':section.querySelector('.extra-from').value.trim(),toStreet:junction?'':section.querySelector('.extra-to').value.trim(),bothDirections:!junction&&section.querySelector('.extra-both input').checked,crossStreets:junction?[...section.querySelectorAll('.extra-crosses input')].map(x=>x.value.trim()):[]}}
+function refreshPrimaryRemoval(){
+ const button=$('removePrimaryBlockage');
+ button.hidden=!$('additionalBlockages').children.length;
+ button.disabled=!$('additionalBlockages').children.length;
+}
+function promoteNextBlockage(){
+ const section=$('additionalBlockages').firstElementChild;
+ if(!section)return;
+ // Capture both the location and the full independent day-by-day schedule.
+ const next=extraBlockageData(section);
+ const schedule=structuredClone(scheduleDrafts.get(section)||workScheduleFromLegacy());
+ const primary=document.querySelector('.primary-blockage');
+ $('locationType').value=next.locationType;
+ $('street').value=next.street;
+ $('streetChoice').value=next.street;
+ updateLocationType();
+ updateStreetChoices(true);
+ $('fromStreet').value=next.fromStreet;
+ $('toStreet').value=next.toStreet;
+ $('bothDirections').checked=next.bothDirections;
+ resetCrossStreets(next.crossStreets);
+ scheduleDrafts.set(primary,schedule);
+ attachBlockageScheduleControl(primary);
+ scheduleDrafts.delete(section);
+ section.remove();
+ renumberBlockages();
+ refreshPrimaryRemoval();
+}
+$('removePrimaryBlockage').onclick=promoteNextBlockage;
 function clearExtraBlockages(){
  activeScheduleBlock=null;
  $('additionalBlockages').replaceChildren();scheduleDrafts.clear();
  const old=document.querySelector('.primary-blockage .compact-blockage-schedule');if(old)old.remove();
+ refreshPrimaryRemoval();
 }
 function renumberBlockages(){[...$('additionalBlockages').children].forEach((node,i)=>node.querySelector('.extra-heading strong').textContent='חסימה '+(i+2))}
 function makeExtraBlockage(initial={}){
@@ -712,7 +742,7 @@ function makeExtraBlockage(initial={}){
  const heading=document.createElement('div');heading.className='extra-heading';const name=document.createElement('strong');
  const remove=document.createElement('button');remove.type='button';remove.className='danger';remove.textContent='הסר חסימה';remove.onclick=()=>{
   
-  scheduleDrafts.delete(section);section.remove();renumberBlockages();refreshScheduleHeads();
+  scheduleDrafts.delete(section);section.remove();renumberBlockages();refreshScheduleHeads();refreshPrimaryRemoval();
  };heading.append(name,remove);section.append(heading);
  const scheduleHead=document.createElement('div');scheduleHead.className='blockage-schedule-head';section.append(scheduleHead);
  const row=document.createElement('div');row.className='extra-row';section.append(row);
@@ -744,7 +774,7 @@ function makeExtraBlockage(initial={}){
  const plus=document.createElement('button');plus.type='button';plus.className='alt add-cross';plus.textContent='+';plus.title='הוסף רחוב חוצה';plus.setAttribute('aria-label','הוסף רחוב חוצה');plus.onclick=()=>addCross().focus();
  junctionWrap.append(plus);row.append(junctionWrap);
  function toggle(){const junction=type.value==='צומת';fromLabel.hidden=junction;toLabel.hidden=junction;both.hidden=junction;junctionWrap.hidden=!junction}type.onchange=toggle;toggle();
- $('additionalBlockages').append(section);renumberBlockages();
+ $('additionalBlockages').append(section);renumberBlockages();refreshPrimaryRemoval();
  const primary=document.querySelector('.primary-blockage');
  const inherited=scheduleDrafts.get(primary)||workScheduleFromLegacy();
  scheduleDrafts.set(section,scheduleForBlockage(initial,inherited));
