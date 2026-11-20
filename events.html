@@ -1136,16 +1136,19 @@ function cardPeriod(e){
  return compactContinuousPeriod(from,to);
 }
 function widestEventSpan(e){
- const blocks=eventBlockages(e),entries=[];
+ const blocks=eventBlockages(e),entries=[],workDates=[];
+ let continuousRange=false;
  let from='',to='';
  for(const b of blocks){
   const a=scheduleForBlockage(b,e);
   if(a.workType==='עבודות רצופות'){
+   continuousRange=true;
    if(a.dateFrom&&(!from||a.dateFrom<from))from=a.dateFrom;
    if(a.dateTo&&(!to||a.dateTo>to))to=a.dateTo;
    entries.push({start:a.timeFrom,end:a.timeTo,type:a.workType});
   }else{
    const dates=a.selectedDates||[];
+   workDates.push(...dates);
    for(const date of dates){
     if(!from||date<from)from=date;
     if(!to||date>to)to=date;
@@ -1170,7 +1173,7 @@ function widestEventSpan(e){
   }));
   start=hourText(startHour);end=hourText(endHour);
  }
- return {date:compactContinuousPeriod(from,to),start,end,hasDay:entries.some(x=>x.type==='עבודות יום'),
+ return {date:continuousRange?compactContinuousPeriod(from,to):workDates.length?compactWorkDates(workDates):compactContinuousPeriod(from,to),start,end,hasDay:entries.some(x=>x.type==='עבודות יום'),
   unusualNight:entries.some(x=>x.type==='עבודות לילה'&&x.start!=='22:00')};
 }
 function render(){
