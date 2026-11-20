@@ -39,12 +39,22 @@ button.alt{background:#e9eff8;color:#294a6c}
 .slide-bottom .project-mark{width:7%;height:5px;background:var(--accent);border-radius:5px}
 .preview-note{font-size:12px;color:#687c91;line-height:1.7;margin:10px 0 0}
 .missing{max-width:560px;margin:55px auto;text-align:center;line-height:1.8}
+.slide-frame{display:flex;flex-direction:column;height:100%;min-height:0}
+.slide-frame .slide-body{flex:1}
+.details-body{gap:4%;padding:7% 10%}
+.details-body .slide-title{margin-bottom:3%;font-size:clamp(16px,2.5vw,35px)}
+.details-line{display:flex;gap:15px;align-items:baseline;flex-wrap:wrap;font-size:clamp(12px,1.6vw,22px)}
+.details-line span{min-width:75px;color:#526b82}
+.details-line strong{direction:ltr;unicode-bidi:isolate}
+.slide-switch{display:flex;gap:8px;margin-bottom:12px}
+.slide-switch button.active{color:#fff;background:#2864e2}
+.return-event{display:inline-block;margin-top:15px;font-weight:700;color:#225bb1}
 [hidden]{display:none!important}
 @media(max-width:850px){.workspace{grid-template-columns:1fr}.slide-title{font-size:clamp(14px,4vw,29px)}.slide-period{font-size:clamp(11px,2.5vw,18px)}.slide-subtitle{font-size:clamp(10px,2.5vw,17px)}}
 </style>
 </head>
 <body>
-<header><div><h1>Elia CoPilot — עורך מצגת</h1><p>שער אחיד לשלושת הפרויקטים</p></div><a href="events.html">חזרה לאירועים</a></header>
+<header><div><h1>Elia CoPilot — עורך מצגת</h1><p>שקופיות 1–2 — יצירה אוטומטית מתוך האירוע</p></div><a href="events.html">חזרה לאירועים</a></header>
 <main>
 <div id="missing" class="panel missing" hidden>
 <h2>לא נמצא אירוע לעריכה</h2>
@@ -52,38 +62,48 @@ button.alt{background:#e9eff8;color:#294a6c}
 <a href="events.html">בחזרה לרשימת האירועים</a>
 </div>
 <div id="workspace" hidden>
-<div class="notice"><strong>תצוגת שער אחיד — טיוטה:</strong> זהו מבנה התוכן שנשתמש בו בכל שלושת הפרויקטים. הצבע משמש לזיהוי פנימי בלבד ואינו תחליף לרקע המאושר. את הלוגואים, הגרפיקה ורקע המאסטר של שפיר, נתיבי איילון ונת״ע נקבע בנפרד לאחר קבלת התבניות המקוריות. עדיין אין יצוא PPTX.</div>
+<div class="notice"><strong>שקופיות 1 ו־2 נוצרות אוטומטית.</strong> התוכן מחושב מרשומת האירוע, ללא עריכת כותרות ידנית. התצוגות עדיין אינן משתמשות ברקע המאסטר המאושר; לא ייווצר קובץ PowerPoint לפני נעילת המיתוג של כל פרויקט.</div>
 <div class="workspace">
 <section class="panel">
-<h2>תוכן שער המצגת</h2>
-<label>פרויקט ומקטע — נקבעים לפי האירוע</label><div class="readonly" id="projectField"></div>
-<label>עיר — מתוך האירוע</label><div class="readonly" id="cityField"></div>
-<label>תאריכי עבודה ושעות — מחושבים אוטומטית</label><div class="readonly" id="periodField"></div>
-<label for="titleInput">כותרת</label><textarea id="titleInput" rows="3"></textarea>
-<label for="subtitleInput">תת־כותרת</label><input id="subtitleInput" value="השפעות על התחבורה הציבורית">
-<label for="kickerInput">תיאור עליון</label><input id="kickerInput" value="עבודות תשתית">
-<div class="actions"><button type="button" id="restore" class="alt">שחזר כותרת מהאירוע</button><button type="button" id="clearDraft" class="alt">נקה התאמות</button></div>
-<p class="small">השדות נשמרים בדפדפן לכל אירוע בנפרד, ואינם משנים את האירוע המקורי.</p>
-<div class="status" id="saveStatus" role="status"></div>
+<h2>פרטי פתיחה — אוטומטיים</h2>
+<label>פרויקט ומקטע</label><div class="readonly" id="projectField"></div>
+<label>עיר</label><div class="readonly" id="cityField"></div>
+<label>כותרת האירוע</label><div class="readonly" id="locationField"></div>
+<label>סוג העבודות</label><div class="readonly" id="kindField"></div>
+<label>תאריכים</label><div class="readonly" id="datesField"></div>
+<label>ימים</label><div class="readonly" id="weekdaysField"></div>
+<label>שעות (טווח מרבי)</label><div class="readonly" id="timesField"></div>
+<p class="small">הנתונים נקראים אוטומטית מהאירוע. אם נדרש תיקון, חוזרים לכרטיס האירוע ומעדכנים את החסימות או לוח הזמנים.</p>
+<a class="return-event" href="events.html" id="backToEvents">חזרה לעריכת האירוע</a>
 </section>
 <section class="panel">
-<h2>תצוגה מקדימה — שקופית שער</h2>
+<h2>תצוגה מקדימה — שתי שקופיות</h2>
+<div class="slide-switch"><button type="button" class="alt active" data-slide="1" aria-pressed="true">1 · שער המצגת</button><button type="button" class="alt" data-slide="2" aria-pressed="false">2 · פרטי העבודות</button></div>
 <div class="preview-shell">
 <div class="slide" id="slide">
+<div id="coverSlide" class="slide-frame">
 <div class="slide-head"><div class="slide-project" id="previewProject"></div><div class="slide-section" id="previewSegment"></div></div>
 <div class="slide-body">
-<div class="slide-kicker" id="previewKicker"></div>
-<div class="slide-title" id="previewTitle"></div>
-<div class="slide-subtitle" id="previewSubtitle"></div>
-<div class="slide-period" id="previewPeriod"></div>
-<div class="slide-city" id="previewCity"></div>
+<div class="slide-kicker" id="previewMonth"></div>
+<div class="slide-title" id="previewCoverTitle"></div>
+<div class="slide-subtitle">השפעת עבודות על תח״צ</div>
 </div>
-<div class="slide-bottom"><span>Elia CoPilot — תצוגת תוכן ללא מיתוג רשמי</span><span class="project-mark" aria-hidden="true"></span></div>
+<div class="slide-bottom"><span>שקופית 1 · מבנה אחיד, ללא רקע רשמי</span><span class="project-mark" aria-hidden="true"></span></div>
+</div>
+<div id="detailsSlide" class="slide-frame" hidden>
+<div class="slide-body details-body">
+<div class="slide-title" id="previewDetailsTitle"></div>
+<div class="details-line"><span>תאריכים</span><strong id="previewDates"></strong></div>
+<div class="details-line"><span>ימים</span><strong id="previewWeekdays"></strong></div>
+<div class="details-line"><span>שעות</span><strong id="previewTimes"></strong></div>
+</div>
+<div class="slide-bottom"><span>שקופית 2 · מבנה אחיד, ללא רקע רשמי</span><span class="project-mark" aria-hidden="true"></span></div>
 </div>
 </div>
-<p class="preview-note">כל השדות מלבד פרטי האירוע מחולקים בין שכבת התוכן לשכבת הרקע. לאחר אישור המאסטר לכל פרויקט, נוכל לייצר PPTX עם טקסט ניתן לעריכה וללא שינוי לרקע.</p>
+</div>
+<p class="preview-note">הכותרות, הימים והשעות מחושבים מהחסימות ומהשעונים. המיתוג הנעול והייצוא ל־PPTX יתווספו רק לאחר אימות התבניות הרשמיות.</p>
 </section>
-</div></div>
+</div></div></div>
 </main>
 <script>
 'use strict';
@@ -93,98 +113,103 @@ const events=(()=>{try{return JSON.parse(localStorage.getItem('elia_copilot_even
 const event=events.find(e=>e.id===eventId);
 if(!event){$('missing').hidden=false}else{
  $('workspace').hidden=false;
- const draftKey='elia_copilot_presentation_draft_v1:'+event.id;
- let draft={};try{draft=JSON.parse(localStorage.getItem(draftKey))||{}}catch{}
- const projects={'הקו הסגול':{class:'purple'},'הקו החום':{class:'brown'},'הקו הירוק':{class:'green'}};
- function plusDate(date,days){const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+days);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
+ const projects={'הקו הסגול':'purple','הקו החום':'brown','הקו הירוק':'green'};
+ const blocks=Array.isArray(event.blockages)&&event.blockages.length?event.blockages:[event];
+ const shortDay=['א','ב','ג','ד','ה','ו','ש'];
+ function plusDate(date,n){const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+n);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
  function shortDates(dates){
-  const unique=[...new Set(dates.filter(Boolean))].sort(),parts=[];let i=0;
-  while(i<unique.length){
-   const month=unique[i].slice(0,7),group=[];
-   while(i<unique.length&&unique[i].slice(0,7)===month)group.push(unique[i++]);
-   const segments=[];let p=0;
-   while(p<group.length){
-    let last=p;while(last+1<group.length&&plusDate(group[last],1)===group[last+1])last++;
-    const day=k=>String(Number(group[k].slice(-2)));
-    segments.push(last===p?day(p):day(p)+'-'+day(last));p=last+1;
+  const sorted=[...new Set(dates.filter(Boolean))].sort(),parts=[];let i=0;
+  while(i<sorted.length){
+   const month=sorted[i].slice(0,7),group=[];
+   while(i<sorted.length&&sorted[i].slice(0,7)===month)group.push(sorted[i++]);
+   const chunks=[];let j=0;
+   while(j<group.length){
+    let k=j;while(k+1<group.length&&plusDate(group[k],1)===group[k+1])k++;
+    const day=q=>Number(group[q].slice(-2));
+    chunks.push(j===k?String(day(j)):day(j)+'-'+day(k));j=k+1;
    }
-   parts.push(segments.join('+')+'.'+month.slice(5)+'.'+month.slice(0,4));
+   parts.push(chunks.join('+')+'.'+month.slice(5)+'.'+month.slice(0,4));
   }
-  return parts.join(' + ');
+  return parts.join(' + ')||'—';
  }
- function fullRange(from,to){
-  if(!from)return '—';
-  if(!to||from===to)return shortDates([from]);
-  return from.slice(0,7)===to.slice(0,7)
-   ?Number(from.slice(-2))+'-'+Number(to.slice(-2))+'.'+from.slice(5,7)+'.'+from.slice(0,4)
-   :shortDates([from])+' – '+shortDates([to]);
+ function dateRange(a,b){
+  if(!a)return '—';
+  if(!b||a===b)return shortDates([a]);
+  if(a.slice(0,7)===b.slice(0,7))return Number(a.slice(-2))+'-'+Number(b.slice(-2))+'.'+a.slice(5,7)+'.'+a.slice(0,4);
+  return shortDates([a])+' – '+shortDates([b]);
  }
- function period(){
-  const blocks=Array.isArray(event.blockages)&&event.blockages.length?event.blockages:[event];
-  const dates=[],hours=[];let rangeFrom='',rangeTo='',continuous=false;
-  for(const b of blocks){
-   const type=b.workType||event.workType;
-   if(type==='עבודות רצופות'){
-    continuous=true;const a=b.dateFrom||event.dateFrom,z=b.dateTo||event.dateTo;
-    if(a&&(!rangeFrom||a<rangeFrom))rangeFrom=a;
-    if(z&&(!rangeTo||z>rangeTo))rangeTo=z;
-    hours.push({from:b.timeFrom||event.timeFrom,to:b.timeTo||event.timeTo,type});
-   }else{
-    for(const date of b.selectedDates||event.selectedDates||[]){
-     dates.push(date);
-     const h=b.dailyHours?.[date]||b;
-     hours.push({from:h.timeFrom||event.timeFrom,to:h.timeTo||event.timeTo,type});
-    }
+ const dates=[],hours=[],types=[];let rangeStart='',rangeEnd='',continuous=false;
+ for(const b of blocks){
+  const type=b.workType&&b.workType!=='עבודות מרובות'?b.workType:event.workType;
+  types.push(type);
+  if(type==='עבודות רצופות'){
+   continuous=true;
+   const a=b.dateFrom||event.dateFrom,z=b.dateTo||event.dateTo;
+   if(a&&(!rangeStart||a<rangeStart))rangeStart=a;
+   if(z&&(!rangeEnd||z>rangeEnd))rangeEnd=z;
+   hours.push({from:b.timeFrom||event.timeFrom,to:b.timeTo||event.timeTo});
+  }else{
+   const selected=Array.isArray(b.selectedDates)&&b.selectedDates.length?b.selectedDates
+    :blocks.length===1&&Array.isArray(event.selectedDates)?event.selectedDates:[];
+   for(const d of selected){
+    dates.push(d);
+    const h=b.dailyHours?.[d]||b;
+    hours.push({from:h.timeFrom||event.timeFrom,to:h.timeTo||event.timeTo});
    }
   }
-  const all=[...new Set(dates)].sort();
-  const d=continuous?fullRange([rangeFrom,all[0]].filter(Boolean).sort()[0],[rangeTo,all.at(-1)].filter(Boolean).sort().at(-1))
-   :all.length?shortDates(all):fullRange(event.dateFrom,event.dateTo);
-  const valid=hours.filter(h=>/^\d{2}:\d{2}$/.test(h.from||'')&&/^\d{2}:\d{2}$/.test(h.to||''));
-  if(!valid.length)return d;
-  // Compare nightly times on an operational day that continues after midnight.
-  const begins=valid.map(h=>Number(h.from.slice(0,2))*60+Number(h.from.slice(3)));
-  const ends=valid.map(h=>{let t=Number(h.to.slice(0,2))*60+Number(h.to.slice(3));const start=Number(h.from.slice(0,2))*60+Number(h.from.slice(3));return t<=start?t+1440:t});
-  const fmt=min=>String(Math.floor(min/60)%24).padStart(2,'0')+':'+String(min%60).padStart(2,'0');
-  return d+' | '+fmt(Math.min(...begins))+'–'+fmt(Math.max(...ends));
  }
- const blockages=Array.isArray(event.blockages)&&event.blockages.length?event.blockages:[event];
- const title=event.eventTitle||blockages.map(b=>b.street).filter(Boolean).join('-')||'אירוע ללא שם';
- const project=event.railLine||'פרויקט לא הוגדר',section=event.segment||'—';
- const city=event.city||'—',when=period();
+ const sortedDates=[...new Set(dates)].sort();
+ const first=[rangeStart,sortedDates[0]].filter(Boolean).sort()[0]||event.dateFrom||'';
+ const last=[rangeEnd,sortedDates.at(-1)].filter(Boolean).sort().at(-1)||event.dateTo||'';
+ const datesText=continuous?dateRange(first,last):sortedDates.length?shortDates(sortedDates):dateRange(event.dateFrom,event.dateTo);
+ const allDays=continuous&&first&&last?(()=>{
+  const list=[];let d=first;for(let i=0;i<366&&d<=last;i++,d=plusDate(d,1))list.push(d);return list;
+ })():sortedDates;
+ const dayIndices=[...new Set(allDays.map(d=>new Date(d+'T12:00:00').getDay()))].sort((a,b)=>a-b);
+ const daysText=dayIndices.length?dayIndices.map(i=>shortDay[i]).join('+'):'—';
+ const valid=hours.filter(h=>/^\d{2}:\d{2}$/.test(h.from||'')&&/^\d{2}:\d{2}$/.test(h.to||''));
+ const mins=t=>Number(t.slice(0,2))*60+Number(t.slice(3));
+ const fmt=m=>String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+ const begins=valid.map(h=>mins(h.from));
+ const ends=valid.map(h=>mins(h.to)+(mins(h.to)<=mins(h.from)?1440:0));
+ const timesText=valid.length?fmt(Math.min(...begins))+'–'+fmt(Math.max(...ends)):'—';
+ const project=event.railLine||'פרויקט לא הוגדר',section=event.segment||'—',city=event.city||'—';
+ const typeSet=[...new Set(types.filter(t=>t&&t!=='עבודות מרובות'))];
+ const typeText=typeSet.length===1?typeSet[0]:typeSet.length?'עבודות יום ולילה':'עבודות';
+ const blockTitle=b=>{
+  const street=(b.street||'').trim();
+  if(b.locationType==='צומת')return 'צומת '+[street,...(b.crossStreets||[])].filter(Boolean).join(' / ');
+  return (street+(b.fromStreet?' מ'+b.fromStreet:'')+(b.toStreet?' עד '+b.toStreet:'')+(b.bothDirections?' בשני הכיוונים':'')).trim();
+ };
+ const location=blocks.length>1?[...new Set(blocks.map(b=>b.street).filter(Boolean))].join('–'):(event.eventTitle||blockTitle(blocks[0]));
+ const month=first?new Intl.DateTimeFormat('he-IL',{month:'long',year:'numeric'}).format(new Date(first+'T12:00:00')):'—';
  $('projectField').textContent=project+' · '+section;
  $('cityField').textContent=city;
- $('periodField').textContent=when;
- $('slide').classList.add(projects[project]?.class||'purple');
+ $('locationField').textContent=location||'—';
+ $('kindField').textContent=typeText;
+ $('datesField').textContent=datesText;
+ $('weekdaysField').textContent=daysText;
+ $('timesField').textContent=timesText;
+ $('slide').classList.add(projects[project]||'purple');
  $('previewProject').textContent=project;
  $('previewSegment').textContent=section;
- $('previewPeriod').textContent=when;
- $('previewCity').textContent=city;
- const defaults={title,subtitle:'השפעות על התחבורה הציבורית',kicker:'עבודות תשתית'};
- const fields={title:'titleInput',subtitle:'subtitleInput',kicker:'kickerInput'};
- function render(){
-  $('previewTitle').textContent=$('titleInput').value;
-  $('previewSubtitle').textContent=$('subtitleInput').value;
-  $('previewKicker').textContent=$('kickerInput').value;
+ $('previewMonth').textContent=month;
+ $('previewCoverTitle').textContent=project+' — מקטע '+section;
+ $('previewDetailsTitle').textContent=[city,typeText,location].filter(Boolean).join(' · ');
+ $('previewDates').textContent=datesText;
+ $('previewWeekdays').textContent=daysText;
+ $('previewTimes').textContent=timesText;
+ for(const b of document.querySelectorAll('[data-slide]')){
+  b.onclick=()=>{
+   const n=b.dataset.slide;
+   $('coverSlide').hidden=n!=='1';$('detailsSlide').hidden=n!=='2';
+   for(const button of document.querySelectorAll('[data-slide]')){
+    const active=button.dataset.slide===n;
+    button.classList.toggle('active',active);
+    button.setAttribute('aria-pressed',String(active));
+   }
+  };
  }
- function save(){
-  const values={};
-  for(const [key,id] of Object.entries(fields))values[key]=$(id).value;
-  localStorage.setItem(draftKey,JSON.stringify(values));
-  $('saveStatus').textContent='השינויים נשמרו בדפדפן';render();
- }
- function populate(values){
-  for(const [key,id] of Object.entries(fields))$(id).value=values[key]??defaults[key];
-  render();
- }
- populate({...defaults,...draft});
- for(const id of Object.values(fields))$(id).addEventListener('input',save);
- $('restore').onclick=()=>{$('titleInput').value=title;save()};
- $('clearDraft').onclick=()=>{
-  if(!confirm('לנקות את התאמות שער המצגת?'))return;
-  localStorage.removeItem(draftKey);populate(defaults);
-  $('saveStatus').textContent='השדות הוחזרו לברירת מחדל';
- };
 }
 </script>
 </body></html>
