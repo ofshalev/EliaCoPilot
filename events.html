@@ -120,12 +120,20 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .remove-cross{padding:4px 9px;background:#f7e8e8!important;color:#963a3a!important}
 @media(max-width:700px){.junction-cross{flex-basis:100%}.cross-street-entry input{width:155px;max-width:60vw}}
 
-.schedule-layout{display:flex;direction:rtl;align-items:flex-start;gap:24px}
-.schedule-dates{flex:0 1 610px;min-width:0}
-.schedule-dates .calendar-shell{width:100%;margin-top:12px}
-.schedule-hours{flex:0 0 180px;display:flex;flex-direction:column;gap:16px;margin-top:0}
-.schedule-hours input,.schedule-hours select{width:100%}
-@media(max-width:850px){.schedule-layout{flex-wrap:wrap}.schedule-dates{flex:1 1 100%}.schedule-hours{flex:1 1 100%;flex-direction:row;flex-wrap:wrap;margin-top:0}.schedule-hours>div{max-width:200px;flex:1}}
+.schedule-layout{display:flex;direction:rtl;align-items:flex-start;gap:20px}
+.schedule-dates{flex:1 1 610px;min-width:0}
+.schedule-dates .calendar-shell{width:100%;max-width:610px;margin-top:12px}
+.schedule-hours{flex:0 0 295px;max-width:295px;display:flex;flex-direction:column;gap:12px;margin-top:0}
+.schedule-hours select{width:100%}
+.clock-panel{border:1px solid #dbe4ef;border-radius:13px;padding:9px;background:#f9fbff;text-align:center}
+#workClock{display:block;width:100%;max-width:255px;height:auto;margin:0 auto;touch-action:none;user-select:none;cursor:default}
+.clock-time-summary{font-size:14px;font-weight:800;color:#174a85;margin:3px 0 12px;direction:ltr}
+.clock-adjust{display:grid;grid-template-columns:1fr 32px 57px 32px;align-items:center;gap:4px;margin-bottom:7px;font-size:12px;text-align:right}
+.clock-adjust button{padding:5px 0;font-size:16px;min-height:30px}
+.clock-adjust strong{text-align:center;direction:ltr;font-size:13px}
+.clock-panel .hint{text-align:right;margin:10px 2px 0}
+@media(max-width:850px){.schedule-layout{flex-wrap:wrap}.schedule-dates{flex:1 1 100%}.schedule-hours{flex:0 1 295px;max-width:100%}}
+
 </style>
 </head>
 <body>
@@ -168,7 +176,17 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  <div class="schedule-dates"><label>תאריכי עבודה בשבוע הבא *</label><p class="hint">בחרו את ימי העבודה בנפרד. בעבודות לילה כל תאריך מייצג את תחילת הלילה, גם אם העבודה מסתיימת בבוקר למחרת.</p>
  <div class="calendar-shell"><div class="calendar-month" id="calendarMonth"></div><div class="calendar-weekdays" aria-hidden="true"><span>א׳</span><span>ב׳</span><span>ג׳</span><span>ד׳</span><span>ה׳</span><span>ו׳</span><span>ש׳</span></div><div id="datesPanel" class="dates-panel" role="group" aria-label="בחירת תאריכי עבודה"></div><div class="calendar-legend">רק ימי א׳–ה׳ של השבוע הבא זמינים לבחירה</div></div>
  <p class="hint" id="datesSummary" aria-live="polite">לא נבחרו תאריכים</p></div>
- <div class="schedule-hours"><div><label for="workType">סוג עבודה</label><select id="workType"><option>עבודות לילה</option><option>עבודות יום</option><option value="עבודות רצופות">ברצף</option></select></div><div><label for="timeFrom">שעת תחילה *</label><input id="timeFrom" type="time" value="22:00" required></div><div><label for="timeTo">שעת סיום *</label><input id="timeTo" type="time" value="05:00" required></div></div>
+ <div class="schedule-hours">
+ <div><label for="workType">סוג עבודה</label><select id="workType"><option>עבודות לילה</option><option>עבודות יום</option><option value="עבודות רצופות">ברצף</option></select></div>
+ <div class="clock-panel" aria-label="בחירת שעות העבודה">
+  <svg id="workClock" viewBox="0 0 300 300" role="img" aria-label="שעון 24 שעות המציג את טווח שעות העבודה"></svg>
+  <div class="clock-time-summary" id="clockSummary" aria-live="polite">22:00–05:00 · 7 שעות</div>
+  <div class="clock-adjust"><span>התחלה</span><button type="button" class="alt" id="startMinus" aria-label="הקדם התחלה בשעה">−</button><strong id="startLabel">22:00</strong><button type="button" class="alt" id="startPlus" aria-label="דחה התחלה בשעה">+</button></div>
+  <div class="clock-adjust"><span>סיום</span><button type="button" class="alt" id="endMinus" aria-label="הקדם סיום בשעה">−</button><strong id="endLabel">05:00</strong><button type="button" class="alt" id="endPlus" aria-label="דחה סיום בשעה">+</button></div>
+  <p class="hint">אפשר לגרור את הנקודות על השעון או לכוון באמצעות + ו־−. השינוי בקפיצות של שעה.</p>
+ </div>
+ <input id="timeFrom" type="hidden" value="22:00"><input id="timeTo" type="hidden" value="05:00">
+ </div>
  </div>
  <div class="full"><label for="description">הערות / תיאור העבודות</label><textarea id="description" placeholder="פרטי הסדר התנועה, הנחיות, הערות לצוות..."></textarea></div>
  <div class="full"><label>תוצרים שהוכנו</label><div class="tasks"><label><input id="hasPpt" type="checkbox"> מצגת</label><label><input id="hasTable" type="checkbox"> טבלה מסכמת</label><label><input id="hasWord" type="checkbox"> מסמך Word</label><label><input id="hasSigns" type="checkbox"> שילוט</label><label><input id="hasEmail" type="checkbox"> מייל</label></div><p class="hint">אלה סימוני מעקב בלבד; העלאת מסמכים וקישור לקבצים יתווספו בהמשך.</p></div>
@@ -346,13 +364,84 @@ const DEFAULT_WORK_HOURS={
  'עבודות יום':['09:00','17:00'],
  'עבודות רצופות':['05:00','05:00']
 };
+let clockStart=22,clockDuration=7,activeClockHandle=null;
+const clockSvgNS='http://www.w3.org/2000/svg';
+const hourText=hour=>String((hour+24)%24).padStart(2,'0')+':00';
+const mod24=x=>((x%24)+24)%24;
+function clockPoint(hour,r=110){
+ const angle=hour*Math.PI/12;
+ return [150+Math.sin(angle)*r,150-Math.cos(angle)*r];
+}
+function clockElement(parent,tag,attributes={}){
+ const el=document.createElementNS(clockSvgNS,tag);
+ for(const [name,value] of Object.entries(attributes))el.setAttribute(name,String(value));
+ parent.append(el);return el;
+}
+function drawClock(){
+ const svg=$('workClock');svg.replaceChildren();
+ const start=clockStart,end=mod24(start+clockDuration),full=clockDuration===24;
+ clockElement(svg,'circle',{cx:150,cy:150,r:105,fill:'#ffffff',stroke:'#d4e1f0','stroke-width':2});
+ if(full){clockElement(svg,'circle',{cx:150,cy:150,r:103,fill:'#06a4df',stroke:'#3153d9','stroke-width':4})}
+ else{
+  const a=clockPoint(start,103),b=clockPoint(start+clockDuration,103);
+  clockElement(svg,'path',{d:'M 150 150 L '+a.join(' ')+' A 103 103 0 '+(clockDuration>12?1:0)+' 1 '+b.join(' ')+' Z',fill:'#06a4df',stroke:'#3153d9','stroke-width':4,'stroke-linejoin':'round'});
+ }
+ for(let hour=0;hour<24;hour++){
+  const p1=clockPoint(hour,114),p2=clockPoint(hour,hour%3===0?124:119);
+  clockElement(svg,'line',{x1:p1[0],y1:p1[1],x2:p2[0],y2:p2[1],stroke:'#8ba1ba','stroke-width':hour%3===0?2:1});
+  if(hour%3===0){
+   const t=clockPoint(hour,139);
+   const el=clockElement(svg,'text',{x:t[0],y:t[1]+4,'text-anchor':'middle','font-size':13,'font-weight':hour%6===0?800:600,fill:'#2d4966'});
+   el.textContent=String(hour).padStart(2,'0');
+  }
+ }
+ const midpoint=clockElement(svg,'text',{x:150,y:146,'text-anchor':'middle','font-size':19,'font-weight':800,fill:full?'#fff':'#173e70'});
+ midpoint.textContent=clockDuration+' שעות';
+ const hint=clockElement(svg,'text',{x:150,y:168,'text-anchor':'middle','font-size':12,fill:full?'#fff':'#345b83'});
+ hint.textContent=full?'24 שעות רצופות':'משך העבודה';
+ for(const [type,hour,color] of [['start',start,'#173e90'],['end',end,'#f9f9ff']]){
+  const p=clockPoint(hour,103),g=clockElement(svg,'g',{'data-handle':type,role:'button','aria-label':type==='start'?'שעת התחלה':'שעת סיום',style:'cursor:grab'});
+  clockElement(g,'circle',{cx:p[0],cy:p[1],r:17,fill:'transparent','pointer-events':'all'});
+  clockElement(g,'circle',{cx:p[0],cy:p[1],r:10,fill:color,stroke:'#3153d9','stroke-width':3,'pointer-events':'none'});
+ }
+ svg.setAttribute('aria-label','שעות עבודה '+hourText(start)+' עד '+hourText(end)+', משך '+clockDuration+' שעות');
+ $('startLabel').textContent=hourText(start);$('endLabel').textContent=hourText(end);
+ $('clockSummary').textContent=hourText(start)+'–'+hourText(end)+(start+clockDuration>=24?' (למחרת)':'')+' · '+clockDuration+' שעות';
+ $('timeFrom').value=hourText(start);$('timeTo').value=hourText(end);
+}
+function setClock(start,duration){
+ clockStart=mod24(start);clockDuration=Math.min(24,Math.max(1,duration));drawClock();
+}
+function clockHourFromPointer(ev){
+ const svg=$('workClock'),rect=svg.getBoundingClientRect();
+ const x=(ev.clientX-rect.left)*300/rect.width-150,y=(ev.clientY-rect.top)*300/rect.height-150;
+ return mod24(Math.round(Math.atan2(x,-y)*12/Math.PI));
+}
+function changeClockFromPointer(ev){
+ if(!activeClockHandle)return;
+ const hour=clockHourFromPointer(ev);
+ if(activeClockHandle==='start')setClock(hour,clockDuration);
+ else{const diff=mod24(hour-clockStart);setClock(clockStart,diff===0?24:diff)}
+}
+$('workClock').addEventListener('pointerdown',ev=>{
+ const handle=ev.target.closest('[data-handle]');if(!handle)return;
+ activeClockHandle=handle.getAttribute('data-handle');
+ $('workClock').setPointerCapture(ev.pointerId);
+ changeClockFromPointer(ev);ev.preventDefault();
+});
+$('workClock').addEventListener('pointermove',changeClockFromPointer);
+for(const type of ['pointerup','pointercancel','lostpointercapture'])$('workClock').addEventListener(type,()=>activeClockHandle=null);
+$('startMinus').onclick=()=>setClock(clockStart-1,clockDuration);
+$('startPlus').onclick=()=>setClock(clockStart+1,clockDuration);
+$('endMinus').onclick=()=>setClock(clockStart,clockDuration===1?24:clockDuration-1);
+$('endPlus').onclick=()=>setClock(clockStart,clockDuration===24?1:clockDuration+1);
 function applyWorkHours(){
- const hours=DEFAULT_WORK_HOURS[$('workType').value];
- if(!hours)return;
- $('timeFrom').value=hours[0];$('timeTo').value=hours[1];
+ const hours=DEFAULT_WORK_HOURS[$('workType').value];if(!hours)return;
+ const start=parseInt(hours[0],10),end=parseInt(hours[1],10);
+ setClock(start,mod24(end-start)||24);
 }
 $('workType').addEventListener('change',applyWorkHours);
-function openNew(){editing=null;$('eventForm').reset();$('formHeading').textContent='צור אירוע חדש';$('saveEvent').textContent='שמור אירוע';updateSegments();updateLocationType();updateStreetChoices();showCity('');resetCrossStreets();$('fromStreet').value='';$('toStreet').value='';$('bothDirections').checked=false;renderDates();$('formPanel').hidden=false;$('formStatus').textContent='';$('formPanel').scrollIntoView({block:'start',behavior:'smooth'})}
+function openNew(){editing=null;$('eventForm').reset();applyWorkHours();$('formHeading').textContent='צור אירוע חדש';$('saveEvent').textContent='שמור אירוע';updateSegments();updateLocationType();updateStreetChoices();showCity('');resetCrossStreets();$('fromStreet').value='';$('toStreet').value='';$('bothDirections').checked=false;renderDates();$('formPanel').hidden=false;$('formStatus').textContent='';$('formPanel').scrollIntoView({block:'start',behavior:'smooth'})}
 $('toggleForm').onclick=()=>{$('formPanel').hidden?openNew():$('formPanel').hidden=true};
 $('cancelForm').onclick=()=>{$('formPanel').hidden=true;editing=null};
 function generateEventTitle(record){
@@ -374,7 +463,9 @@ function getForm(){const result={};for(const f of fields)result[f]=$(f).value;
  result.direction=result.bothDirections?'שני הכיוונים':'';
  result.eventTitle=generateEventTitle(result);result.selectedDates=selectedDates();result.dateFrom=result.selectedDates[0]||'';result.dateTo=result.selectedDates.length?dayPlus(result.selectedDates.at(-1),result.timeTo<=result.timeFrom?1:0):'';for(const f of outputFields)result[f]=$(f).checked;return result}
 function putForm(record){
- for(const f of fields)if(f!=='segment')$(f).value=record[f]??'';
+ for(const f of fields)if(f!=='segment'&&f!=='timeFrom'&&f!=='timeTo')$(f).value=record[f]??'';
+ const restoredStart=Number.parseInt(record.timeFrom,10),restoredEnd=Number.parseInt(record.timeTo,10);
+ if(Number.isInteger(restoredStart)&&Number.isInteger(restoredEnd))setClock(restoredStart,mod24(restoredEnd-restoredStart)||24);else applyWorkHours();
  updateSegments();$('segment').value=record.segment||'';if(!record.locationType)$('locationType').value=record.direction==='חסימת צומת'?'צומת':'רחוב';
  const baseOptions=PURPLE_STREETS[record.segment]||[];
  const oldName=(record.street||'').replace(/^חסימת צומת\s*/,'');
