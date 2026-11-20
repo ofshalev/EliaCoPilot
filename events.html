@@ -128,7 +128,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .clock-panel{border:1px solid #dbe4ef;border-radius:13px;padding:9px;background:#f9fbff;text-align:center}
 #workClock{display:block;width:100%;max-width:255px;height:auto;margin:0 auto;touch-action:none;user-select:none;cursor:default}
 .clock-time-summary{font-size:14px;font-weight:800;color:#174a85;margin:3px 0 12px;direction:ltr}
-.clock-adjust{display:grid;grid-template-columns:1fr 32px 57px 32px;align-items:center;gap:4px;margin-bottom:7px;font-size:12px;text-align:right}
+.clock-adjust{display:grid;grid-template-columns:32px 57px 32px;justify-content:center;align-items:center;gap:4px;margin-bottom:7px;font-size:12px;text-align:right}
 .clock-adjust button{padding:5px 0;font-size:16px;min-height:30px}
 .clock-adjust strong{text-align:center;direction:ltr;font-size:13px}
 .clock-panel .hint{text-align:right;margin:10px 2px 0}
@@ -184,11 +184,9 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  <div class="schedule-hours">
  <div><label for="workType">סוג עבודה</label><select id="workType"><option>עבודות לילה</option><option>עבודות יום</option><option value="עבודות רצופות">ברצף</option></select></div>
  <div class="clock-panel" id="clockPanel" aria-label="בחירת שעות העבודה">
-  <svg id="workClock" viewBox="0 0 300 300" role="img" aria-label="שעון 24 שעות המציג את טווח שעות העבודה"></svg>
-  <div class="clock-time-summary" id="clockSummary" aria-live="polite">22:00–05:00 · 7 שעות</div>
-  <div class="clock-adjust"><span>התחלה</span><button type="button" class="alt" id="startMinus" aria-label="הקדם התחלה בשעה">−</button><strong id="startLabel">22:00</strong><button type="button" class="alt" id="startPlus" aria-label="דחה התחלה בשעה">+</button></div>
-  <div class="clock-adjust"><span>סיום</span><button type="button" class="alt" id="endMinus" aria-label="הקדם סיום בשעה">−</button><strong id="endLabel">05:00</strong><button type="button" class="alt" id="endPlus" aria-label="דחה סיום בשעה">+</button></div>
-  <p class="hint">שעון 12 שעות. גררו את הנקודות או השתמשו ב־+ וב־−, בקפיצות של שעה.</p>
+  <svg id="workClock" viewBox="0 0 300 300" role="img" aria-label="שעון 12 שעות לבחירת טווח שעות העבודה"></svg>
+  <div class="clock-adjust"><button type="button" class="alt" id="startMinus" aria-label="הקדם התחלה בשעה">−</button><strong id="startLabel">22:00</strong><button type="button" class="alt" id="startPlus" aria-label="דחה התחלה בשעה">+</button></div>
+  <div class="clock-adjust"><button type="button" class="alt" id="endMinus" aria-label="הקדם סיום בשעה">−</button><strong id="endLabel">05:00</strong><button type="button" class="alt" id="endPlus" aria-label="דחה סיום בשעה">+</button></div>
  </div>
  <div id="continuousPanel" class="continuous-panel" hidden>
  <p class="hint">עבודה רצופה יכולה להימשך מספר ימים. יש לציין תאריך ושעה מדויקים להתחלה ולסיום.</p>
@@ -427,10 +425,6 @@ function drawClock(){
    'font-weight':major?800:600,fill:'#344d68'});
   label.textContent=String(hour||12);
  }
- const center=clockElement(svg,'text',{x:150,y:146,'text-anchor':'middle','font-size':20,'font-weight':800,fill:'#174a94'});
- center.textContent=clockDuration+' שעות';
- const hint=clockElement(svg,'text',{x:150,y:168,'text-anchor':'middle','font-size':12,fill:'#365776'});
- hint.textContent=full?'ברצף':'משך העבודה';
  const overlap=wholeFace;
  for(const [type,hour,fill] of [['start',start,'#2864e2'],['end',end,'#ffffff']]){
   const p=clockPoint(hour,overlap?(type==='start'?92:114):103);
@@ -440,7 +434,6 @@ function drawClock(){
  }
  svg.setAttribute('aria-label','שעון 12 שעות: '+hourText(start)+' עד '+hourText(end)+', משך '+clockDuration+' שעות');
  $('startLabel').textContent=hourText(start);$('endLabel').textContent=hourText(end);
- $('clockSummary').textContent=hourText(start)+'–'+hourText(end)+(start+clockDuration>=24?' (למחרת)':'')+' · '+clockDuration+' שעות';
  $('timeFrom').value=hourText(start);$('timeTo').value=hourText(end);
 }
 function setClock(start,duration){
