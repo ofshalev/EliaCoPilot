@@ -125,8 +125,22 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .remove-cross{padding:4px 9px;background:#f7e8e8!important;color:#963a3a!important}
 @media(max-width:700px){.junction-cross{flex-basis:100%}.cross-street-entry input{width:155px;max-width:60vw}}
 
-.extra-blockage{border:1px solid #cbd8e8;background:#f8faff;border-radius:12px;padding:14px;margin-bottom:10px}
-.extra-heading,.extra-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.primary-blockage,.extra-blockage{border:1px solid #cbd8e8;background:#f8faff;border-radius:12px;padding:14px;margin-bottom:10px}
+.primary-blockage{margin-bottom:0}
+.primary-blockage .location-row{align-items:flex-end;gap:10px}
+.primary-blockage .fixed-street{min-height:40px}
+.primary-blockage .extra-heading{margin-bottom:10px}
+.extra-blockages{margin-top:0}
+#addBlockage{margin-top:2px}
+.extra-heading,.extra-row{display:flex;direction:rtl;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.extra-row>label{font-weight:600;font-size:13px}
+.extra-row>label:first-child{flex:0 0 140px}
+.extra-row>label:nth-child(2){flex:0 0 165px}
+.extra-row>label:nth-child(3),.extra-row>label:nth-child(4){flex:0 1 150px}
+.extra-row .extra-both{align-self:center}
+.extra-row .extra-fixed-street{display:flex;flex-direction:column;gap:9px}
+.extra-row .extra-fixed-street strong{font-size:15px}
+@media(max-width:700px){.extra-row>label:first-child,.extra-row>label:nth-child(2){flex:1 1 145px}.extra-row>label:nth-child(3),.extra-row>label:nth-child(4){flex:1 1 145px}}
 .extra-heading{justify-content:space-between;margin-bottom:10px}
 .extra-row>label{flex:1 1 140px;min-width:120px}
 .extra-row>label input,.extra-row>label select{width:100%;margin-top:5px}
@@ -176,7 +190,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  <div class="project-segment-field"><label for="segment">מקטע</label><select id="segment" required><option value="">בחר מקטע</option></select></div>
  <div class="project-city-display"><span class="field-caption">עיר</span><strong id="cityDisplay">תיקבע לפי המקטע</strong><input id="city" type="hidden" value=""></div>
  </div>
- <div class="location-row full">
+ <div class="primary-blockage full"><div class="extra-heading"><strong>חסימה 1</strong></div><div class="location-row">
  <div class="location-type-field"><label for="locationType">סוג מיקום</label><select id="locationType"><option value="רחוב">רחוב</option><option value="צומת">צומת</option></select></div>
  <div id="streetChoiceWrap" class="location-street-field"><label for="streetChoice">בחר רחוב לפי מקטע</label><select id="streetChoice"><option value="">בחר מקטע תחילה</option></select></div>
  <div id="fixedStreetWrap" class="fixed-street location-street-field" hidden><span class="field-caption">רחוב</span><strong id="fixedStreetDisplay"></strong></div>
@@ -190,7 +204,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
    <label class="both-directions"><input id="bothDirections" type="checkbox"> בשני הכיוונים</label>
   </div>
  </div>
- </div><div class="full extra-blockages"><div id="additionalBlockages"></div><button type="button" class="alt" id="addBlockage">+ הוסף חסימה נוספת</button></div>
+ </div></div><div class="full extra-blockages"><div id="additionalBlockages"></div><button type="button" class="alt" id="addBlockage">+ הוסף חסימה נוספת</button></div>
  <div><label for="workId">מספר עבודה / בקשה</label><input id="workId" placeholder="לדוגמה: 2182" dir="ltr"></div>
  <div class="full schedule-layout">
  <div class="schedule-dates" id="scheduleDatesWrap"><label id="calendarTitle">תאריכי עבודה בשבוע הבא *</label><p class="hint" id="calendarHelp">בחרו את ימי העבודה בנפרד. בעבודות לילה כל תאריך מייצג את תחילת הלילה, גם אם העבודה מסתיימת בבוקר למחרת.</p>
@@ -346,9 +360,14 @@ function makeExtraBlockage(initial={}){
  const row=document.createElement('div');row.className='extra-row';section.append(row);
  function labeled(title,control){const label=document.createElement('label');label.textContent=title;label.append(control);row.append(label);return label}
  const type=document.createElement('select');type.className='extra-type';for(const value of ['רחוב','צומת']){const op=document.createElement('option');op.value=value;op.textContent=value;type.append(op)}type.value=b.locationType;labeled('סוג מיקום',type);
- const street=document.createElement('select');street.className='extra-street';const options=baseStreetOptions();if(options.length!==1){const op=document.createElement('option');op.value='';op.textContent='בחר רחוב';street.append(op)}options.forEach(value=>{const op=document.createElement('option');op.value=value;op.textContent=value;street.append(op)});street.value=options.includes(b.street)?b.street:options.length===1?options[0]:'';labeled('רחוב',street);
- const from=document.createElement('input');from.className='extra-from';from.value=b.fromStreet;from.placeholder='נקודת התחלה';const fromLabel=labeled('מ:',from);
- const to=document.createElement('input');to.className='extra-to';to.value=b.toStreet;to.placeholder='נקודת סיום';const toLabel=labeled('עד:',to);
+ const street=document.createElement('select');street.className='extra-street';const options=baseStreetOptions();
+ if(options.length!==1){const op=document.createElement('option');op.value='';op.textContent='בחר רחוב';street.append(op)}
+ options.forEach(value=>{const op=document.createElement('option');op.value=value;op.textContent=value;street.append(op)});
+ street.value=options.includes(b.street)?b.street:options.length===1?options[0]:'';
+ const streetLabel=labeled(options.length===1?'רחוב':'בחר רחוב לפי מקטע',street);
+ if(options.length===1){streetLabel.classList.add('extra-fixed-street');street.hidden=true;const fixed=document.createElement('strong');fixed.textContent=options[0];streetLabel.append(fixed)}
+ const from=document.createElement('input');from.className='extra-from';from.value=b.fromStreet;from.placeholder='רחוב / צומת התחלה';const fromLabel=labeled('מ:',from);
+ const to=document.createElement('input');to.className='extra-to';to.value=b.toStreet;to.placeholder='רחוב / צומת סיום';const toLabel=labeled('עד:',to);
  const both=document.createElement('label');both.className='extra-both';const check=document.createElement('input');check.type='checkbox';check.checked=b.bothDirections;both.append(check,document.createTextNode(' בשני הכיוונים'));row.append(both);
  const cross=document.createElement('div');cross.className='extra-crosses';section.append(cross);
  function addCross(value=''){const inp=document.createElement('input');inp.placeholder='רחוב חוצה';inp.value=value;cross.append(inp)}
