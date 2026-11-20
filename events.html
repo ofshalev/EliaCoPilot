@@ -400,7 +400,7 @@ function drawClock(){
  const hint=clockElement(svg,'text',{x:150,y:168,'text-anchor':'middle','font-size':12,fill:full?'#fff':'#345b83'});
  hint.textContent=full?'24 שעות רצופות':'משך העבודה';
  for(const [type,hour,color] of [['start',start,'#173e90'],['end',end,'#f9f9ff']]){
-  const p=clockPoint(hour,103),g=clockElement(svg,'g',{'data-handle':type,role:'button','aria-label':type==='start'?'שעת התחלה':'שעת סיום',style:'cursor:grab'});
+  const p=clockPoint(hour,full?(type==='start'?91:115):103),g=clockElement(svg,'g',{'data-handle':type,role:'button','aria-label':type==='start'?'שעת התחלה':'שעת סיום',style:'cursor:grab'});
   clockElement(g,'circle',{cx:p[0],cy:p[1],r:17,fill:'transparent','pointer-events':'all'});
   clockElement(g,'circle',{cx:p[0],cy:p[1],r:10,fill:color,stroke:'#3153d9','stroke-width':3,'pointer-events':'none'});
  }
