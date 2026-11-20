@@ -417,7 +417,7 @@ function drawClock(){
  }else{
   const p1=clockPoint(start,103),p2=clockPoint(start+clockDuration,103);
   clockElement(svg,'path',{d:'M 150 150 L '+p1.join(' ')+' A 103 103 0 '+(clockDuration>6?1:0)+' 1 '+p2.join(' ')+' Z',
-   fill:'#8199b5',stroke:'#405c7d','stroke-width':3,'stroke-linejoin':'round'});
+   fill:'#dceaff',stroke:'#2864e2','stroke-width':3,'stroke-linejoin':'round'});
  }
  for(let hour=0;hour<12;hour++){
   const major=hour%3===0,p1=clockPoint(hour,111),p2=clockPoint(hour,major?123:117);
