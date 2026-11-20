@@ -133,6 +133,10 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .extra-blockages{margin-top:0}
 #addBlockage{margin-top:2px}
 .extra-heading,.extra-row{display:flex;direction:rtl;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.extra-row [hidden]{display:none!important}
+.extra-row:has(.extra-junction:not([hidden])){flex-wrap:wrap}
+.extra-row .extra-junction{margin-inline-start:0}
+
 .extra-row>label{font-weight:600;font-size:13px}
 .extra-row>label:first-child{flex:0 0 140px}
 .extra-row>label:nth-child(2){flex:0 0 165px}
