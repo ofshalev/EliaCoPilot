@@ -89,24 +89,29 @@ button.alt{background:#e9eff8;color:#294a6c}
 .toolbox button.selected-tool{background:#2864e2;color:#fff}
 .map-search-row{display:flex;gap:6px}.map-search-row input{min-width:0;flex:1}.map-search-row button{flex:0 0 auto}
 #closureSlide{container-type:inline-size;background:#fff}
-#closureSlide .closure-slide-header{height:24%;background:linear-gradient(115deg,#c7eadc 0%,#b7e2e4 65%,#f9fffc 100%);color:#21464a;display:flex;align-items:center;justify-content:flex-start;padding:0 5% 0 42%;font-size:clamp(12px,2.4cqw,25px);font-weight:800;border-bottom:1px solid #e3f0ed}
-#closureSlide .closure-slide-main{height:67%;display:flex;direction:ltr;gap:2%;padding:0 3%}
-#closureSlide .closure-map-box{width:46%;height:140%;align-self:flex-end;position:relative;border-radius:10px;overflow:hidden;border:3px solid white;box-shadow:0 0 0 1px #d7e0e0;z-index:2}
-#closureSlide #closureMap{height:100%;width:100%;direction:ltr;background:#e6edf0}
+#closureSlide{container-type:inline-size;min-height:0}
+.slide.multi-closures{aspect-ratio:auto}
+.slide.multi-closures #closureSlide{min-height:calc(90px + 190px * var(--block-count))}
+#closureSlide .closure-slide-header{min-height:58px;height:auto;background:linear-gradient(115deg,#c7eadc 0%,#b7e2e4 65%,#f9fffc 100%);color:#21464a;display:flex;align-items:center;justify-content:flex-start;padding:16px 5%;font-size:clamp(13px,2.2cqw,24px);font-weight:800;border-bottom:1px solid #e3f0ed}
+#closureSlide .closure-rows{flex:1;display:flex;flex-direction:column;gap:0;padding:7px 3%;min-height:0}
+#closureSlide .closure-row{direction:ltr;display:flex;align-items:stretch;gap:2%;min-height:185px;padding:8px 0;border-bottom:1px solid #dbece6;cursor:pointer}
+#closureSlide .closure-row:last-child{border-bottom:0}
+#closureSlide .closure-row.active{background:#f2f9ff;box-shadow:inset 0 0 0 2px #b0cdec;border-radius:9px}
+#closureSlide .closure-map-box{width:46%;position:relative;min-height:170px;border-radius:10px;overflow:hidden;border:3px solid white;box-shadow:0 0 0 1px #d7e0e0;z-index:2}
+#closureSlide .closure-map{height:100%;width:100%;direction:ltr;background:#e6edf0}
 #closureSlide .closure-side{width:52%;direction:rtl;padding:3% 1%;min-width:0;display:flex;flex-direction:column;justify-content:space-around}
-#closureSlide .closure-text{font-size:clamp(11px,2cqw,22px);color:#183b45;text-align:right;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;max-height:32%;overflow:auto}
-#closureSlide .closure-legend{display:flex;flex-direction:column;gap:1.8cqw;font-size:clamp(10px,1.5cqw,16px);color:#29434c}
-#closureSlide .closure-legend>div{display:flex;justify-content:space-between;gap:12px;align-items:center}
-#closureSlide .closure-legend span{font-size:clamp(10px,2.3cqw,24px);white-space:nowrap}
-#closureSlide .closure-swatch{display:inline-block;background:rgba(240,40,42,.5);width:75px;height:14px}
-#closureSlide .routes-placeholder{font-size:clamp(10px,1.2cqw,14px)!important;background:#d5eefc;color:#517ca1;padding:4px 18px}
-#closureSlide .closure-slide-footer{height:9%;display:flex;justify-content:space-between;align-items:center;gap:5px;color:#35626b;font-size:clamp(9px,1.1cqw,12px);padding:0 5%;border-top:1px solid #dfece7}
+#closureSlide .closure-row-label{font-size:clamp(11px,1.5cqw,15px);color:#336379;font-weight:700;margin-bottom:2px}
+#closureSlide .closure-text{font-size:clamp(11px,1.7cqw,20px);color:#183b45;text-align:right;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
+#closureSlide .closure-legend{display:flex;flex-direction:column;gap:7px;font-size:clamp(10px,1.2cqw,14px);color:#29434c}
+#closureSlide .closure-legend>div{display:flex;justify-content:space-between;gap:8px;align-items:center}
+#closureSlide .closure-legend span{font-size:clamp(10px,1.7cqw,19px);white-space:nowrap}
+#closureSlide .closure-swatch{display:inline-block;background:rgba(240,40,42,.5);width:60px;height:12px}
+#closureSlide .routes-placeholder{font-size:clamp(10px,1.1cqw,12px)!important;background:#d5eefc;color:#517ca1;padding:3px 14px}
+#closureSlide .closure-slide-footer{min-height:35px;display:flex;justify-content:space-between;align-items:center;gap:5px;color:#35626b;font-size:clamp(9px,1.1cqw,12px);padding:7px 5%;border-top:1px solid #dfece7}
 #closureSlide .leaflet-control-attribution{font-size:8px}
 #closureSlide .leaflet-control-zoom a{width:25px;height:25px;line-height:25px}
 #closureSlide .leaflet-container{font-family:Arial,sans-serif}
-#closureSlide .closure-sign{width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;background:white;color:#b31d26;border:3px solid #eb151c;border-radius:50%;box-shadow:0 1px 5px #243c5077;cursor:pointer}
-#closureSlide .closure-sign.no-left,#closureSlide .closure-sign.no-right{position:relative}
-#closureSlide .closure-sign.work{background:#ffde52;border-color:#272727;color:#252525;border-radius:5px}
+#closureSlide .closure-sign{width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:18px}
 @media(max-width:700px){#closureSlide .closure-slide-header{font-size:clamp(10px,2.5cqw,18px)}#closureSlide .closure-text{font-size:clamp(9px,2.2cqw,16px)}}
 [hidden]{display:none!important}
 @media(max-width:850px){.workspace{grid-template-columns:1fr}.slide-title{font-size:clamp(14px,4vw,29px)}.slide-period{font-size:clamp(11px,2.5vw,18px)}.slide-subtitle{font-size:clamp(10px,2.5vw,17px)}}
@@ -167,7 +172,7 @@ button.alt{background:#e9eff8;color:#294a6c}
 </section>
 <section class="panel">
 <h2>תצוגה מקדימה — שתי שקופיות</h2>
-<div class="slide-switch"><button type="button" class="alt active" data-slide="1" aria-pressed="true">1 · שער המצגת</button><button type="button" class="alt" data-slide="2" aria-pressed="false">2 · פרטי העבודות</button><span id="blockageSlideTabs"></span></div>
+<div class="slide-switch"><button type="button" class="alt active" data-slide="1" aria-pressed="true">1 · שער המצגת</button><button type="button" class="alt" data-slide="2" aria-pressed="false">2 · פרטי העבודות</button><button type="button" class="alt" data-slide="3" aria-pressed="false">3 · תיאור החסימות ומפות</button></div>
 <div class="preview-shell">
 <div class="slide" id="slide">
 <div id="coverSlide" class="slide-frame">
@@ -189,14 +194,8 @@ button.alt{background:#e9eff8;color:#294a6c}
 </div>
 <div id="closureSlide" class="slide-frame closure-slide" hidden>
 <div class="closure-slide-header">מהות הסגירה | תיאור החסימה</div>
-<div class="closure-slide-main">
-<div class="closure-map-box"><div id="closureMap" aria-label="מפת אזור העבודה"></div></div>
-<div class="closure-side">
-<div class="closure-text" id="previewClosureDescription"></div>
-<div class="closure-legend"><div>ביטולי פניות / חסימה <span>⛔ &nbsp; ↰ &nbsp; ↱</span></div><div>סימון אזור העבודה <span class="closure-swatch"></span></div><div>קווים מושפעים <span class="routes-placeholder">בהמשך</span></div></div>
-</div>
-</div>
-<div class="closure-slide-footer"><span>מפת עבודה · תצוגת עריכה</span><span id="closureBrand"></span></div>
+<div id="closureRows" class="closure-rows"></div>
+<div class="closure-slide-footer"><span>מפות עבודה · תצוגת עריכה</span><span id="closureBrand">שקופית 3</span></div>
 </div>
 </div>
 </div>
