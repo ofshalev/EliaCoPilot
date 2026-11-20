@@ -383,7 +383,7 @@ function drawClock(){
  const start=clockStart,end=mod24(start+clockDuration),full=clockDuration===24,wholeFace=clockDuration>=12;
  clockElement(svg,'circle',{cx:150,cy:150,r:105,fill:'#ffffff',stroke:'#d1dce8','stroke-width':2});
  if(wholeFace){
-  clockElement(svg,'circle',{cx:150,cy:150,r:103,fill:'#8199b5',stroke:'#405c7d','stroke-width':3});
+  clockElement(svg,'circle',{cx:150,cy:150,r:103,fill:'#dceaff',stroke:'#2864e2','stroke-width':3});
  }else{
   const p1=clockPoint(start,103),p2=clockPoint(start+clockDuration,103);
   clockElement(svg,'path',{d:'M 150 150 L '+p1.join(' ')+' A 103 103 0 '+(clockDuration>6?1:0)+' 1 '+p2.join(' ')+' Z',
@@ -397,16 +397,16 @@ function drawClock(){
    'font-weight':major?800:600,fill:'#344d68'});
   label.textContent=String(hour||12);
  }
- const center=clockElement(svg,'text',{x:150,y:146,'text-anchor':'middle','font-size':20,'font-weight':800,fill:wholeFace?'#ffffff':'#183f67'});
+ const center=clockElement(svg,'text',{x:150,y:146,'text-anchor':'middle','font-size':20,'font-weight':800,fill:'#174a94'});
  center.textContent=clockDuration+' שעות';
- const hint=clockElement(svg,'text',{x:150,y:168,'text-anchor':'middle','font-size':12,fill:wholeFace?'#ffffff':'#365776'});
+ const hint=clockElement(svg,'text',{x:150,y:168,'text-anchor':'middle','font-size':12,fill:'#365776'});
  hint.textContent=full?'ברצף':'משך העבודה';
  const overlap=wholeFace;
- for(const [type,hour,fill] of [['start',start,'#263f61'],['end',end,'#ffffff']]){
+ for(const [type,hour,fill] of [['start',start,'#2864e2'],['end',end,'#ffffff']]){
   const p=clockPoint(hour,overlap?(type==='start'?92:114):103);
   const g=clockElement(svg,'g',{'data-handle':type,role:'button','aria-label':type==='start'?'שעת התחלה':'שעת סיום',style:'cursor:grab'});
   clockElement(g,'circle',{cx:p[0],cy:p[1],r:17,fill:'transparent','pointer-events':'all'});
-  clockElement(g,'circle',{cx:p[0],cy:p[1],r:10,fill,stroke:'#405c7d','stroke-width':3,'pointer-events':'none'});
+  clockElement(g,'circle',{cx:p[0],cy:p[1],r:10,fill,stroke:'#2864e2','stroke-width':3,'pointer-events':'none'});
  }
  svg.setAttribute('aria-label','שעון 12 שעות: '+hourText(start)+' עד '+hourText(end)+', משך '+clockDuration+' שעות');
  $('startLabel').textContent=hourText(start);$('endLabel').textContent=hourText(end);
