@@ -185,6 +185,14 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .compact-calendar-day.selected{background:#dceaff;border-color:#2864e2;color:#174a94;font-weight:800;box-shadow:inset 0 0 0 1px #2864e2}
 .compact-calendar-day.endpoint{outline:1px solid #2864e2;outline-offset:-1px}
 .compact-calendar-inactive{background:#fafbfc;color:#acb8c8}
+.compact-clock-date{text-align:center;font-size:11px;color:#365b8c;font-weight:700;padding:2px 0}
+.compact-clock-prompt{font-size:12px;color:#64778d;max-width:155px;text-align:center}
+.compact-calendar-day.focused{outline:2px solid #174a94;outline-offset:-3px}
+.compact-daily-hours{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;align-self:flex-start}
+.compact-daily-hour{display:flex;flex-direction:column;gap:2px;text-align:center;padding:6px 9px;border:1px solid #cbd8e8;border-radius:7px;background:#fff;color:#45617e;font-size:11px}
+.compact-daily-hour strong{direction:ltr;font-size:12px}
+.compact-daily-hour.active{border-color:#2864e2;background:#dceaff;box-shadow:inset 0 0 0 1px #2864e2}
+.compact-daily-hour .time-alert{color:#c62828}
 .compact-calendar-caption{border:1px solid #cbd8e8;border-top:0;border-radius:0 0 9px 9px;padding:6px 9px;color:#617a98;font-size:11px}
 .compact-days-caption{display:block;font-size:12px;color:#4c6580;margin-bottom:8px}
 .compact-day-buttons{display:flex;gap:5px;flex-wrap:wrap}
@@ -402,7 +410,10 @@ function workScheduleFromLegacy(record={}){
  return {workType:record.workType==='עבודות מרובות'?'עבודות לילה':record.workType||'עבודות לילה',
  selectedDates:Array.isArray(record.selectedDates)?[...record.selectedDates]:[],
  dateFrom:record.dateFrom||'',dateTo:record.dateTo||'',
- timeFrom:record.timeFrom||'22:00',timeTo:record.timeTo||'05:00'};
+ timeFrom:record.timeFrom||'22:00',timeTo:record.timeTo||'05:00',
+ dailyHours:Object.fromEntries(Object.entries(record.dailyHours||{}).filter(([date,h])=>
+  /^\d{4}-\d{2}-\d{2}$/.test(date)&&h&&/^\d{2}:00$/.test(h.timeFrom||'')&&/^\d{2}:00$/.test(h.timeTo||''))
+  .map(([date,h])=>[date,{timeFrom:h.timeFrom,timeTo:h.timeTo}]))};
 }
 function scheduleForBlockage(b,legacy={}){
  return b&&b.workType?workScheduleFromLegacy(b):workScheduleFromLegacy(legacy);
@@ -410,7 +421,12 @@ function scheduleForBlockage(b,legacy={}){
 function scheduleDatesOf(a){
  if(a.workType==='עבודות רצופות')return {from:a.dateFrom||'',to:a.dateTo||''};
  const dates=(a.selectedDates||[]).slice().sort();
- return {from:dates[0]||'',to:dates.length?dayPlus(dates.at(-1),(a.timeTo||'')<=(a.timeFrom||'')?1:0):''};
+ if(!dates.length)return {from:'',to:''};
+ const endDates=dates.map(d=>{
+  const h=a.dailyHours?.[d]||a;
+  return dayPlus(d,(h.timeTo||'')<=(h.timeFrom||'')?1:0);
+ });
+ return {from:dates[0],to:endDates.sort().at(-1)};
 }
 // Every blockage has its own small live clock and calendar, always visible.
 function recordActiveSchedule(){} // Inputs update scheduleDrafts immediately.
@@ -446,16 +462,34 @@ function buildCompactSchedule(block){
  const body=document.createElement('div');body.className='compact-schedule-body';panel.append(body);
  const datesArea=document.createElement('div');datesArea.className='compact-days';body.append(datesArea);
  const timeArea=document.createElement('div');timeArea.className='compact-time';body.append(timeArea);
+ let focusedDate=(schedule.selectedDates||[])[0]||'';
+ function currentHours(){
+  if(schedule.workType==='עבודות רצופות')return schedule;
+  return (focusedDate&&schedule.dailyHours?.[focusedDate])||schedule;
+ }
+ function ensureDailyHours(date){
+  if(!schedule.dailyHours)schedule.dailyHours={};
+  if(!schedule.dailyHours[date])schedule.dailyHours[date]={timeFrom:schedule.timeFrom,timeTo:schedule.timeTo};
+  return schedule.dailyHours[date];
+ }
  function setHours(from,to){
-  const a=parseInt(from,10),b=parseInt(to,10);
-  if(schedule.workType!=='עבודות רצופות'){
-   const interval=mod24(b-a);
-   if(interval<1||interval>12)return;
-  }
-  schedule.timeFrom=hourText(a);schedule.timeTo=hourText(b);renderTimes();
+  const a=parseInt(from,10),b=parseInt(to,10),interval=mod24(b-a);
+  if(schedule.workType!=='עבודות רצופות'&&(interval<1||interval>12))return;
+  if(!focusedDate&&schedule.workType!=='עבודות רצופות')return;
+  const target=schedule.workType==='עבודות רצופות'?schedule:ensureDailyHours(focusedDate);
+  target.timeFrom=hourText(a);target.timeTo=hourText(b);
+  renderTimes();renderDateTimes();
  }
  function renderTimes(){
   timeArea.replaceChildren();
+  if(schedule.workType!=='עבודות רצופות'&&!focusedDate){
+   const prompt=document.createElement('p');prompt.className='compact-clock-prompt';prompt.textContent='בחרו יום בלוח כדי לכוון את השעון';timeArea.append(prompt);return;
+  }
+  const hours=currentHours();
+  if(schedule.workType!=='עבודות רצופות'){
+   const dateTitle=document.createElement('div');dateTitle.className='compact-clock-date';
+   dateTitle.textContent='שעות ליום '+formatDate(focusedDate);timeArea.append(dateTitle);
+  }
   if(schedule.workType==='עבודות רצופות'){
    const labels=[['התחלה','timeFrom'],['סיום','timeTo']];
    for(const [name,key] of labels){
@@ -466,13 +500,13 @@ function buildCompactSchedule(block){
    return;
   }
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 300 300');svg.classList.add('compact-clock');timeArea.append(svg);
-  compactScheduleClock(svg,schedule);
+  compactScheduleClock(svg,hours);
   for(const key of ['timeFrom','timeTo']){
    const wrap=document.createElement('div');wrap.className='compact-time-step';
    const backward=document.createElement('button');backward.type='button';backward.className='alt';backward.textContent='−';backward.setAttribute('aria-label',key==='timeFrom'?'הקדם התחלה':'הקדם סיום');
-   const value=document.createElement('strong');value.textContent=schedule[key];
+   const value=document.createElement('strong');value.textContent=hours[key];
    const forward=document.createElement('button');forward.type='button';forward.className='alt';forward.textContent='+';forward.setAttribute('aria-label',key==='timeFrom'?'דחה התחלה':'דחה סיום');
-   const change=delta=>{const from=parseInt(schedule.timeFrom,10),to=parseInt(schedule.timeTo,10);if(key==='timeFrom')setHours(mod24(from+delta),to);else setHours(from,mod24(to+delta))};
+   const change=delta=>{const from=parseInt(hours.timeFrom,10),to=parseInt(hours.timeTo,10);if(key==='timeFrom')setHours(mod24(from+delta),to);else setHours(from,mod24(to+delta))};
    backward.onclick=()=>change(-1);forward.onclick=()=>change(1);
    wrap.append(backward,value,forward);timeArea.append(wrap);
   }
@@ -484,7 +518,7 @@ function buildCompactSchedule(block){
   };
   svg.addEventListener('pointerdown',event=>{
    const rect=svg.getBoundingClientRect(),x=(event.clientX-rect.left)*300/rect.width-150,y=(event.clientY-rect.top)*300/rect.height-150;
-   const start=clockPoint(parseInt(schedule.timeFrom,10),103),end=clockPoint(parseInt(schedule.timeTo,10),103);
+   const start=clockPoint(parseInt(hours.timeFrom,10),103),end=clockPoint(parseInt(hours.timeTo,10),103);
    const distance=p=>Math.hypot(p[0]-150-x,p[1]-150-y);
    if(Math.min(distance(start),distance(end))>38)return;
    dragging=distance(start)<=distance(end)?'timeFrom':'timeTo';svg.setPointerCapture(event.pointerId);event.preventDefault();
@@ -492,13 +526,32 @@ function buildCompactSchedule(block){
   svg.addEventListener('pointerup',event=>{
    if(!dragging)return;
    const handle=dragging;dragging=null;
-   const hour=pointerHour(event),original=parseInt(schedule[handle],10);
+   const hour=pointerHour(event),original=parseInt(hours[handle],10);
    const candidates=[hour,hour+12],nearest=candidates.sort((a,b)=>Math.min(mod24(a-original),mod24(original-a))-Math.min(mod24(b-original),mod24(original-b)))[0];
-   if(handle==='timeFrom')setHours(nearest,schedule.timeTo);else setHours(schedule.timeFrom,nearest);
+   if(handle==='timeFrom')setHours(nearest,hours.timeTo);else setHours(hours.timeFrom,nearest);
   });
   for(const name of ['pointercancel','lostpointercapture'])svg.addEventListener(name,()=>dragging=null);
  }
  let calendarOffset=0,rangeStartPending=false;
+ const dateTimes=document.createElement('div');dateTimes.className='compact-daily-hours';datesArea.after(dateTimes);
+ function renderDateTimes(){
+  dateTimes.replaceChildren();
+  if(schedule.workType==='עבודות רצופות'){dateTimes.hidden=true;return}
+  dateTimes.hidden=false;
+  for(const date of [...schedule.selectedDates].sort()){
+   const hours=schedule.dailyHours?.[date]||schedule;
+   const item=document.createElement('button');item.type='button';item.className='compact-daily-hour';
+   item.classList.toggle('active',date===focusedDate);
+   const day=DATE_LABELS[new Date(date+'T12:00:00').getDay()]||'יום';
+   const dayText=document.createElement('span');dayText.textContent=day+' '+formatDate(date);
+   const timeText=document.createElement('strong');timeText.textContent=hours.timeFrom+'–'+hours.timeTo;
+   if(schedule.workType==='עבודות יום'||(schedule.workType==='עבודות לילה'&&hours.timeFrom!=='22:00'))timeText.className='time-alert';
+   item.append(dayText,timeText);
+   item.title='בחרו כדי לערוך שעות ביום זה';
+   item.onclick=()=>{focusedDate=date;renderTimes();renderDates()};
+   dateTimes.append(item);
+  }
+ }
  function renderDates(){
   datesArea.replaceChildren();
   const continuous=schedule.workType==='עבודות רצופות';
@@ -536,6 +589,7 @@ function buildCompactSchedule(block){
    }
    const button=document.createElement('button');button.type='button';button.className='compact-calendar-day';
    button.textContent=String(cursor.getDate());button.classList.toggle('selected',selected);
+   button.classList.toggle('focused',!continuous&&date===focusedDate);
    button.classList.toggle('endpoint',endpoint);button.setAttribute('aria-pressed',String(!!selected));
    button.setAttribute('aria-label',formatDate(date));
    button.onclick=()=>{
@@ -546,9 +600,13 @@ function buildCompactSchedule(block){
       else schedule.dateTo=date;
       rangeStartPending=false;
      }
-    }else if(selected)schedule.selectedDates=schedule.selectedDates.filter(d=>d!==date);
-    else schedule.selectedDates=[...schedule.selectedDates,date].sort();
-    renderDates();
+    }else if(!selected){
+     schedule.selectedDates=[...schedule.selectedDates,date].sort();
+     focusedDate=date;
+    }else{
+     focusedDate=date; // Clicking a selected date opens its own clock.
+    }
+    renderDates();renderTimes();
    };
    grid.append(button);
   }
@@ -557,11 +615,13 @@ function buildCompactSchedule(block){
    ?(schedule.dateFrom?'התחלה: '+formatDate(schedule.dateFrom)+(schedule.dateTo?' · סיום: '+formatDate(schedule.dateTo):' · בחרו תאריך סיום'):'בחרו תאריך התחלה וסיום')
    :schedule.selectedDates.length?'נבחרו '+schedule.selectedDates.length+' ימים':'בחרו ימי עבודה';
   datesArea.append(help);
+  renderDateTimes();
  }
  kind.onchange=()=>{
   schedule.workType=kind.value;
   const defaults=DEFAULT_WORK_HOURS[kind.value]||['22:00','05:00'];
   schedule.timeFrom=defaults[0];schedule.timeTo=defaults[1];
+  schedule.dailyHours={};focusedDate=(schedule.selectedDates||[])[0]||'';
   if(kind.value==='עבודות רצופות'){
    schedule.dateFrom=schedule.dateFrom||schedule.selectedDates[0]||nextStart;
    schedule.dateTo=schedule.dateTo||dayPlus(schedule.dateFrom,1);
