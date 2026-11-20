@@ -71,7 +71,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .project-p .project-code{background:#7844aa}.project-b .project-code{background:#89552f}.project-g .project-code{background:#238455}
 .segment-label{font-weight:800;font-size:15px;direction:ltr;unicode-bidi:isolate}
 .event-title{display:block;margin-bottom:4px}
-.event-card strong{font-size:15px}.event-meta{color:#64778d;font-size:13px;line-height:1.8}.event-meta .time-alert{color:#c62828;font-weight:700}.event-card .actions{margin-top:0}
+.event-card strong{font-size:15px}.event-meta{color:#64778d;font-size:13px;line-height:1.8}.event-meta .time-alert{color:#c62828;font-weight:700}.event-title .time-alert{color:#c62828;font-weight:700}.event-title-period{white-space:nowrap}.event-card .actions{margin-top:0}
 .pill{font-size:12px;background:#eef3f9;color:#345a80;padding:4px 9px;border-radius:20px;display:inline-block;margin-inline-start:7px}.empty{padding:25px;text-align:center;color:#72859a}
 .tasks{display:flex;flex-wrap:wrap;gap:14px;padding:8px 0}.tasks label{display:flex;align-items:center;gap:7px;font-weight:400}
 .tasks input{width:auto}.note-banner{padding:11px 14px;border-right:3px solid #3c76d8;background:#eff5ff;border-radius:8px}
@@ -1135,6 +1135,44 @@ function cardPeriod(e){
  const to=[latest,sorted.at(-1)].filter(Boolean).sort().at(-1);
  return compactContinuousPeriod(from,to);
 }
+function widestEventSpan(e){
+ const blocks=eventBlockages(e),entries=[];
+ let from='',to='';
+ for(const b of blocks){
+  const a=scheduleForBlockage(b,e);
+  if(a.workType==='עבודות רצופות'){
+   if(a.dateFrom&&(!from||a.dateFrom<from))from=a.dateFrom;
+   if(a.dateTo&&(!to||a.dateTo>to))to=a.dateTo;
+   entries.push({start:a.timeFrom,end:a.timeTo,type:a.workType});
+  }else{
+   const dates=a.selectedDates||[];
+   for(const date of dates){
+    if(!from||date<from)from=date;
+    if(!to||date>to)to=date;
+    const h=a.dailyHours?.[date]||a;
+    entries.push({start:h.timeFrom,end:h.timeTo,type:a.workType});
+   }
+  }
+ }
+ if(!entries.length&&e.timeFrom&&e.timeTo){
+  from=from||e.dateFrom;to=to||e.dateTo;
+  entries.push({start:e.timeFrom,end:e.timeTo,type:e.workType});
+ }
+ // Night-work finish hours after midnight follow their start hour on a 24+ scale.
+ const values=entries.filter(x=>/^\d{2}:00$/.test(x.start||'')&&/^\d{2}:00$/.test(x.end||''));
+ let start='',end='';
+ if(values.length){
+  const overnight=values.some(x=>x.type==='עבודות לילה');
+  const startHour=Math.min(...values.map(x=>parseInt(x.start,10)));
+  const endHour=Math.max(...values.map(x=>{
+   let h=parseInt(x.end,10),a=parseInt(x.start,10);
+   return overnight&&h<=a?h+24:h;
+  }));
+  start=hourText(startHour);end=hourText(endHour);
+ }
+ return {date:compactContinuousPeriod(from,to),start,end,hasDay:entries.some(x=>x.type==='עבודות יום'),
+  unusualNight:entries.some(x=>x.type==='עבודות לילה'&&x.start!=='22:00')};
+}
 function render(){
  $('totalEvents').textContent=events.length+' אירועים';
  const select=$('cityFilter'),old=select.value;select.replaceChildren();const all=document.createElement('option');all.value='';all.textContent='כל הערים';select.append(all);for(const city of [...new Set(events.map(x=>x.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'))){const o=document.createElement('option');o.value=city;o.textContent=city;select.append(o)}select.value=old;
@@ -1165,36 +1203,21 @@ function render(){
   txt(tag(heading,'span','project-code'),code);
   txt(tag(heading,'span','segment-label'),e.segment||'מקטע לא הוגדר');
   txt(tag(heading,'span','pill'),e.eventStatus||'מתוכנן');
-  txt(tag(info,'strong','event-title'),eventBlockages(e).length>1?multiBlockageTitle(eventBlockages(e)):(e.eventTitle||'אירוע ללא שם').replace(/^חסימת\s+(?=צומת(?:\s|$))/,'').trim());
-  txt(tag(info,'div','event-meta'),(eventBlockages(e).length>1?[e.city]:[e.city,e.street,e.direction]).filter(Boolean).join(' · '));
-  const whenEl=tag(info,'div','event-meta');
-  const addWhen=(value,red=false)=>{const span=tag(whenEl,'span',red?'time-alert':'');span.textContent=value;};
-  addWhen(cardPeriod(e));
-  const blocks=eventBlockages(e);
-  if(blocks.length===1){
-   const b=scheduleForBlockage(blocks[0],e);
-   if(b.workType==='עבודות רצופות'){
-    addWhen(' | '+(b.timeFrom||'')+'–'+(b.timeTo||''));
-   }else{
-    const dates=[...new Set(b.selectedDates||[])].sort();
-    const variations=dates.map(d=>({date:d,h:b.dailyHours?.[d]||b}));
-    const sameHours=variations.every(({h})=>h.timeFrom===variations[0]?.h.timeFrom&&h.timeTo===variations[0]?.h.timeTo);
-    if(!variations.length||sameHours){
-     const h=variations[0]?.h||b;
-     addWhen(' | ');
-     addWhen(h.timeFrom||'',b.workType==='עבודות יום'||(b.workType==='עבודות לילה'&&h.timeFrom!=='22:00'));
-     addWhen('–');addWhen(h.timeTo||'',b.workType==='עבודות יום');
-    }else{
-     addWhen(' | ');
-     variations.forEach(({date,h},i)=>{
-      if(i)addWhen(' · ');
-      addWhen(String(Number(date.slice(-2)))+'.'+date.slice(5,7)+' ');
-      addWhen(h.timeFrom||'',b.workType==='עבודות יום'||(b.workType==='עבודות לילה'&&h.timeFrom!=='22:00'));
-      addWhen('–');addWhen(h.timeTo||'',b.workType==='עבודות יום');
-     });
-    }
-   }
+  const title=tag(info,'strong','event-title');
+  const name=eventBlockages(e).length>1?multiBlockageTitle(eventBlockages(e))
+   :(e.eventTitle||'אירוע ללא שם').replace(/^חסימת\s+(?=צומת(?:\s|$))/,'').trim();
+  const span=widestEventSpan(e);
+  txt(tag(title,'span'),name);
+  if(span.date!=='—'){
+   txt(tag(title,'span','event-title-period'),' — '+span.date);
   }
+  if(span.start&&span.end){
+   txt(tag(title,'span','event-title-time-prefix'),' | ');
+   txt(tag(title,'span',(span.hasDay||span.unusualNight)?'time-alert':''),span.start);
+   txt(tag(title,'span'),'–');
+   txt(tag(title,'span',span.hasDay?'time-alert':''),span.end);
+  }
+  txt(tag(info,'div','event-meta'),(eventBlockages(e).length>1?[e.city]:[e.city,e.street,e.direction]).filter(Boolean).join(' · '));
   const done=outputFields.filter(f=>e[f]).length;
   txt(tag(info,'div','event-meta'),(e.workId?'מספר עבודה / בקשה: '+e.workId+' · ':'')+'תוצרים: '+done+' מתוך '+outputFields.length);
   const actions=tag(row,'div','actions');const edit=tag(actions,'button','alt');edit.textContent='ערוך';edit.onclick=()=>editEvent(e.id);const del=tag(actions,'button','danger');del.textContent='מחק';del.onclick=()=>deleteEvent(e.id);
