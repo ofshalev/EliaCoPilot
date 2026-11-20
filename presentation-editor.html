@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Elia CoPilot — עורך מצגת</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzxZalstIdWl6JWkqBZprrNDt2E=" crossorigin="">
 <style>
 :root{font-family:Arial,sans-serif;color:#192f4b;background:#f3f6fb}
 *{box-sizing:border-box}body{margin:0}
@@ -77,6 +78,33 @@ button.alt{background:#e9eff8;color:#294a6c}
 .slide.branded #detailsSlide .details-day-dates{font-size:clamp(12px,3.5cqw,33px)}
 .slide.branded #detailsSlide .details-hours{font-size:clamp(12px,2.65cqw,25px)}
 }
+/* Slide 3: the official template will eventually replace the neutral shell. */
+#closureTools select,#closureTools textarea,#closureTools input{width:100%;border:1px solid #c8d5e5;border-radius:8px;padding:9px;font:13px Arial,sans-serif}
+.tools-divider{border:0;border-top:1px solid #e1e8f1;margin:18px 0}
+.toolbox{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:13px}
+.toolbox button{padding:9px 5px;font-size:12px}
+.toolbox button.selected-tool{background:#2864e2;color:#fff}
+.map-search-row{display:flex;gap:6px}.map-search-row input{min-width:0;flex:1}.map-search-row button{flex:0 0 auto}
+#closureSlide{container-type:inline-size;background:#fff}
+#closureSlide .closure-slide-header{height:24%;background:linear-gradient(115deg,#c7eadc 0%,#b7e2e4 65%,#f9fffc 100%);color:#21464a;display:flex;align-items:center;justify-content:flex-start;padding:0 5% 0 42%;font-size:clamp(12px,2.4cqw,25px);font-weight:800;border-bottom:1px solid #e3f0ed}
+#closureSlide .closure-slide-main{height:67%;display:flex;direction:ltr;gap:2%;padding:0 3%}
+#closureSlide .closure-map-box{width:46%;height:140%;align-self:flex-end;position:relative;border-radius:10px;overflow:hidden;border:3px solid white;box-shadow:0 0 0 1px #d7e0e0;z-index:2}
+#closureSlide #closureMap{height:100%;width:100%;direction:ltr;background:#e6edf0}
+#closureSlide .closure-side{width:52%;direction:rtl;padding:3% 1%;min-width:0;display:flex;flex-direction:column;justify-content:space-around}
+#closureSlide .closure-text{font-size:clamp(11px,2cqw,22px);color:#183b45;text-align:right;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;max-height:32%;overflow:auto}
+#closureSlide .closure-legend{display:flex;flex-direction:column;gap:1.8cqw;font-size:clamp(10px,1.5cqw,16px);color:#29434c}
+#closureSlide .closure-legend>div{display:flex;justify-content:space-between;gap:12px;align-items:center}
+#closureSlide .closure-legend span{font-size:clamp(10px,2.3cqw,24px);white-space:nowrap}
+#closureSlide .closure-swatch{display:inline-block;background:rgba(240,40,42,.5);width:75px;height:14px}
+#closureSlide .routes-placeholder{font-size:clamp(10px,1.2cqw,14px)!important;background:#d5eefc;color:#517ca1;padding:4px 18px}
+#closureSlide .closure-slide-footer{height:9%;display:flex;justify-content:space-between;align-items:center;gap:5px;color:#35626b;font-size:clamp(9px,1.1cqw,12px);padding:0 5%;border-top:1px solid #dfece7}
+#closureSlide .leaflet-control-attribution{font-size:8px}
+#closureSlide .leaflet-control-zoom a{width:25px;height:25px;line-height:25px}
+#closureSlide .leaflet-container{font-family:Arial,sans-serif}
+#closureSlide .closure-sign{width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;background:white;color:#b31d26;border:3px solid #eb151c;border-radius:50%;box-shadow:0 1px 5px #243c5077;cursor:pointer}
+#closureSlide .closure-sign.no-left,#closureSlide .closure-sign.no-right{position:relative}
+#closureSlide .closure-sign.work{background:#ffde52;border-color:#272727;color:#252525;border-radius:5px}
+@media(max-width:700px){#closureSlide .closure-slide-header{font-size:clamp(10px,2.5cqw,18px)}#closureSlide .closure-text{font-size:clamp(9px,2.2cqw,16px)}}
 [hidden]{display:none!important}
 @media(max-width:850px){.workspace{grid-template-columns:1fr}.slide-title{font-size:clamp(14px,4vw,29px)}.slide-period{font-size:clamp(11px,2.5vw,18px)}.slide-subtitle{font-size:clamp(10px,2.5vw,17px)}}
 </style>
@@ -90,7 +118,7 @@ button.alt{background:#e9eff8;color:#294a6c}
 <a href="events.html">בחזרה לרשימת האירועים</a>
 </div>
 <div id="workspace" hidden>
-<div class="notice"><strong>שקופיות 1 ו־2 נוצרות אוטומטית.</strong> המידע מגיע מרשומת האירוע. ניתן להציג את הרקע המקורי שחולץ מהתבנית לכל פרויקט באמצעות טעינה חד־פעמית של חבילת הרקעים. התבניות עצמן אינן משתנות, והייצוא ל־PPTX עדיין לא פעיל.</div>
+<div class="notice"><strong>שקופיות 1–2 נוצרות אוטומטית.</strong> בשקופית 3 אפשר לתאר את החסימה, להתקרב לאזור העבודה על המפה ולסמן מצולעי חסימה ותמרורים. ההערות נשמרות בנפרד לכל אירוע וחסימה. הייצוא ל־PPTX עדיין לא פעיל.</div>
 <div class="background-setup"><label for="backgroundImport">רקעים מקוריים · ייבוא חד־פעמי</label><input type="file" id="backgroundImport" accept=".json,application/json"><div id="backgroundStatus" role="status">יש לטעון את חבילת הרקעים כדי להציג את העיצוב המקורי.</div></div>
 <div class="workspace">
 <section class="panel">
@@ -104,10 +132,33 @@ button.alt{background:#e9eff8;color:#294a6c}
 <label>שעות (טווח מרבי)</label><div class="readonly" id="timesField"></div>
 <p class="small">הנתונים נקראים אוטומטית מהאירוע. אם נדרש תיקון, חוזרים לכרטיס האירוע ומעדכנים את החסימות או לוח הזמנים.</p>
 <a class="return-event" href="events.html" id="backToEvents">חזרה לעריכת האירוע</a>
+<div id="closureTools" hidden>
+<hr class="tools-divider">
+<h2>שקופית 3 · ארגז כלים</h2>
+<label for="blockageSelect">חסימה לעריכה</label><select id="blockageSelect"></select>
+<label for="closureDescription">תיאור החסימה בשקופית</label>
+<textarea id="closureDescription" rows="3" placeholder="תיאור החסימה שיופיע מתחת לכותרת"></textarea>
+<label for="mapSearch">חיפוש מיקום במפה (עיר / רחוב / צומת)</label>
+<div class="map-search-row"><input id="mapSearch" placeholder="למשל: שנקר, חולון"><button type="button" id="mapSearchButton" class="alt">חפש</button></div>
+<div class="small" id="mapSearchStatus" role="status"></div>
+<label for="mapboxToken">מפת Mapbox (מפתח גישה אישי, אופציונלי)</label>
+<input id="mapboxToken" type="password" placeholder="pk. ...">
+<p class="small">ללא מפתח מוצגת מפת OpenStreetMap. מפתח Mapbox נשמר בדפדפן בלבד.</p>
+<div class="toolbox" role="group" aria-label="סימון חסימות ותמרורים">
+<button type="button" class="alt" data-tool="pan">✋ הזז מפה</button>
+<button type="button" class="alt" data-tool="polygon">▱ צייר חסימה</button>
+<button type="button" class="alt" data-tool="no-entry">⛔ אין כניסה</button>
+<button type="button" class="alt" data-tool="no-left">↰ אין שמאלה</button>
+<button type="button" class="alt" data-tool="no-right">↱ אין ימינה</button>
+<button type="button" class="alt" data-tool="work">⚠ אזור עבודה</button>
+</div>
+<div class="actions"><button type="button" id="finishPolygon" hidden>סיים מצולע</button><button type="button" id="cancelPolygon" class="alt" hidden>בטל ציור</button><button type="button" id="undoMap" class="alt">בטל סימון אחרון</button><button type="button" id="clearMap" class="alt">נקה סימונים</button></div>
+<p class="small" id="mapToolStatus" role="status">בחרו כלי, ואז לחצו במפה כדי לסמן.</p>
+</div>
 </section>
 <section class="panel">
 <h2>תצוגה מקדימה — שתי שקופיות</h2>
-<div class="slide-switch"><button type="button" class="alt active" data-slide="1" aria-pressed="true">1 · שער המצגת</button><button type="button" class="alt" data-slide="2" aria-pressed="false">2 · פרטי העבודות</button></div>
+<div class="slide-switch"><button type="button" class="alt active" data-slide="1" aria-pressed="true">1 · שער המצגת</button><button type="button" class="alt" data-slide="2" aria-pressed="false">2 · פרטי העבודות</button><button type="button" class="alt" data-slide="3" aria-pressed="false">3 · תיאור החסימה ומפה</button></div>
 <div class="preview-shell">
 <div class="slide" id="slide">
 <div id="coverSlide" class="slide-frame">
@@ -127,12 +178,24 @@ button.alt{background:#e9eff8;color:#294a6c}
 </div>
 <div class="slide-bottom"><span>שקופית 2 · מבנה אחיד, ללא רקע רשמי</span><span class="project-mark" aria-hidden="true"></span></div>
 </div>
+<div id="closureSlide" class="slide-frame closure-slide" hidden>
+<div class="closure-slide-header">מהות הסגירה | תיאור החסימה</div>
+<div class="closure-slide-main">
+<div class="closure-map-box"><div id="closureMap" aria-label="מפת אזור העבודה"></div></div>
+<div class="closure-side">
+<div class="closure-text" id="previewClosureDescription"></div>
+<div class="closure-legend"><div>ביטולי פניות / חסימה <span>⛔ &nbsp; ↰ &nbsp; ↱</span></div><div>סימון אזור העבודה <span class="closure-swatch"></span></div><div>קווים מושפעים <span class="routes-placeholder">בהמשך</span></div></div>
+</div>
+</div>
+<div class="closure-slide-footer"><span>מפת עבודה · תצוגת עריכה</span><span id="closureBrand"></span></div>
+</div>
 </div>
 </div>
 <p class="preview-note">הרקע נבחר אוטומטית לפי פרויקט, ללא אפשרות לבחור בטעות תבנית של פרויקט אחר. הטקסט מחושב מתוך האירוע וממוקם מעל הרקע ללא שינוי בעיצוב. זוהי תצוגה מקדימה בלבד, לא קובץ PPTX.</p>
 </section>
 </div></div>
 </main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
