@@ -48,6 +48,9 @@ button.alt{background:#e9eff8;color:#294a6c}
 .details-line span{min-width:75px;color:#526b82}
 .details-line strong{direction:ltr;unicode-bidi:isolate}
 .slide-switch{display:flex;gap:8px;margin-bottom:12px}
+#blockageSlideTabs{display:contents}
+.slide-switch{flex-wrap:wrap}
+
 .slide-switch button.active{color:#fff;background:#2864e2}
 .return-event{display:inline-block;margin-top:15px;font-weight:700;color:#225bb1}
 .background-setup{display:flex;align-items:center;flex-wrap:wrap;gap:10px;background:#e9f1fa;border:1px solid #bfd3ec;border-radius:10px;padding:11px 14px;margin:0 0 16px;font-size:13px}
@@ -139,7 +142,7 @@ button.alt{background:#e9eff8;color:#294a6c}
 </div>
 <div id="closureTools" hidden>
 <h2>שקופית 3 · ארגז כלים</h2>
-<label for="blockageSelect">חסימה לעריכה</label><select id="blockageSelect"></select>
+<div class="readonly" id="activeBlockageLabel"></div>
 <label for="closureDescription">תיאור החסימה בשקופית</label>
 <textarea id="closureDescription" rows="3" placeholder="תיאור החסימה שיופיע מתחת לכותרת"></textarea>
 <label for="mapSearch">חיפוש מיקום במפה (עיר / רחוב / צומת)</label>
@@ -164,7 +167,7 @@ button.alt{background:#e9eff8;color:#294a6c}
 </section>
 <section class="panel">
 <h2>תצוגה מקדימה — שתי שקופיות</h2>
-<div class="slide-switch"><button type="button" class="alt active" data-slide="1" aria-pressed="true">1 · שער המצגת</button><button type="button" class="alt" data-slide="2" aria-pressed="false">2 · פרטי העבודות</button><button type="button" class="alt" data-slide="3" aria-pressed="false">3 · תיאור החסימה ומפה</button></div>
+<div class="slide-switch"><button type="button" class="alt active" data-slide="1" aria-pressed="true">1 · שער המצגת</button><button type="button" class="alt" data-slide="2" aria-pressed="false">2 · פרטי העבודות</button><span id="blockageSlideTabs"></span></div>
 <div class="preview-shell">
 <div class="slide" id="slide">
 <div id="coverSlide" class="slide-frame">
@@ -494,7 +497,7 @@ if(!event){$('missing').hidden=false}else{
   }
   selectedBlock=i;
   const r=getRecord(i);
-  $('blockageSelect').value=String(i);
+  $('activeBlockageLabel').textContent='חסימה '+(i+1)+' מתוך '+blocks.length+' · '+(blocks[i].street||'ללא רחוב');
   $('closureDescription').value=r.description||'';
   $('previewClosureDescription').textContent=r.description||'';
   if(map){
@@ -504,12 +507,14 @@ if(!event){$('missing').hidden=false}else{
   selectTool('pan');
  }
  for(let i=0;i<blocks.length;i++){
-  const opt=document.createElement('option');
-  opt.value=String(i);
-  opt.textContent='חסימה '+(i+1)+' · '+(blocks[i].street||'ללא רחוב');
-  $('blockageSelect').append(opt);
+  const button=document.createElement('button');
+  button.type='button';
+  button.className='alt';
+  button.dataset.slide=String(i+3);
+  button.setAttribute('aria-pressed','false');
+  button.textContent=(i+3)+' · חסימה '+(i+1)+(blocks.length>1?' · '+(blocks[i].street||'ללא רחוב'):'');
+  $('blockageSlideTabs').append(button);
  }
- $('blockageSelect').onchange=()=>chooseBlock(Number($('blockageSelect').value));
  $('closureDescription').oninput=()=>{
   getRecord(selectedBlock).description=$('closureDescription').value;
   $('previewClosureDescription').textContent=$('closureDescription').value;
@@ -562,18 +567,25 @@ if(!event){$('missing').hidden=false}else{
  $('mapSearch').addEventListener('keydown',ev=>{if(ev.key==='Enter'){$('mapSearchButton').click();ev.preventDefault()}});
  chooseBlock(0);
  function displaySlide(n){
-  $('coverSlide').hidden=n!=='1';
-  $('detailsSlide').hidden=n!=='2';
-  $('closureSlide').hidden=n!=='3';
-  $('coverInputs').hidden=n!=='1';
-  $('detailsInputs').hidden=n!=='2';
-  $('closureTools').hidden=n!=='3';
-  if(n==='3'&&ensureMap()){
-   const r=getRecord(selectedBlock);
-   map.setView(r.center||fallbackCenter,r.zoom||14);
-   renderAnnotations();
-   requestAnimationFrame(()=>map.invalidateSize());
-   setTimeout(()=>map.invalidateSize(),240);
+  const number=Number(n);
+  const blockageIndex=number-3;
+  const isClosure=blockageIndex>=0&&blockageIndex<blocks.length;
+  $('coverSlide').hidden=number!==1;
+  $('detailsSlide').hidden=number!==2;
+  $('closureSlide').hidden=!isClosure;
+  $('coverInputs').hidden=number!==1;
+  $('detailsInputs').hidden=number!==2;
+  $('closureTools').hidden=!isClosure;
+  if(isClosure){
+   chooseBlock(blockageIndex);
+   $('closureBrand').textContent='שקופית '+number+' · חסימה '+(blockageIndex+1);
+   if(ensureMap()){
+    const r=getRecord(selectedBlock);
+    map.setView(r.center||fallbackCenter,r.zoom||14);
+    renderAnnotations();
+    requestAnimationFrame(()=>map.invalidateSize());
+    setTimeout(()=>map.invalidateSize(),240);
+   }
   }
   for(const button of document.querySelectorAll('[data-slide]')){
    const active=button.dataset.slide===n;
