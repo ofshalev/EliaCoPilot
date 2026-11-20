@@ -95,6 +95,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  <div><label for="city">עיר *</label><input required id="city" list="cityOptions" placeholder="תיקבע לפי המקטע או תוזן ידנית"><p class="hint" id="cityHint">בחירת מקטע תעדכן את העיר אוטומטית.</p><datalist id="cityOptions"><option value="תל אביב"><option value="ראשון לציון"><option value="חולון"><option value="בת ים"><option value="גבעת שמואל"><option value="רמת גן"><option value="אור יהודה"><option value="יהוד"><option value="באר יעקב"><option value="הרצליה"></datalist></div>
  </div>
  <div><label for="locationType">סוג מיקום</label><select id="locationType"><option value="רחוב">רחוב</option><option value="צומת">צומת</option></select></div>
+ <div id="streetChoiceWrap"><label for="streetChoice">בחר רחוב לפי מקטע</label><select id="streetChoice"><option value="">בחר מקטע תחילה</option></select></div>
  <div class="wide"><label for="street" id="locationLabel">רחוב / תחום חסימה *</label><input required id="street" placeholder="לדוגמה: אלנבי מהירקון עד פינסקר"><p class="hint" id="locationHint">רשימות הרחובות והצמתים יתווספו בהמשך. בינתיים ניתן להקליד את המיקום.</p></div>
  <div><label for="workId">מספר עבודה / בקשה</label><input id="workId" placeholder="לדוגמה: 2182" dir="ltr"></div>
  <div><label for="direction">כיוון החסימה</label><select id="direction"><option value="">לא צוין</option><option>לצפון</option><option>לדרום</option><option>למזרח</option><option>למערב</option><option>שני הכיוונים</option><option>חסימת צומת</option></select></div>
@@ -152,6 +153,42 @@ function cityForSegment(segment){
  if(/^G5(?:[.-]|$)/.test(segment))return 'הרצליה';
  return '';
 }
+const PURPLE_STREETS={
+ 'PLW1.1':['ארלוזורוב'],'PLW1.2':['ארלוזורוב'],'PLW1.3':['ארלוזורוב'],'PLW1.4':['ארלוזורוב'],
+ 'PLW1.5':['בן יהודה'],'PLW1.6':['בן יהודה'],'PLW1.7':['בן יהודה'],
+ 'PLW1.8':['אלנבי'],
+ 'PLW1.9.1':['אלנבי','יהודה הלוי','העלייה'],'PLW1.9.2':['אלנבי','יהודה הלוי','העלייה'],
+ 'PLW1.10':['לוינסקי',"צ'לנוב"],
+ 'PLW1.12':['ההגנה'],'PLW1.13':['ההגנה'],
+ 'PLW2.1':['אלוף שדה'],'PLW2.2':['אלוף שדה'],'PLW2.3':['אלוף שדה'],
+ 'PLW2.5':['מקס ואנה ווב'],'PLW2.6':['ז׳בוטינסקי'],
+ 'PLW2.7':['אורי צבי גרינברג','זבולון המר'],
+ 'PLE2.1':['כביש 461'],'PLE2.2':['כביש 461'],'PLE2.3':['כביש 461']
+};
+function updateStreetChoices(preserve=false){
+ const select=$('streetChoice'),segment=$('segment').value,options=PURPLE_STREETS[segment]||[];
+ const oldChoice=select.value,existing=$('street').value;
+ select.replaceChildren();
+ const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent=options.length?'בחר רחוב':'אין רשימת רחובות למקטע זה';select.append(placeholder);
+ for(const name of options){const o=document.createElement('option');o.value=name;o.textContent=name;select.append(o)}
+ $('streetChoiceWrap').hidden=(!options.length||$('locationType').value==='צומת');
+ if(preserve){
+  const match=options.find(name=>existing===name||existing.startsWith(name+' ')||existing.startsWith(name+'/'));
+  if(match)select.value=match;
+ }else{
+  if(options.length===1){select.value=options[0];$('street').value=options[0]}
+  else if(options.includes(oldChoice)&&oldChoice===existing){select.value=oldChoice}
+  else $('street').value='';
+ }
+ $('locationHint').textContent=options.length&&$('locationType').value!=='צומת'?
+  'בחרו רחוב מהרשימה, ואפשר להוסיף בשדה המיקום את תחום החסימה (מ־... עד ...).':
+  'לצמתים או למקטעים ללא רשימה, הזינו את המיקום ידנית.';
+}
+$('streetChoice').addEventListener('change',()=>{
+ const chosen=$('streetChoice').value;
+ if(chosen)$('street').value=chosen;
+ $('street').focus();
+});
 function applySegmentCity(){
  const city=cityForSegment($('segment').value),input=$('city');
  input.readOnly=!!city;
@@ -167,14 +204,15 @@ function updateSegments(){
  }
  if([...list.options].some(o=>o.value===prior))list.value=prior;
 }
-$('railLine').onchange=()=>{$('segment').value='';updateSegments();updateLocationType();$('city').readOnly=false;$('city').value='';$('cityHint').textContent='בחרו מקטע כדי למלא את העיר אוטומטית.'};
-$('segment').onchange=applySegmentCity;
+$('railLine').onchange=()=>{$('segment').value='';updateSegments();updateLocationType();updateStreetChoices();$('city').readOnly=false;$('city').value='';$('cityHint').textContent='בחרו מקטע כדי למלא את העיר אוטומטית.'};
+$('segment').onchange=()=>{applySegmentCity();updateStreetChoices()};
 function updateLocationType(){
  const isJunction=$('locationType').value==='צומת';
  $('locationLabel').textContent=isJunction?'שם הצומת *':'רחוב / תחום חסימה *';
- $('street').placeholder=isJunction?'לדוגמה: בן יהודה / בן גוריון':'לדוגמה: אלנבי מהירקון עד פינסקר';
+ $('street').placeholder=isJunction?'לדוגמה: בן יהודה / בן גוריון':'אפשר להוסיף את תחום החסימה: מ־... עד ...';
+ $('streetChoiceWrap').hidden=isJunction||!(PURPLE_STREETS[$('segment').value]||[]).length;
 }
-$('locationType').addEventListener('change',updateLocationType);
+$('locationType').addEventListener('change',()=>{updateLocationType();updateStreetChoices(true)});
 const DATE_LABELS=['יום ראשון','יום שני','יום שלישי','יום רביעי','יום חמישי'];
 const nextWeekDates=DATE_LABELS.map((label,i)=>({label,date:dayPlus(nextStart,i)}));
 function selectedDates(){return [...$('datesPanel').querySelectorAll('input[type="checkbox"]:checked')].map(input=>input.value).sort()}
@@ -210,7 +248,7 @@ function applyWorkHours(){
  $('timeFrom').value=hours[0];$('timeTo').value=hours[1];
 }
 $('workType').addEventListener('change',applyWorkHours);
-function openNew(){editing=null;$('eventForm').reset();$('formHeading').textContent='צור אירוע חדש';$('saveEvent').textContent='שמור אירוע';updateSegments();$('city').readOnly=false;$('cityHint').textContent='בחרו מקטע כדי למלא את העיר אוטומטית.';renderDates();$('formPanel').hidden=false;$('formStatus').textContent='';$('formPanel').scrollIntoView({block:'start',behavior:'smooth'})}
+function openNew(){editing=null;$('eventForm').reset();$('formHeading').textContent='צור אירוע חדש';$('saveEvent').textContent='שמור אירוע';updateSegments();updateLocationType();updateStreetChoices();$('city').readOnly=false;$('cityHint').textContent='בחרו מקטע כדי למלא את העיר אוטומטית.';renderDates();$('formPanel').hidden=false;$('formStatus').textContent='';$('formPanel').scrollIntoView({block:'start',behavior:'smooth'})}
 $('toggleForm').onclick=()=>{$('formPanel').hidden?openNew():$('formPanel').hidden=true};
 $('cancelForm').onclick=()=>{$('formPanel').hidden=true;editing=null};
 function generateEventTitle(record){
@@ -225,7 +263,7 @@ function generateEventTitle(record){
 function getForm(){const result={};for(const f of fields)result[f]=$(f).value;result.eventTitle=generateEventTitle(result);result.selectedDates=selectedDates();result.dateFrom=result.selectedDates[0]||'';result.dateTo=result.selectedDates.length?dayPlus(result.selectedDates.at(-1),result.timeTo<=result.timeFrom?1:0):'';for(const f of outputFields)result[f]=$(f).checked;return result}
 function putForm(record){
  for(const f of fields)if(f!=='segment')$(f).value=record[f]??'';
- updateSegments();$('segment').value=record.segment||'';if(!record.locationType)$('locationType').value=record.direction==='חסימת צומת'?'צומת':'רחוב';updateLocationType();const mappedCity=cityForSegment(record.segment||'');$('city').readOnly=!!mappedCity;if(mappedCity)$('city').value=mappedCity;$('cityHint').textContent=mappedCity?'העיר נקבעה אוטומטית לפי המקטע.':'מקטע ללא שיוך עיר מוגדר — ניתן להזין עיר ידנית.';
+ updateSegments();$('segment').value=record.segment||'';if(!record.locationType)$('locationType').value=record.direction==='חסימת צומת'?'צומת':'רחוב';updateLocationType();updateStreetChoices(true);const mappedCity=cityForSegment(record.segment||'');$('city').readOnly=!!mappedCity;if(mappedCity)$('city').value=mappedCity;$('cityHint').textContent=mappedCity?'העיר נקבעה אוטומטית לפי המקטע.':'מקטע ללא שיוך עיר מוגדר — ניתן להזין עיר ידנית.';
  for(const f of outputFields)$(f).checked=!!record[f];
  const dates=Array.isArray(record.selectedDates)?record.selectedDates:(record.dateFrom?[record.dateFrom]:[]);
  renderDates(dates);
