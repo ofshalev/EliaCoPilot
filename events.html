@@ -474,13 +474,14 @@ function buildCompactSchedule(block){
    if(Math.min(distance(start),distance(end))>38)return;
    dragging=distance(start)<=distance(end)?'timeFrom':'timeTo';svg.setPointerCapture(event.pointerId);event.preventDefault();
   });
-  svg.addEventListener('pointermove',event=>{
-   if(!dragging)return;const hour=pointerHour(event);
-   const original=parseInt(schedule[dragging],10);
+  svg.addEventListener('pointerup',event=>{
+   if(!dragging)return;
+   const handle=dragging;dragging=null;
+   const hour=pointerHour(event),original=parseInt(schedule[handle],10);
    const candidates=[hour,hour+12],nearest=candidates.sort((a,b)=>Math.min(mod24(a-original),mod24(original-a))-Math.min(mod24(b-original),mod24(original-b)))[0];
-   if(dragging==='timeFrom')setHours(nearest,schedule.timeTo);else setHours(schedule.timeFrom,nearest);
+   if(handle==='timeFrom')setHours(nearest,schedule.timeTo);else setHours(schedule.timeFrom,nearest);
   });
-  for(const name of ['pointerup','pointercancel','lostpointercapture'])svg.addEventListener(name,()=>dragging=null);
+  for(const name of ['pointercancel','lostpointercapture'])svg.addEventListener(name,()=>dragging=null);
  }
  function renderDates(){
   datesArea.replaceChildren();
