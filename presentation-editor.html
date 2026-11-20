@@ -91,7 +91,9 @@ button.alt{background:#e9eff8;color:#294a6c}
 #closureSlide .closure-map-box{width:46%;height:140%;align-self:flex-end;position:relative;border-radius:10px;overflow:hidden;border:3px solid white;box-shadow:0 0 0 1px #d7e0e0;z-index:2}
 #closureSlide #closureMap{height:100%;width:100%;direction:ltr;background:#e6edf0}
 #closureSlide .closure-side{width:52%;direction:rtl;padding:3% 1%;min-width:0;display:flex;flex-direction:column;justify-content:space-around}
-#closureSlide .closure-text{font-size:clamp(11px,2cqw,22px);color:#183b45;text-align:right;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;max-height:32%;overflow:auto}
+#closureSlide .closure-text{font-size:clamp(11px,1.7cqw,19px);color:#183b45;text-align:right;line-height:1.45;overflow-wrap:anywhere;max-height:46%;overflow:auto;display:flex;flex-direction:column;gap:8px}
+.closure-description-item{white-space:pre-wrap;padding:2px 4px;border-radius:4px}
+.closure-description-item.active{background:#ecf5ff}
 #closureSlide .closure-legend{display:flex;flex-direction:column;gap:1.8cqw;font-size:clamp(10px,1.5cqw,16px);color:#29434c}
 #closureSlide .closure-legend>div{display:flex;justify-content:space-between;gap:12px;align-items:center}
 #closureSlide .closure-legend span{font-size:clamp(10px,2.3cqw,24px);white-space:nowrap}
@@ -487,6 +489,18 @@ if(!event){$('missing').hidden=false}else{
    tool==='polygon'?'לחצו על המפה להוספת קודקודים; בסוף לחצו סיים מצולע':
    'לחצו על המפה כדי להציב '+presets[tool].label;
  }
+ function renderAllDescriptions(){
+  const container=$('previewClosureDescription');
+  container.replaceChildren();
+  blocks.forEach((block,i)=>{
+   const line=document.createElement('div');
+   line.className='closure-description-item'+(i===selectedBlock?' active':'');
+   line.textContent=getRecord(i).description||'';
+   line.title='עריכת תיאור חסימה '+(i+1);
+   line.onclick=ev=>{ev.stopPropagation();chooseBlock(i)};
+   container.append(line);
+  });
+ }
  function chooseBlock(i){
   if(map&&selectedBlock!==i){
    const r=getRecord(selectedBlock),c=map.getCenter();
@@ -496,7 +510,7 @@ if(!event){$('missing').hidden=false}else{
   const r=getRecord(i);
   $('blockageSelect').value=String(i);
   $('closureDescription').value=r.description||'';
-  $('previewClosureDescription').textContent=r.description||'';
+  renderAllDescriptions();
   if(map){
    map.setView(Array.isArray(r.center)?r.center:fallbackCenter,Number.isFinite(+r.zoom)?+r.zoom:14);
    renderAnnotations();
@@ -512,7 +526,7 @@ if(!event){$('missing').hidden=false}else{
  $('blockageSelect').onchange=()=>chooseBlock(Number($('blockageSelect').value));
  $('closureDescription').oninput=()=>{
   getRecord(selectedBlock).description=$('closureDescription').value;
-  $('previewClosureDescription').textContent=$('closureDescription').value;
+  renderAllDescriptions();
   storeClosure();
  };
  $('mapboxToken').value=localStorage.getItem(MAPBOX_KEY)||'';
