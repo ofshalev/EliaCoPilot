@@ -1087,6 +1087,54 @@ function deleteEvent(id){const ev=events.find(x=>x.id===id);if(!ev||!confirm('ל
 function txt(el,str){el.textContent=String(str??'');return el}
 function tag(el,kind,cls){const n=document.createElement(kind);if(cls)n.className=cls;el.append(n);return n}
 function formatDate(s){return s?s.split('-').reverse().join('/'):'—'}
+// Compact operation dates: 22-24+26.11.2026 (consecutive days become ranges).
+function compactWorkDates(dates){
+ const unique=[...new Set((dates||[]).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)))].sort();
+ if(!unique.length)return '—';
+ const monthKey=d=>d.slice(0,7);
+ const chunks=[];let i=0;
+ while(i<unique.length){
+  const month=monthKey(unique[i]);const group=[];
+  while(i<unique.length&&monthKey(unique[i])===month){group.push(unique[i]);i++}
+  const parts=[];let j=0;
+  while(j<group.length){
+   let end=j;
+   while(end+1<group.length&&dayPlus(group[end],1)===group[end+1])end++;
+   const day=d=>String(Number(d.slice(8,10)));
+   parts.push(end===j?day(group[j]):day(group[j])+'-'+day(group[end]));
+   j=end+1;
+  }
+  chunks.push(parts.join('+')+'.'+month.slice(5,7)+'.'+month.slice(0,4));
+ }
+ return chunks.join(' + ');
+}
+function compactContinuousPeriod(from,to){
+ if(!from||!to)return '—';
+ if(from===to)return compactWorkDates([from]);
+ const sameMonth=from.slice(0,7)===to.slice(0,7);
+ return sameMonth?String(Number(from.slice(8,10)))+'-'+String(Number(to.slice(8,10)))+'.'+from.slice(5,7)+'.'+from.slice(0,4)
+  :compactWorkDates([from])+' – '+compactWorkDates([to]);
+}
+function cardPeriod(e){
+ const blocks=eventBlockages(e);
+ const dates=[];
+ let hasContinuous=false,earliest='',latest='';
+ for(const b of blocks){
+  const schedule=scheduleForBlockage(b,e);
+  if(schedule.workType==='עבודות רצופות'){
+   hasContinuous=true;
+   if(schedule.dateFrom&&(!earliest||schedule.dateFrom<earliest))earliest=schedule.dateFrom;
+   if(schedule.dateTo&&(!latest||schedule.dateTo>latest))latest=schedule.dateTo;
+  }else dates.push(...(schedule.selectedDates||[]));
+ }
+ if(!hasContinuous)return compactWorkDates(dates.length?dates:e.selectedDates);
+ // Continuous spans are represented by their complete date ranges.
+ if(!dates.length)return compactContinuousPeriod(earliest||e.dateFrom,latest||e.dateTo);
+ const sorted=[...new Set(dates)].sort();
+ const from=[earliest,sorted[0]].filter(Boolean).sort()[0];
+ const to=[latest,sorted.at(-1)].filter(Boolean).sort().at(-1);
+ return compactContinuousPeriod(from,to);
+}
 function render(){
  $('totalEvents').textContent=events.length+' אירועים';
  const select=$('cityFilter'),old=select.value;select.replaceChildren();const all=document.createElement('option');all.value='';all.textContent='כל הערים';select.append(all);for(const city of [...new Set(events.map(x=>x.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'))){const o=document.createElement('option');o.value=city;o.textContent=city;select.append(o)}select.value=old;
@@ -1121,32 +1169,30 @@ function render(){
   txt(tag(info,'div','event-meta'),(eventBlockages(e).length>1?[e.city]:[e.city,e.street,e.direction]).filter(Boolean).join(' · '));
   const whenEl=tag(info,'div','event-meta');
   const addWhen=(value,red=false)=>{const span=tag(whenEl,'span',red?'time-alert':'');span.textContent=value;};
-  if(eventBlockages(e).length>1){
-   addWhen(formatDate(e.dateFrom)+' — '+formatDate(e.dateTo));
-  }else if(e.workType==='עבודות רצופות'){
-   addWhen(formatDate(e.dateFrom)+' '+(e.timeFrom||'')+' — '+formatDate(e.dateTo)+' '+(e.timeTo||''));
-  }else{
-   const selected=Array.isArray(e.selectedDates)&&e.selectedDates.length;
-   const perDay=selected&&e.blockages?.[0]?.dailyHours||e.dailyHours||{};
-   const differing=selected&&e.selectedDates.some(d=>{
-    const h=perDay[d];return h&&(h.timeFrom!==e.timeFrom||h.timeTo!==e.timeTo);
-   });
-   if(differing){
-    e.selectedDates.forEach((date,i)=>{
-     if(i)addWhen(' · ');
-     const h=perDay[date]||e;
-     addWhen(formatDate(date)+' ');
-     addWhen(h.timeFrom||'',e.workType==='עבודות יום'||(e.workType==='עבודות לילה'&&h.timeFrom!=='22:00'));
-     addWhen('–');addWhen(h.timeTo||'',e.workType==='עבודות יום');
-    });
+  addWhen(cardPeriod(e));
+  const blocks=eventBlockages(e);
+  if(blocks.length===1){
+   const b=scheduleForBlockage(blocks[0],e);
+   if(b.workType==='עבודות רצופות'){
+    addWhen(' | '+(b.timeFrom||'')+'–'+(b.timeTo||''));
    }else{
-    addWhen(selected?e.selectedDates.map(formatDate).join(' · ')+' | ':formatDate(e.dateFrom)+' ');
-    const unusualNightStart=e.workType==='עבודות לילה'&&e.timeFrom!=='22:00';
-    const dayWork=e.workType==='עבודות יום';
-    addWhen(e.timeFrom||'',dayWork||unusualNightStart);
-    addWhen(selected?'–':' — ');
-    if(!selected)addWhen(formatDate(e.dateTo)+' ');
-    addWhen(e.timeTo||'',dayWork);
+    const dates=[...new Set(b.selectedDates||[])].sort();
+    const variations=dates.map(d=>({date:d,h:b.dailyHours?.[d]||b}));
+    const sameHours=variations.every(({h})=>h.timeFrom===variations[0]?.h.timeFrom&&h.timeTo===variations[0]?.h.timeTo);
+    if(!variations.length||sameHours){
+     const h=variations[0]?.h||b;
+     addWhen(' | ');
+     addWhen(h.timeFrom||'',b.workType==='עבודות יום'||(b.workType==='עבודות לילה'&&h.timeFrom!=='22:00'));
+     addWhen('–');addWhen(h.timeTo||'',b.workType==='עבודות יום');
+    }else{
+     addWhen(' | ');
+     variations.forEach(({date,h},i)=>{
+      if(i)addWhen(' · ');
+      addWhen(String(Number(date.slice(-2)))+'.'+date.slice(5,7)+' ');
+      addWhen(h.timeFrom||'',b.workType==='עבודות יום'||(b.workType==='עבודות לילה'&&h.timeFrom!=='22:00'));
+      addWhen('–');addWhen(h.timeTo||'',b.workType==='עבודות יום');
+     });
+    }
    }
   }
   const done=outputFields.filter(f=>e[f]).length;
