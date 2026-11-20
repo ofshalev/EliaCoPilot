@@ -98,6 +98,15 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 #streetBoundsWrap{flex:1 1 470px;min-width:0}
 .location-row .street-bounds{grid-template-columns:minmax(115px,1fr) minmax(115px,1fr) auto;gap:10px}
 .location-row [hidden]{display:none!important}
+#unmappedStreetWrap{font-size:13px}
+#unmappedStreetWrap strong{display:block;margin:7px 0;color:#8a4c25}
+.location-row{gap:10px}
+.location-type-field{width:140px;flex:0 0 140px}
+.location-street-field{width:165px;flex:0 0 165px}
+#streetBoundsWrap{flex:0 1 475px}
+.location-row .street-bounds{grid-template-columns:minmax(0,150px) minmax(0,150px) auto;gap:9px}
+.location-row .street-bounds input[type="text"],.location-row .street-bounds input:not([type]){min-width:0}
+
 @media(max-width:900px){.location-row{align-items:start}.location-type-field,.location-street-field{flex-basis:145px;width:145px}#streetBoundsWrap{flex-basis:100%}}
 @media(max-width:600px){.location-row .street-bounds{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.location-row .both-directions{grid-column:1/-1}}
 </style>
@@ -119,14 +128,15 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  
  <div class="project-fields full" dir="rtl">
  <div class="project-line-field"><label for="railLine">קו / פרויקט</label><select id="railLine"><option value="">בחר קו</option><option>הקו הסגול</option><option>הקו החום</option><option>הקו הירוק</option><option>אחר</option></select></div>
- <div class="project-segment-field"><label for="segment">מקטע</label><select id="segment"><option value="">בחר מקטע (רשות)</option></select></div>
+ <div class="project-segment-field"><label for="segment">מקטע *</label><select id="segment" required><option value="">בחר מקטע</option></select></div>
  <div class="project-city-display"><span class="field-caption">עיר</span><strong id="cityDisplay">תיקבע לפי המקטע</strong><input id="city" type="hidden" value=""></div>
  </div>
  <div class="location-row full">
  <div class="location-type-field"><label for="locationType">סוג מיקום</label><select id="locationType"><option value="רחוב">רחוב</option><option value="צומת">צומת</option></select></div>
  <div id="streetChoiceWrap" class="location-street-field"><label for="streetChoice">בחר רחוב לפי מקטע</label><select id="streetChoice"><option value="">בחר מקטע תחילה</option></select></div>
  <div id="fixedStreetWrap" class="fixed-street location-street-field" hidden><span class="field-caption">רחוב</span><strong id="fixedStreetDisplay"></strong></div>
- <div id="locationInputWrap" class="location-street-field"><label for="street" id="locationLabel">רחוב / תחום חסימה *</label><input required id="street" placeholder="לדוגמה: אלנבי מהירקון עד פינסקר"><p class="hint" id="locationHint">רשימות הרחובות והצמתים יתווספו בהמשך. בינתיים ניתן להקליד את המיקום.</p></div>
+ <div id="locationInputWrap" class="location-street-field"><label for="street" id="locationLabel">צומת *</label><input id="street" placeholder="לדוגמה: בן יהודה / בן גוריון"><p class="hint" id="locationHint">הזינו את שם הצומת.</p></div>
+ <div id="unmappedStreetWrap" class="location-street-field" hidden><span class="field-caption">רחוב</span><strong>טרם הוגדר למקטע</strong><p class="hint">יש להוסיף שיוך רחוב למקטע לפני שמירת האירוע.</p></div>
  <div id="streetBoundsWrap">
   <div class="street-bounds">
    <div><label for="fromStreet">מ:</label><input id="fromStreet" placeholder="רחוב / צומת התחלה"></div>
@@ -221,16 +231,17 @@ function updateStreetChoices(preserve=false){
  $('streetChoiceWrap').hidden=!multiple;
  $('fixedStreetWrap').hidden=!fixed;
  $('fixedStreetDisplay').textContent=fixed?options[0]:'';
- $('locationInputWrap').hidden=!junction&&options.length>0;
+ $('unmappedStreetWrap').hidden=junction||options.length>0;
+ $('locationInputWrap').hidden=!junction;
  $('streetBoundsWrap').hidden=junction;
- $('street').required=junction||!options.length;
+ $('street').required=junction;
  if(fixed)$('street').value=options[0];
  else if(multiple){
   const matched=preserve?options.find(name=>existing===name||existing.startsWith(name+' ')||existing.startsWith(name+'/')):null;
   select.value=matched||'';
   $('street').value=matched||'';
  }else if(!preserve)$('street').value='';
- $('locationHint').textContent=junction?'הזינו את שם הצומת.':options.length?'שם הרחוב נבחר לפי המקטע.':'הזינו שם רחוב למקטע ללא שיוך קבוע.';
+ $('locationHint').textContent='הזינו את שם הצומת.';
 }
 $('streetChoice').addEventListener('change',()=>{$('street').value=$('streetChoice').value});
 function showCity(value){
@@ -241,7 +252,7 @@ function showCity(value){
 function applySegmentCity(){showCity(cityForSegment($('segment').value));}
 function updateSegments(){
  const list=$('segment'),prior=list.value;list.replaceChildren();
- const blank=document.createElement('option');blank.value='';blank.textContent='בחר מקטע (רשות)';list.append(blank);
+ const blank=document.createElement('option');blank.value='';blank.textContent='בחר מקטע';list.append(blank);
  for(const code of LINE_SEGMENTS[$('railLine').value]||[]){
   const option=document.createElement('option');option.value=code;option.textContent=code;list.append(option);
  }
@@ -304,8 +315,10 @@ function generateEventTitle(record){
  return (base+scope+suffix).trim()||'אירוע ללא מיקום';
 }
 function getForm(){const result={};for(const f of fields)result[f]=$(f).value;
- if(!$('fixedStreetWrap').hidden)result.street=(PURPLE_STREETS[result.segment]||[])[0]||'';
- else if(!$('streetChoiceWrap').hidden)result.street=$('streetChoice').value;
+ if(result.locationType==='רחוב'){
+  const choices=PURPLE_STREETS[result.segment]||[];
+  result.street=choices.length===1?choices[0]:$('streetChoice').value;
+ }
  result.fromStreet=$('locationType').value==='רחוב'?$('fromStreet').value.trim():'';
  result.toStreet=$('locationType').value==='רחוב'?$('toStreet').value.trim():'';
  result.bothDirections=$('locationType').value==='רחוב'&&$('bothDirections').checked;
@@ -323,7 +336,9 @@ function putForm(record){
 $('eventForm').onsubmit=e=>{
  e.preventDefault();const record=getForm();
  if(!record.selectedDates.length){$('formStatus').textContent='יש לבחור לפחות תאריך עבודה אחד מתוך השבוע הבא';return}
- if(!record.street.trim()){$('formStatus').textContent='יש לבחור או להזין שם רחוב / צומת';return}
+ if(!record.segment){$('formStatus').textContent='יש לבחור מקטע';return}
+ if(record.locationType==='רחוב'&&!(PURPLE_STREETS[record.segment]||[]).length){$('formStatus').textContent='לא הוגדר רחוב למקטע הזה. יש להוסיף שיוך לפני יצירת אירוע רחוב.';return}
+ if(!record.street.trim()){$('formStatus').textContent=record.locationType==='רחוב'?'יש לבחור רחוב מהרשימה':'יש להזין שם צומת';return}
  const stamp=new Date().toISOString();
  if(editing){const idx=events.findIndex(x=>x.id===editing);if(idx>=0)events[idx]={...events[idx],...record,updatedAt:stamp}}
  else events.push({id:crypto.randomUUID?crypto.randomUUID():'event-'+Date.now(),...record,createdAt:stamp,updatedAt:stamp});
