@@ -49,6 +49,32 @@ button.alt{background:#e9eff8;color:#294a6c}
 .slide-switch{display:flex;gap:8px;margin-bottom:12px}
 .slide-switch button.active{color:#fff;background:#2864e2}
 .return-event{display:inline-block;margin-top:15px;font-weight:700;color:#225bb1}
+.background-setup{display:flex;align-items:center;flex-wrap:wrap;gap:10px;background:#e9f1fa;border:1px solid #bfd3ec;border-radius:10px;padding:11px 14px;margin:0 0 16px;font-size:13px}
+.background-setup label{margin:0;white-space:nowrap}
+.background-setup input{width:min(100%,290px);font-size:12px;padding:6px}
+.background-setup #backgroundStatus{color:#456581;font-size:12px}
+.slide-frame{background-size:100% 100%;background-repeat:no-repeat;background-position:center}
+.slide.branded .slide-frame .slide-bottom,.slide.branded .slide-head{display:none}
+.slide.branded #coverSlide{position:relative}
+.slide.branded #coverSlide .slide-body{position:absolute;inset:0;display:block;padding:0}
+.slide.branded #coverSlide .slide-title{position:absolute;top:36%;right:9%;left:37%;font-size:clamp(18px,2.7vw,35px);text-align:right;line-height:1.35;color:#22464b}
+.slide.branded #coverSlide .slide-subtitle{position:absolute;top:51%;right:9%;left:38%;font-size:clamp(15px,2.3vw,29px);font-weight:700;color:#557074}
+.slide.branded #coverSlide .slide-kicker{position:absolute;top:65%;right:13%;left:39%;font-size:clamp(10px,1.2vw,15px);font-weight:400;color:#4d6671}
+.slide.branded #detailsSlide{position:relative}
+.slide.branded #detailsSlide .details-body{position:absolute;inset:0;padding:0;display:block}
+.slide.branded #detailsSlide .slide-title{position:absolute;top:9%;right:12%;left:10%;text-align:center;line-height:1.35;color:#21454a;font-size:clamp(18px,2.7vw,36px);white-space:pre-wrap}
+.slide.branded #detailsSlide .details-line{position:absolute;right:30%;left:20%;font-size:clamp(13px,1.85vw,24px);display:flex;flex-direction:row;gap:12px;align-items:baseline;justify-content:center;color:#284e51}
+.slide.branded #detailsSlide .details-line:nth-of-type(2){top:49%}
+.slide.branded #detailsSlide .details-line:nth-of-type(3){top:59%}
+.slide.branded #detailsSlide .details-line:nth-of-type(4){top:73%;font-size:clamp(12px,1.5vw,20px)}
+.slide.branded #detailsSlide .details-line span{min-width:70px}
+@media(max-width:600px){
+.slide.branded #coverSlide .slide-title{font-size:clamp(12px,3.3vw,20px)}
+.slide.branded #coverSlide .slide-subtitle{font-size:clamp(11px,2.6vw,17px)}
+.slide.branded #detailsSlide .slide-title{font-size:clamp(11px,3vw,20px)}
+.slide.branded #detailsSlide .details-line{font-size:clamp(10px,2.6vw,15px);right:18%;left:11%}
+.slide.branded #detailsSlide .details-line:nth-of-type(4){font-size:clamp(10px,2.5vw,14px)}
+}
 [hidden]{display:none!important}
 @media(max-width:850px){.workspace{grid-template-columns:1fr}.slide-title{font-size:clamp(14px,4vw,29px)}.slide-period{font-size:clamp(11px,2.5vw,18px)}.slide-subtitle{font-size:clamp(10px,2.5vw,17px)}}
 </style>
@@ -62,7 +88,8 @@ button.alt{background:#e9eff8;color:#294a6c}
 <a href="events.html">בחזרה לרשימת האירועים</a>
 </div>
 <div id="workspace" hidden>
-<div class="notice"><strong>שקופיות 1 ו־2 נוצרות אוטומטית.</strong> התוכן מחושב מרשומת האירוע, ללא עריכת כותרות ידנית. התצוגות עדיין אינן משתמשות ברקע המאסטר המאושר; לא ייווצר קובץ PowerPoint לפני נעילת המיתוג של כל פרויקט.</div>
+<div class="notice"><strong>שקופיות 1 ו־2 נוצרות אוטומטית.</strong> המידע מגיע מרשומת האירוע. ניתן להציג את הרקע המקורי שחולץ מהתבנית לכל פרויקט באמצעות טעינה חד־פעמית של חבילת הרקעים. התבניות עצמן אינן משתנות, והייצוא ל־PPTX עדיין לא פעיל.</div>
+<div class="background-setup"><label for="backgroundImport">רקעים מקוריים · ייבוא חד־פעמי</label><input type="file" id="backgroundImport" accept=".json,application/json"><div id="backgroundStatus" role="status">יש לטעון את חבילת הרקעים כדי להציג את העיצוב המקורי.</div></div>
 <div class="workspace">
 <section class="panel">
 <h2>פרטי פתיחה — אוטומטיים</h2>
@@ -101,7 +128,7 @@ button.alt{background:#e9eff8;color:#294a6c}
 </div>
 </div>
 </div>
-<p class="preview-note">הכותרות, הימים והשעות מחושבים מהחסימות ומהשעונים. המיתוג הנעול והייצוא ל־PPTX יתווספו רק לאחר אימות התבניות הרשמיות.</p>
+<p class="preview-note">הרקע נבחר אוטומטית לפי פרויקט, ללא אפשרות לבחור בטעות תבנית של פרויקט אחר. הטקסט מחושב מתוך האירוע וממוקם מעל הרקע ללא שינוי בעיצוב. זוהי תצוגה מקדימה בלבד, לא קובץ PPTX.</p>
 </section>
 </div></div>
 </main>
@@ -203,7 +230,39 @@ if(!event){$('missing').hidden=false}else{
  $('datesField').textContent=datesText;
  $('weekdaysField').textContent=daysText;
  $('timesField').textContent=timesText;
- $('slide').classList.add(projects[project]||'purple');
+ const projectKey=projects[project]||'purple';
+ const BACKGROUND_KEY='elia_copilot_master_previews_v1';
+ function currentBackgrounds(){
+  try{
+   const x=JSON.parse(localStorage.getItem(BACKGROUND_KEY));
+   return x?.version===1&&x.kind==='elia-approved-background-previews'?x:null;
+  }catch{return null}
+ }
+ function applyBackgrounds(){
+  const data=currentBackgrounds();
+  const images=data?.assets?.[projectKey];
+  const valid=images&&[images['1'],images['2']].every(v=>typeof v==='string'&&v.startsWith('data:image/webp;base64,'));
+  $('slide').classList.toggle('branded',!!valid);
+  $('coverSlide').style.backgroundImage=valid?'url("'+images['1']+'")':'none';
+  $('detailsSlide').style.backgroundImage=valid?'url("'+images['2']+'")':'none';
+  $('backgroundStatus').textContent=valid
+   ?'הרקעים נטענו: '+({'purple':'שפיר','brown':'נתיבי איילון','green':'נת״ע'}[projectKey])+' · שקופיות 1–2'
+   :'הרקעים טרם נטענו. בחרו את קובץ הרקעים שהוכן עבור Elia CoPilot.';
+ }
+ $('backgroundImport').onchange=async ev=>{
+  const file=ev.target.files?.[0];if(!file)return;
+  try{
+   const data=JSON.parse(await file.text());
+   if(data?.kind!=='elia-approved-background-previews'||data.version!==1||
+    !['purple','brown','green'].every(p=>['1','2'].every(n=>
+     typeof data.assets?.[p]?.[n]==='string'&&data.assets[p][n].startsWith('data:image/webp;base64,'))))
+    throw Error('קובץ הרקעים אינו תואם לפורמט הצפוי');
+   localStorage.setItem(BACKGROUND_KEY,JSON.stringify(data));
+   applyBackgrounds();
+  }catch(error){$('backgroundStatus').textContent='שגיאה: '+error.message}
+  ev.target.value='';
+ };
+ $('slide').classList.add(projectKey);
  $('previewProject').textContent=project;
  $('previewSegment').textContent=section;
  $('previewMonth').textContent=month;
@@ -212,6 +271,7 @@ if(!event){$('missing').hidden=false}else{
  $('previewDates').textContent=datesText;
  $('previewWeekdays').textContent=daysText;
  $('previewTimes').textContent=timesText;
+ applyBackgrounds();
  for(const b of document.querySelectorAll('[data-slide]')){
   b.onclick=()=>{
    const n=b.dataset.slide;
