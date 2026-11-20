@@ -123,9 +123,9 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .schedule-layout{display:flex;direction:rtl;align-items:flex-start;gap:24px}
 .schedule-dates{flex:0 1 610px;min-width:0}
 .schedule-dates .calendar-shell{width:100%;margin-top:12px}
-.schedule-hours{flex:0 0 180px;display:flex;flex-direction:column;gap:16px;margin-top:28px}
-.schedule-hours input{width:100%}
-@media(max-width:850px){.schedule-layout{flex-wrap:wrap}.schedule-dates{flex:1 1 100%}.schedule-hours{flex:1 1 100%;flex-direction:row;margin-top:0}.schedule-hours>div{max-width:200px;flex:1}}
+.schedule-hours{flex:0 0 180px;display:flex;flex-direction:column;gap:16px;margin-top:0}
+.schedule-hours input,.schedule-hours select{width:100%}
+@media(max-width:850px){.schedule-layout{flex-wrap:wrap}.schedule-dates{flex:1 1 100%}.schedule-hours{flex:1 1 100%;flex-direction:row;flex-wrap:wrap;margin-top:0}.schedule-hours>div{max-width:200px;flex:1}}
 </style>
 </head>
 <body>
@@ -165,12 +165,11 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  </div>
  <div><label for="workId">מספר עבודה / בקשה</label><input id="workId" placeholder="לדוגמה: 2182" dir="ltr"></div>
  <div><label for="direction">כיוון החסימה</label><select id="direction"><option value="">לא צוין</option><option>לצפון</option><option>לדרום</option><option>למזרח</option><option>למערב</option><option>חסימת צומת</option></select></div>
- <div><label for="workType">סוג עבודה</label><select id="workType"><option>עבודות לילה</option><option>עבודות יום</option><option value="עבודות רצופות">ברצף</option></select></div>
  <div class="full schedule-layout">
  <div class="schedule-dates"><label>תאריכי עבודה בשבוע הבא *</label><p class="hint">בחרו את ימי העבודה בנפרד. בעבודות לילה כל תאריך מייצג את תחילת הלילה, גם אם העבודה מסתיימת בבוקר למחרת.</p>
  <div class="calendar-shell"><div class="calendar-month" id="calendarMonth"></div><div class="calendar-weekdays" aria-hidden="true"><span>א׳</span><span>ב׳</span><span>ג׳</span><span>ד׳</span><span>ה׳</span><span>ו׳</span><span>ש׳</span></div><div id="datesPanel" class="dates-panel" role="group" aria-label="בחירת תאריכי עבודה"></div><div class="calendar-legend">רק ימי א׳–ה׳ של השבוע הבא זמינים לבחירה</div></div>
  <p class="hint" id="datesSummary" aria-live="polite">לא נבחרו תאריכים</p></div>
- <div class="schedule-hours"><div><label for="timeFrom">שעת תחילה *</label><input id="timeFrom" type="time" value="22:00" required></div><div><label for="timeTo">שעת סיום *</label><input id="timeTo" type="time" value="05:00" required></div></div>
+ <div class="schedule-hours"><div><label for="workType">סוג עבודה</label><select id="workType"><option>עבודות לילה</option><option>עבודות יום</option><option value="עבודות רצופות">ברצף</option></select></div><div><label for="timeFrom">שעת תחילה *</label><input id="timeFrom" type="time" value="22:00" required></div><div><label for="timeTo">שעת סיום *</label><input id="timeTo" type="time" value="05:00" required></div></div>
  </div>
  <div class="full"><label for="description">הערות / תיאור העבודות</label><textarea id="description" placeholder="פרטי הסדר התנועה, הנחיות, הערות לצוות..."></textarea></div>
  <div class="full"><label>תוצרים שהוכנו</label><div class="tasks"><label><input id="hasPpt" type="checkbox"> מצגת</label><label><input id="hasTable" type="checkbox"> טבלה מסכמת</label><label><input id="hasWord" type="checkbox"> מסמך Word</label><label><input id="hasSigns" type="checkbox"> שילוט</label><label><input id="hasEmail" type="checkbox"> מייל</label></div><p class="hint">אלה סימוני מעקב בלבד; העלאת מסמכים וקישור לקבצים יתווספו בהמשך.</p></div>
