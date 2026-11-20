@@ -725,8 +725,7 @@ function render(){
   txt(tag(heading,'span','segment-label'),e.segment||'מקטע לא הוגדר');
   txt(tag(heading,'span','pill'),e.eventStatus||'מתוכנן');
   txt(tag(info,'strong','event-title'),eventBlockages(e).length>1?multiBlockageTitle(eventBlockages(e)):(e.eventTitle||'אירוע ללא שם').replace(/^חסימת\s+(?=צומת(?:\s|$))/,'').trim());
-  if(eventBlockages(e).length>1){const list=tag(info,'ol','event-blockage-list');eventBlockages(e).forEach(b=>txt(tag(list,'li'),blockageTitle(b)))}
-  txt(tag(info,'div','event-meta'),[e.city,e.street,e.direction].filter(Boolean).join(' · '));
+  txt(tag(info,'div','event-meta'),(eventBlockages(e).length>1?[e.city]:[e.city,e.street,e.direction]).filter(Boolean).join(' · '));
   const whenEl=tag(info,'div','event-meta');
   const addWhen=(value,red=false)=>{const span=tag(whenEl,'span',red?'time-alert':'');span.textContent=value;};
   if(e.workType==='עבודות רצופות'){
