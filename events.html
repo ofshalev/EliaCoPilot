@@ -358,6 +358,10 @@ function updateSegments(){
 function normalizeBlockage(b){return {locationType:b.locationType||'רחוב',street:b.street||'',fromStreet:b.fromStreet||'',toStreet:b.toStreet||'',crossStreets:Array.isArray(b.crossStreets)?b.crossStreets:[],bothDirections:!!b.bothDirections||b.direction==='שני הכיוונים'}}
 function eventBlockages(e){return Array.isArray(e.blockages)&&e.blockages.length?e.blockages.map(normalizeBlockage):[normalizeBlockage(e)]}
 function blockageTitle(b){b=normalizeBlockage(b);if(b.locationType==='צומת')return 'צומת '+[b.street,...b.crossStreets].filter(Boolean).join(' / ');return (b.street+(b.fromStreet?' מ'+b.fromStreet:'')+(b.toStreet?' עד '+b.toStreet:'')+(b.bothDirections?' — שני הכיוונים':'')).trim()}
+function multiBlockageTitle(blockages){
+ const streets=[...new Set(blockages.map(b=>(b.street||'').trim()).filter(Boolean))];
+ return streets.join('-')||'חסימות ('+blockages.length+')';
+}
 function primaryBlockage(){const junction=$('locationType').value==='צומת',options=baseStreetOptions();return {locationType:$('locationType').value,street:options.length===1?options[0]:$('streetChoice').value,fromStreet:junction?'':$('fromStreet').value.trim(),toStreet:junction?'':$('toStreet').value.trim(),crossStreets:junction?crossStreetValues():[],bothDirections:!junction&&$('bothDirections').checked}}
 function extraBlockageData(section){const junction=section.querySelector('.extra-type').value==='צומת';return {locationType:junction?'צומת':'רחוב',street:section.querySelector('.extra-street').value,fromStreet:junction?'':section.querySelector('.extra-from').value.trim(),toStreet:junction?'':section.querySelector('.extra-to').value.trim(),bothDirections:!junction&&section.querySelector('.extra-both input').checked,crossStreets:junction?[...section.querySelectorAll('.extra-crosses input')].map(x=>x.value.trim()):[]}}
 function clearExtraBlockages(){$('additionalBlockages').replaceChildren()}
@@ -636,7 +640,7 @@ function getForm(){const result={};for(const f of fields)result[f]=$(f).value;
  result.bothDirections=$('locationType').value==='רחוב'&&$('bothDirections').checked;
  result.direction=result.bothDirections?'שני הכיוונים':'';
  result.blockages=[primaryBlockage(),...[...$('additionalBlockages').children].map(extraBlockageData)];
- result.eventTitle=result.blockages.length>1?'חסימות ('+result.blockages.length+')':generateEventTitle(result);
+ result.eventTitle=result.blockages.length>1?multiBlockageTitle(result.blockages):generateEventTitle(result);
  if(isContinuous()){
   result.dateFrom=continuousStart;result.timeFrom=$('continuousStartHour').value;
   result.dateTo=continuousEnd;result.timeTo=$('continuousEndHour').value;
@@ -720,7 +724,7 @@ function render(){
   txt(tag(heading,'span','project-code'),code);
   txt(tag(heading,'span','segment-label'),e.segment||'מקטע לא הוגדר');
   txt(tag(heading,'span','pill'),e.eventStatus||'מתוכנן');
-  txt(tag(info,'strong','event-title'),eventBlockages(e).length>1?'חסימות ('+eventBlockages(e).length+')':(e.eventTitle||'אירוע ללא שם').replace(/^חסימת\s+(?=צומת(?:\s|$))/,'').trim());
+  txt(tag(info,'strong','event-title'),eventBlockages(e).length>1?multiBlockageTitle(eventBlockages(e)):(e.eventTitle||'אירוע ללא שם').replace(/^חסימת\s+(?=צומת(?:\s|$))/,'').trim());
   if(eventBlockages(e).length>1){const list=tag(info,'ol','event-blockage-list');eventBlockages(e).forEach(b=>txt(tag(list,'li'),blockageTitle(b)))}
   txt(tag(info,'div','event-meta'),[e.city,e.street,e.direction].filter(Boolean).join(' · '));
   const whenEl=tag(info,'div','event-meta');
