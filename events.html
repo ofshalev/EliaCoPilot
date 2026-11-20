@@ -86,11 +86,12 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  <form id="eventForm">
  <div class="formgrid">
  
- <div><label for="city">עיר *</label><input required id="city" list="cityOptions" placeholder="תיקבע לפי המקטע או תוזן ידנית"><p class="hint" id="cityHint">בחירת מקטע תעדכן את העיר אוטומטית.</p><datalist id="cityOptions"><option value="תל אביב-יפו"><option value="ראשון לציון"><option value="חולון"><option value="בת ים"><option value="גבעת שמואל"><option value="רמת גן"></datalist></div>
  <div><label for="railLine">קו / פרויקט</label><select id="railLine"><option value="">בחר קו</option><option>הקו הסגול</option><option>הקו החום</option><option>הקו הירוק</option><option>אחר</option></select></div>
  <div><label for="segment">מקטע</label><select id="segment"><option value="">בחר מקטע (רשות)</option></select></div>
+ <div><label for="city">עיר *</label><input required id="city" list="cityOptions" placeholder="תיקבע לפי המקטע או תוזן ידנית"><p class="hint" id="cityHint">בחירת מקטע תעדכן את העיר אוטומטית.</p><datalist id="cityOptions"><option value="תל אביב"><option value="ראשון לציון"><option value="חולון"><option value="בת ים"><option value="גבעת שמואל"><option value="רמת גן"><option value="אור יהודה"><option value="יהוד"><option value="באר יעקב"><option value="הרצליה"></datalist></div>
+ <div><label for="locationType">סוג מיקום</label><select id="locationType"><option value="רחוב">רחוב</option><option value="צומת">צומת</option></select></div>
+ <div class="wide"><label for="street" id="locationLabel">רחוב / תחום חסימה *</label><input required id="street" placeholder="לדוגמה: אלנבי מהירקון עד פינסקר"><p class="hint" id="locationHint">רשימות הרחובות והצמתים יתווספו בהמשך. בינתיים ניתן להקליד את המיקום.</p></div>
  <div><label for="workId">מספר עבודה / בקשה</label><input id="workId" placeholder="לדוגמה: 2182" dir="ltr"></div>
- <div class="wide"><label for="street">מיקום / תחום חסימה *</label><input required id="street" placeholder="לדוגמה: אלנבי מהירקון עד פינסקר"></div>
  <div><label for="direction">כיוון החסימה</label><select id="direction"><option value="">לא צוין</option><option>לצפון</option><option>לדרום</option><option>למזרח</option><option>למערב</option><option>שני הכיוונים</option><option>חסימת צומת</option></select></div>
  <div><label for="workType">סוג עבודה</label><select id="workType"><option>עבודות לילה</option><option>עבודות יום</option><option value="עבודות רצופות">ברצף</option></select></div>
  <div class="full"><label>תאריכי עבודה בשבוע הבא *</label><p class="hint">בחרו את ימי העבודה בנפרד. בעבודות לילה כל תאריך מייצג את תחילת הלילה, גם אם העבודה מסתיימת בבוקר למחרת.</p><div class="calendar-shell"><div class="calendar-month" id="calendarMonth"></div><div class="calendar-weekdays" aria-hidden="true"><span>א׳</span><span>ב׳</span><span>ג׳</span><span>ד׳</span><span>ה׳</span><span>ו׳</span><span>ש׳</span></div><div id="datesPanel" class="dates-panel" role="group" aria-label="בחירת תאריכי עבודה"></div><div class="calendar-legend">רק ימי א׳–ה׳ של השבוע הבא זמינים לבחירה</div></div><p class="hint" id="datesSummary" aria-live="polite">לא נבחרו תאריכים</p></div>
@@ -122,7 +123,7 @@ const LINE_SEGMENTS={
  'הקו החום':['B3','B5','B7','B8','B8.1','BE_2.3'],
  'הקו הירוק':['G1-5.2','G1-5.3','G2-6','G5-7']};
 const outputFields=['hasPpt','hasTable','hasWord','hasSigns','hasEmail'];
-const fields=['city','railLine','segment','workId','street','direction','workType','timeFrom','timeTo','eventStatus','description'];
+const fields=['city','railLine','segment','locationType','workId','street','direction','workType','timeFrom','timeTo','eventStatus','description'];
 let events=[],editing=null;
 try{const saved=JSON.parse(localStorage.getItem(KEY));if(Array.isArray(saved))events=saved.filter(x=>x&&x.id)}catch(e){}
 function save(){localStorage.setItem(KEY,JSON.stringify(events))}
@@ -161,8 +162,14 @@ function updateSegments(){
  }
  if([...list.options].some(o=>o.value===prior))list.value=prior;
 }
-$('railLine').onchange=()=>{$('segment').value='';updateSegments();$('city').readOnly=false;$('city').value='';$('cityHint').textContent='בחרו מקטע כדי למלא את העיר אוטומטית.'};
+$('railLine').onchange=()=>{$('segment').value='';updateSegments();updateLocationType();$('city').readOnly=false;$('city').value='';$('cityHint').textContent='בחרו מקטע כדי למלא את העיר אוטומטית.'};
 $('segment').onchange=applySegmentCity;
+function updateLocationType(){
+ const isJunction=$('locationType').value==='צומת';
+ $('locationLabel').textContent=isJunction?'שם הצומת *':'רחוב / תחום חסימה *';
+ $('street').placeholder=isJunction?'לדוגמה: בן יהודה / בן גוריון':'לדוגמה: אלנבי מהירקון עד פינסקר';
+}
+$('locationType').addEventListener('change',updateLocationType);
 const DATE_LABELS=['יום ראשון','יום שני','יום שלישי','יום רביעי','יום חמישי'];
 const nextWeekDates=DATE_LABELS.map((label,i)=>({label,date:dayPlus(nextStart,i)}));
 function selectedDates(){return [...$('datesPanel').querySelectorAll('input[type="checkbox"]:checked')].map(input=>input.value).sort()}
@@ -204,15 +211,16 @@ $('cancelForm').onclick=()=>{$('formPanel').hidden=true;editing=null};
 function generateEventTitle(record){
  const location=(record.street||'').trim();
  const direction=(record.direction||'').trim();
+ const isJunction=record.locationType==='צומת'||(!record.locationType&&direction==='חסימת צומת');
  // A crossing description is already an event type; avoid repeating it.
- const base=direction==='חסימת צומת'&&!/^חסימת צומת/.test(location)?'חסימת צומת '+location:location;
+ const base=isJunction&&!/^חסימת צומת/.test(location)?'חסימת צומת '+location:location;
  const suffix=direction&&direction!=='חסימת צומת'&&!base.includes(direction)?' — '+direction:'';
  return (base+suffix).trim()||'אירוע ללא מיקום';
 }
 function getForm(){const result={};for(const f of fields)result[f]=$(f).value;result.eventTitle=generateEventTitle(result);result.selectedDates=selectedDates();result.dateFrom=result.selectedDates[0]||'';result.dateTo=result.selectedDates.length?dayPlus(result.selectedDates.at(-1),result.timeTo<=result.timeFrom?1:0):'';for(const f of outputFields)result[f]=$(f).checked;return result}
 function putForm(record){
  for(const f of fields)if(f!=='segment')$(f).value=record[f]??'';
- updateSegments();$('segment').value=record.segment||'';const mappedCity=cityForSegment(record.segment||'');$('city').readOnly=!!mappedCity;if(mappedCity)$('city').value=mappedCity;$('cityHint').textContent=mappedCity?'העיר נקבעה אוטומטית לפי המקטע.':'מקטע ללא שיוך עיר מוגדר — ניתן להזין עיר ידנית.';
+ updateSegments();$('segment').value=record.segment||'';if(!record.locationType)$('locationType').value=record.direction==='חסימת צומת'?'צומת':'רחוב';updateLocationType();const mappedCity=cityForSegment(record.segment||'');$('city').readOnly=!!mappedCity;if(mappedCity)$('city').value=mappedCity;$('cityHint').textContent=mappedCity?'העיר נקבעה אוטומטית לפי המקטע.':'מקטע ללא שיוך עיר מוגדר — ניתן להזין עיר ידנית.';
  for(const f of outputFields)$(f).checked=!!record[f];
  const dates=Array.isArray(record.selectedDates)?record.selectedDates:(record.dateFrom?[record.dateFrom]:[]);
  renderDates(dates);
