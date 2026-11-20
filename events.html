@@ -78,7 +78,12 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 @media(max-width:750px){.formgrid{grid-template-columns:1fr 1fr}.event-card{grid-template-columns:1fr}.event-card .actions{justify-content:flex-start}}
 @media(max-width:520px){.formgrid{grid-template-columns:1fr}.wide{grid-column:auto}.toolbar>div{min-width:100%}}
 .calendar-shell{max-width:610px;margin-top:12px;border:1px solid #cfdae8;border-radius:13px;overflow:hidden;background:#fff}
-.calendar-month{background:#edf3fb;text-align:center;font-weight:800;padding:14px;font-size:16px}
+.calendar-month{background:#edf3fb;text-align:center;font-weight:800;padding:10px 14px;font-size:16px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.calendar-month span{flex:1}
+.calendar-nav{min-width:30px;padding:3px 8px;font-size:20px}
+.calendar-month .calendar-nav[hidden]{visibility:hidden;display:block}
+.date-option.continuous-range{background:#dceaff;color:#164a9a}
+.date-option.continuous-endpoint{box-shadow:inset 0 0 0 2px #2864e2}
 .calendar-weekdays,.dates-panel{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
 .calendar-weekdays span{text-align:center;font-size:12px;font-weight:bold;color:#637993;background:#f7f9fd;padding:9px 2px;border-bottom:1px solid #e3eaf3}
 .calendar-weekdays span.selected-weekday{font-weight:900;color:#174a94;background:#dceaff;box-shadow:inset 0 -3px 0 #2864e2}
@@ -178,21 +183,18 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  </div>
  <div><label for="workId">מספר עבודה / בקשה</label><input id="workId" placeholder="לדוגמה: 2182" dir="ltr"></div>
  <div class="full schedule-layout">
- <div class="schedule-dates" id="scheduleDatesWrap"><label>תאריכי עבודה בשבוע הבא *</label><p class="hint">בחרו את ימי העבודה בנפרד. בעבודות לילה כל תאריך מייצג את תחילת הלילה, גם אם העבודה מסתיימת בבוקר למחרת.</p>
- <div class="calendar-shell"><div class="calendar-month" id="calendarMonth"></div><div class="calendar-weekdays" aria-hidden="true"><span>א׳</span><span>ב׳</span><span>ג׳</span><span>ד׳</span><span>ה׳</span><span>ו׳</span><span>ש׳</span></div><div id="datesPanel" class="dates-panel" role="group" aria-label="בחירת תאריכי עבודה"></div><div class="calendar-legend">רק ימי א׳–ה׳ של השבוע הבא זמינים לבחירה</div></div>
+ <div class="schedule-dates" id="scheduleDatesWrap"><label id="calendarTitle">תאריכי עבודה בשבוע הבא *</label><p class="hint" id="calendarHelp">בחרו את ימי העבודה בנפרד. בעבודות לילה כל תאריך מייצג את תחילת הלילה, גם אם העבודה מסתיימת בבוקר למחרת.</p>
+ <div class="calendar-shell"><div class="calendar-month"><button type="button" class="calendar-nav alt" id="calendarPrev" hidden aria-label="חודש קודם">‹</button><span id="calendarMonth"></span><button type="button" class="calendar-nav alt" id="calendarNext" hidden aria-label="חודש הבא">›</button></div><div class="calendar-weekdays" aria-hidden="true"><span>א׳</span><span>ב׳</span><span>ג׳</span><span>ד׳</span><span>ה׳</span><span>ו׳</span><span>ש׳</span></div><div id="datesPanel" class="dates-panel" role="group" aria-label="בחירת תאריכי עבודה"></div><div class="calendar-legend" id="calendarLegend">רק ימי א׳–ה׳ של השבוע הבא זמינים לבחירה</div></div>
  <p class="hint" id="datesSummary" aria-live="polite">לא נבחרו תאריכים</p></div>
  <div class="schedule-hours">
- <div><label for="workType">סוג עבודה</label><select id="workType"><option>עבודות לילה</option><option>עבודות יום</option><option value="עבודות רצופות">ברצף</option></select></div>
+ <div><label for="workType">סוג עבודה</label><select id="workType"><option>עבודות לילה</option><option>עבודות יום</option><option value="עבודות רצופות">עבודות ברצף</option></select></div>
  <div class="clock-panel" id="clockPanel" aria-label="בחירת שעות העבודה">
   <svg id="workClock" viewBox="0 0 300 300" role="img" aria-label="שעון 12 שעות לבחירת טווח שעות העבודה"></svg>
   <div class="clock-adjust"><button type="button" class="alt" id="startMinus" aria-label="הקדם התחלה בשעה">−</button><strong id="startLabel">22:00</strong><button type="button" class="alt" id="startPlus" aria-label="דחה התחלה בשעה">+</button></div>
   <div class="clock-adjust"><button type="button" class="alt" id="endMinus" aria-label="הקדם סיום בשעה">−</button><strong id="endLabel">05:00</strong><button type="button" class="alt" id="endPlus" aria-label="דחה סיום בשעה">+</button></div>
  </div>
  <div id="continuousPanel" class="continuous-panel" hidden>
- <p class="hint">עבודה רצופה יכולה להימשך מספר ימים. יש לציין תאריך ושעה מדויקים להתחלה ולסיום.</p>
- <label for="continuousStartDate">תאריך התחלה</label><input id="continuousStartDate" type="date">
  <label for="continuousStartHour">שעת התחלה</label><select id="continuousStartHour" dir="ltr"></select>
- <label for="continuousEndDate">תאריך סיום</label><input id="continuousEndDate" type="date">
  <label for="continuousEndHour">שעת סיום</label><select id="continuousEndHour" dir="ltr"></select>
  </div>
  <input id="timeFrom" type="hidden" value="22:00"><input id="timeTo" type="hidden" value="05:00">
@@ -347,28 +349,72 @@ function updateLocationType(){if($('locationType').value==='צומת'&&!$('cross
 $('locationType').addEventListener('change',()=>{updateLocationType();updateStreetChoices(true)});
 const DATE_LABELS=['יום ראשון','יום שני','יום שלישי','יום רביעי','יום חמישי'];
 const nextWeekDates=DATE_LABELS.map((label,i)=>({label,date:dayPlus(nextStart,i)}));
+let continuousStart='',continuousEnd='',calendarMonthOffset=0;
+function calendarAnchor(){
+ const base=new Date(nextStart+'T12:00:00');
+ return new Date(base.getFullYear(),base.getMonth()+calendarMonthOffset,1,12);
+}
 function selectedDates(){return [...$('datesPanel').querySelectorAll('input[type="checkbox"]:checked')].map(input=>input.value).sort()}
-function updateDatesSummary(){const list=selectedDates();$('datesSummary').textContent=list.length?'נבחרו '+list.length+' תאריכים: '+list.map(formatDate).join(' · '):'לא נבחרו תאריכים';const headings=document.querySelectorAll('.calendar-weekdays span');headings.forEach((heading,index)=>{heading.classList.toggle('selected-weekday',list.includes(dayPlus(nextStart,index)))})}
-function renderDates(checked=[]){
+function updateDatesSummary(){
+ const list=selectedDates();
+ if(isContinuous()){
+  $('datesSummary').textContent=continuousStart
+   ?'התחלה: '+formatDate(continuousStart)+(continuousEnd?' · סיום: '+formatDate(continuousEnd):' · בחרו תאריך סיום')
+   :'בחרו תאריך התחלה ולאחריו תאריך סיום';
+ }else{
+  $('datesSummary').textContent=list.length?'נבחרו '+list.length+' תאריכים: '+list.map(formatDate).join(' · '):'לא נבחרו תאריכים';
+ }
+ const selected=isContinuous()?(continuousStart?[continuousStart,continuousEnd].filter(Boolean):[]):list;
+ document.querySelectorAll('.calendar-weekdays span').forEach((heading,index)=>{
+  heading.classList.toggle('selected-weekday',!isContinuous()&&selected.includes(dayPlus(nextStart,index)));
+ });
+}
+function chooseContinuousDate(date){
+ if(!continuousStart||continuousEnd){continuousStart=date;continuousEnd=''}
+ else if(date<continuousStart){continuousEnd=continuousStart;continuousStart=date}
+ else continuousEnd=date;
+ renderDates();
+}
+function renderDates(checked){
  const panel=$('datesPanel');panel.replaceChildren();
- const monthAnchor=new Date(nextStart+'T12:00:00');
+ const continuous=isContinuous();
+ const monthAnchor=continuous?calendarAnchor():new Date(nextStart+'T12:00:00');
  $('calendarMonth').textContent=new Intl.DateTimeFormat('he-IL',{month:'long',year:'numeric'}).format(monthAnchor);
+ $('calendarPrev').hidden=!continuous;$('calendarNext').hidden=!continuous;
  const monthStart=new Date(monthAnchor.getFullYear(),monthAnchor.getMonth(),1,12);
  const gridStart=new Date(monthStart);gridStart.setDate(monthStart.getDate()-monthStart.getDay());
  const valid=new Map(nextWeekDates.map(x=>[x.date,x.label]));
  const days=Math.ceil((new Date(monthAnchor.getFullYear(),monthAnchor.getMonth()+1,0).getDate()+monthStart.getDay())/7)*7;
- const required=Math.ceil(((new Date(nextStart+'T12:00:00').getTime()-gridStart.getTime())/86400000+5)/7)*7;
+ const required=continuous?0:Math.ceil(((new Date(nextStart+'T12:00:00').getTime()-gridStart.getTime())/86400000+5)/7)*7;
+ const checkedDates=Array.isArray(checked)?checked:selectedDates();
  for(let i=0;i<Math.max(days,required);i++){
   const cursor=new Date(gridStart);cursor.setDate(gridStart.getDate()+i);
   const date=localISO(cursor),label=valid.get(date);
-  if(!label){const inactive=document.createElement('span');inactive.className='date-unavailable';inactive.textContent=cursor.getDate();inactive.setAttribute('aria-label',formatDate(date)+' לא זמין');panel.append(inactive);continue}
+  if(!continuous&&!label){
+   const inactive=document.createElement('span');inactive.className='date-unavailable';
+   inactive.textContent=cursor.getDate();inactive.setAttribute('aria-label',formatDate(date)+' לא זמין');panel.append(inactive);continue;
+  }
   const item=document.createElement('label');item.className='date-option';
   const dateText=document.createElement('span');dateText.textContent=cursor.getDate();
-  const box=document.createElement('input');box.type='checkbox';box.value=date;box.checked=checked.includes(date);box.setAttribute('aria-label',label+' '+formatDate(date));
-  box.onchange=updateDatesSummary;item.append(dateText,box);panel.append(item);
+  const box=document.createElement('input');box.type='checkbox';box.value=date;
+  if(continuous){
+   box.checked=false;
+   const range=continuousStart&&date>=continuousStart&&date<=(continuousEnd||continuousStart);
+   item.classList.toggle('continuous-range',!!range);
+   item.classList.toggle('continuous-endpoint',date===continuousStart||date===continuousEnd);
+   box.setAttribute('aria-label',formatDate(date));
+   box.onchange=()=>chooseContinuousDate(date);
+  }else{
+   box.checked=checkedDates.includes(date);
+   box.setAttribute('aria-label',label+' '+formatDate(date));
+   box.onchange=updateDatesSummary;
+  }
+  item.append(dateText,box);panel.append(item);
  }
  updateDatesSummary();
 }
+$('calendarPrev').onclick=()=>{calendarMonthOffset--;renderDates()};
+$('calendarNext').onclick=()=>{calendarMonthOffset++;renderDates()};
 const DEFAULT_WORK_HOURS={
  'עבודות לילה':['22:00','05:00'],
  'עבודות יום':['09:00','17:00'],
@@ -389,13 +435,17 @@ function toggleWorkTypeFields(){
  const continuous=isContinuous();
  $('clockPanel').hidden=continuous;
  $('continuousPanel').hidden=!continuous;
- $('scheduleDatesWrap').hidden=continuous;
- if(continuous && !$('continuousStartDate').value){
-  $('continuousStartDate').value=nextStart;
-  $('continuousStartHour').value='05:00';
-  $('continuousEndDate').value=dayPlus(nextStart,1);
-  $('continuousEndHour').value='05:00';
+ $('scheduleDatesWrap').hidden=false;
+ $('calendarTitle').textContent=continuous?'טווח תאריכים לעבודה רצופה *':'תאריכי עבודה בשבוע הבא *';
+ $('calendarHelp').textContent=continuous
+  ?'בחרו בלוח תאריך התחלה ולאחריו תאריך סיום. ניתן לדפדף בין חודשים.'
+  :'בחרו את ימי העבודה בנפרד. בעבודות לילה כל תאריך מייצג את תחילת הלילה, גם אם העבודה מסתיימת בבוקר למחרת.';
+ $('calendarLegend').textContent=continuous?'הטווח הכחול הוא תקופת העבודה הרצופה':'רק ימי א׳–ה׳ של השבוע הבא זמינים לבחירה';
+ if(continuous){
+  if(!$('continuousStartHour').value)$('continuousStartHour').value='05:00';
+  if(!$('continuousEndHour').value)$('continuousEndHour').value='05:00';
  }
+ renderDates();
 }
 function clockPoint(hour,r=110){
  const angle=hour*Math.PI/6;
@@ -487,8 +537,8 @@ function applyWorkHours(){
  setClock(start,mod24(end-start)||24);
  toggleWorkTypeFields();
 }
-$('workType').addEventListener('change',applyWorkHours);
-function openNew(){editing=null;$('eventForm').reset();applyWorkHours();$('formHeading').textContent='צור אירוע חדש';$('saveEvent').textContent='שמור אירוע';updateSegments();updateLocationType();updateStreetChoices();showCity('');resetCrossStreets();$('fromStreet').value='';$('toStreet').value='';$('bothDirections').checked=false;renderDates();$('formPanel').hidden=false;$('formStatus').textContent='';$('formPanel').scrollIntoView({block:'start',behavior:'smooth'})}
+$('workType').addEventListener('change',()=>{applyWorkHours();if(isContinuous()){$('continuousStartHour').value='05:00';$('continuousEndHour').value='05:00';}});
+function openNew(){editing=null;continuousStart='';continuousEnd='';calendarMonthOffset=0;$('eventForm').reset();applyWorkHours();$('formHeading').textContent='צור אירוע חדש';$('saveEvent').textContent='שמור אירוע';updateSegments();updateLocationType();updateStreetChoices();showCity('');resetCrossStreets();$('fromStreet').value='';$('toStreet').value='';$('bothDirections').checked=false;renderDates();$('formPanel').hidden=false;$('formStatus').textContent='';$('formPanel').scrollIntoView({block:'start',behavior:'smooth'})}
 $('toggleForm').onclick=()=>{$('formPanel').hidden?openNew():$('formPanel').hidden=true};
 $('cancelForm').onclick=()=>{$('formPanel').hidden=true;editing=null};
 function generateEventTitle(record){
@@ -510,8 +560,8 @@ function getForm(){const result={};for(const f of fields)result[f]=$(f).value;
  result.direction=result.bothDirections?'שני הכיוונים':'';
  result.eventTitle=generateEventTitle(result);
  if(isContinuous()){
-  result.dateFrom=$('continuousStartDate').value;result.timeFrom=$('continuousStartHour').value;
-  result.dateTo=$('continuousEndDate').value;result.timeTo=$('continuousEndHour').value;
+  result.dateFrom=continuousStart;result.timeFrom=$('continuousStartHour').value;
+  result.dateTo=continuousEnd;result.timeTo=$('continuousEndHour').value;
   result.selectedDates=[];
  }else{
   result.selectedDates=selectedDates();result.dateFrom=result.selectedDates[0]||'';
@@ -523,8 +573,10 @@ function putForm(record){
  const restoredStart=Number.parseInt(record.timeFrom,10),restoredEnd=Number.parseInt(record.timeTo,10);
  if(Number.isInteger(restoredStart)&&Number.isInteger(restoredEnd))setClock(restoredStart,mod24(restoredEnd-restoredStart)||24);else applyWorkHours();
  if(isContinuous()){
-  $('continuousStartDate').value=record.dateFrom||nextStart;
-  $('continuousEndDate').value=record.dateTo||dayPlus(record.dateFrom||nextStart,1);
+  continuousStart=record.dateFrom||'';
+  continuousEnd=record.dateTo||'';
+  const anchor=new Date((continuousStart||nextStart)+'T12:00:00'),base=new Date(nextStart+'T12:00:00');
+  calendarMonthOffset=(anchor.getFullYear()-base.getFullYear())*12+anchor.getMonth()-base.getMonth();
   $('continuousStartHour').value=record.timeFrom||'05:00';
   $('continuousEndHour').value=record.timeTo||'05:00';
  }
@@ -542,8 +594,8 @@ function putForm(record){
  const bounds=readLegacyBounds(record);$('fromStreet').value=bounds[0];$('toStreet').value=bounds[1];$('bothDirections').checked=!!record.bothDirections||record.direction==='שני הכיוונים';
  for(const f of outputFields)$(f).checked=!!record[f];
  const dates=Array.isArray(record.selectedDates)?record.selectedDates:(record.dateFrom?[record.dateFrom]:[]);
- renderDates(dates);
- if(dates.some(d=>!nextWeekDates.some(x=>x.date===d)))$('formStatus').textContent='האירוע כולל תאריך מחוץ לשבוע הבא. כדי לשמור שינויים, בחרו תאריכים מתוך הלוח החדש.';
+ renderDates(isContinuous()?undefined:dates);
+ if(!isContinuous()&&dates.some(d=>!nextWeekDates.some(x=>x.date===d)))$('formStatus').textContent='האירוע כולל תאריך מחוץ לשבוע הבא. כדי לשמור שינויים, בחרו תאריכים מתוך הלוח החדש.';
 }
 $('eventForm').onsubmit=e=>{
  e.preventDefault();const record=getForm();
