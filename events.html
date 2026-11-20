@@ -309,7 +309,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  <div><label for="projectFilter">פרויקט</label><select id="projectFilter"><option value="">כל הפרויקטים</option><option value="הקו הסגול">הקו הסגול</option><option value="הקו החום">הקו החום</option><option value="הקו הירוק">הקו הירוק</option></select></div>
  <div><label for="statusFilter">סטטוס</label><select id="statusFilter"><option value="">כל הסטטוסים</option><option>מתוכנן</option><option>בטיפול</option><option>ממתין לאישור</option><option>מאושר</option><option>בוטל</option><option>הושלם</option></select></div>
  <div><label for="search">חיפוש חופשי</label><input id="search" placeholder="אירוע, מקטע, מיקום..."></div>
- <div class="sort-filter"><label for="sortEvents">מיון</label><button type="button" class="alt" id="sortEvents" aria-pressed="false">סדר עולה ↑</button></div></div>
+ <div class="sort-filter"><label for="sortEvents">מיון</label><button type="button" class="alt" id="sortEvents" aria-pressed="true">סדר עולה ↑</button></div></div>
  <div id="eventsList" class="events-list"></div>
 </section>
 </main>
@@ -1176,7 +1176,7 @@ function widestEventSpan(e){
  return {date:continuousRange?compactContinuousPeriod(from,to):workDates.length?compactWorkDates(workDates):compactContinuousPeriod(from,to),start,end,hasDay:entries.some(x=>x.type==='עבודות יום'),
   unusualNight:entries.some(x=>x.type==='עבודות לילה'&&x.start!=='22:00')};
 }
-let ascendingSort=false;
+let ascendingSort=true;
 function render(){
  $('totalEvents').textContent=events.length+' אירועים';
  const term=$('search').value.trim().toLowerCase();
@@ -1223,7 +1223,7 @@ for(const el of ['projectFilter','statusFilter'])$(el).onchange=render;
 $('search').oninput=render;
 $('sortEvents').onclick=()=>{
  ascendingSort=!ascendingSort;
- $('sortEvents').textContent=ascendingSort?'סדר יורד ↓':'סדר עולה ↑';
+ $('sortEvents').textContent=ascendingSort?'סדר עולה ↑':'סדר יורד ↓';
  $('sortEvents').setAttribute('aria-pressed',String(ascendingSort));
  render();
 };
