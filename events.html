@@ -56,12 +56,18 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .tasks input{width:auto}.note-banner{padding:11px 14px;border-right:3px solid #3c76d8;background:#eff5ff;border-radius:8px}
 @media(max-width:750px){.formgrid{grid-template-columns:1fr 1fr}.event-card{grid-template-columns:1fr}.event-card .actions{justify-content:flex-start}}
 @media(max-width:520px){.formgrid{grid-template-columns:1fr}.wide{grid-column:auto}.toolbar>div{min-width:100%}}
-.dates-panel{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:10px}
-.date-option{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;border:2px solid #d6e0ec;background:#f9fbfe;border-radius:12px;padding:13px 7px;cursor:pointer;text-align:center;font-weight:700;min-height:95px}
-.date-option input{width:18px;height:18px;accent-color:#2864e2}
-.date-option:has(input:checked){background:#e7f0ff;border-color:#2864e2;color:#184a91}
-.date-option .date-day{font-size:15px}.date-option .date-value{font-size:13px;direction:ltr}
-@media(max-width:600px){.dates-panel{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.date-option{padding:10px 4px}}
+.calendar-shell{max-width:610px;margin-top:12px;border:1px solid #cfdae8;border-radius:13px;overflow:hidden;background:#fff}
+.calendar-month{background:#edf3fb;text-align:center;font-weight:800;padding:14px;font-size:16px}
+.calendar-weekdays,.dates-panel{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.calendar-weekdays span{text-align:center;font-size:12px;font-weight:bold;color:#637993;background:#f7f9fd;padding:9px 2px;border-bottom:1px solid #e3eaf3}
+.date-option,.date-unavailable{min-width:0;min-height:58px;border:0;border-left:1px solid #edf1f6;border-bottom:1px solid #edf1f6;background:white;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;padding:7px 2px;text-align:center;font-size:15px;font-weight:700}
+.date-option{cursor:pointer;color:#22476f}.date-option:hover{background:#f0f6ff}
+.date-option:has(input:focus-visible){outline:2px solid #2864e2;outline-offset:-2px}
+.date-option:has(input:checked){background:#dceaff;color:#164a9a;box-shadow:inset 0 0 0 2px #2864e2}
+.date-option input{width:15px;height:15px;accent-color:#2864e2;margin:0}
+.date-unavailable{color:#abb5c2;background:#fafbfc;font-weight:400}
+.calendar-legend{font-size:12px;color:#6a7e93;padding:10px 12px}
+@media(max-width:600px){.date-option,.date-unavailable{min-height:51px;font-size:13px}}
 </style>
 </head>
 <body>
@@ -86,7 +92,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  <div class="wide"><label for="street">מיקום / תחום חסימה *</label><input required id="street" placeholder="לדוגמה: אלנבי מהירקון עד פינסקר"></div>
  <div><label for="direction">כיוון החסימה</label><select id="direction"><option value="">לא צוין</option><option>לצפון</option><option>לדרום</option><option>למזרח</option><option>למערב</option><option>שני הכיוונים</option><option>חסימת צומת</option></select></div>
  <div><label for="workType">סוג עבודה</label><select id="workType"><option>עבודות לילה</option><option>עבודות יום</option><option>עבודות רצופות</option></select></div>
- <div class="full"><label>תאריכי עבודה בשבוע הבא *</label><p class="hint">בחרו את ימי העבודה בנפרד. בעבודות לילה כל תאריך מייצג את תחילת הלילה, גם אם העבודה מסתיימת בבוקר למחרת.</p><div id="datesPanel" class="dates-panel" role="group" aria-label="בחירת תאריכי עבודה"></div><p class="hint" id="datesSummary" aria-live="polite">לא נבחרו תאריכים</p></div>
+ <div class="full"><label>תאריכי עבודה בשבוע הבא *</label><p class="hint">בחרו את ימי העבודה בנפרד. בעבודות לילה כל תאריך מייצג את תחילת הלילה, גם אם העבודה מסתיימת בבוקר למחרת.</p><div class="calendar-shell"><div class="calendar-month" id="calendarMonth"></div><div class="calendar-weekdays" aria-hidden="true"><span>א׳</span><span>ב׳</span><span>ג׳</span><span>ד׳</span><span>ה׳</span><span>ו׳</span><span>ש׳</span></div><div id="datesPanel" class="dates-panel" role="group" aria-label="בחירת תאריכי עבודה"></div><div class="calendar-legend">רק ימי א׳–ה׳ של השבוע הבא זמינים לבחירה</div></div><p class="hint" id="datesSummary" aria-live="polite">לא נבחרו תאריכים</p></div>
  <div><label for="timeFrom">שעת תחילה *</label><input id="timeFrom" type="time" value="22:00" required></div>
  <div><label for="timeTo">שעת סיום *</label><input id="timeTo" type="time" value="05:00" required></div>
  <div><label for="eventStatus">סטטוס</label><select id="eventStatus"><option>מתוכנן</option><option>בטיפול</option><option>ממתין לאישור</option><option>מאושר</option><option>בוטל</option><option>הושלם</option></select></div>
@@ -134,12 +140,21 @@ function selectedDates(){return [...$('datesPanel').querySelectorAll('input[type
 function updateDatesSummary(){const list=selectedDates();$('datesSummary').textContent=list.length?'נבחרו '+list.length+' תאריכים: '+list.map(formatDate).join(' · '):'לא נבחרו תאריכים'}
 function renderDates(checked=[]){
  const panel=$('datesPanel');panel.replaceChildren();
- for(const {label,date} of nextWeekDates){
+ const monthAnchor=new Date(nextStart+'T12:00:00');
+ $('calendarMonth').textContent=new Intl.DateTimeFormat('he-IL',{month:'long',year:'numeric'}).format(monthAnchor);
+ const monthStart=new Date(monthAnchor.getFullYear(),monthAnchor.getMonth(),1,12);
+ const gridStart=new Date(monthStart);gridStart.setDate(monthStart.getDate()-monthStart.getDay());
+ const valid=new Map(nextWeekDates.map(x=>[x.date,x.label]));
+ const days=Math.ceil((new Date(monthAnchor.getFullYear(),monthAnchor.getMonth()+1,0).getDate()+monthStart.getDay())/7)*7;
+ const required=Math.ceil(((new Date(nextStart+'T12:00:00').getTime()-gridStart.getTime())/86400000+5)/7)*7;
+ for(let i=0;i<Math.max(days,required);i++){
+  const cursor=new Date(gridStart);cursor.setDate(gridStart.getDate()+i);
+  const date=localISO(cursor),label=valid.get(date);
+  if(!label){const inactive=document.createElement('span');inactive.className='date-unavailable';inactive.textContent=cursor.getDate();inactive.setAttribute('aria-label',formatDate(date)+' לא זמין');panel.append(inactive);continue}
   const item=document.createElement('label');item.className='date-option';
-  const title=document.createElement('span');title.className='date-day';title.textContent=label;
-  const dateText=document.createElement('span');dateText.className='date-value';dateText.textContent=formatDate(date);
+  const dateText=document.createElement('span');dateText.textContent=cursor.getDate();
   const box=document.createElement('input');box.type='checkbox';box.value=date;box.checked=checked.includes(date);box.setAttribute('aria-label',label+' '+formatDate(date));
-  box.onchange=updateDatesSummary;item.append(title,dateText,box);panel.append(item);
+  box.onchange=updateDatesSummary;item.append(dateText,box);panel.append(item);
  }
  updateDatesSummary();
 }
