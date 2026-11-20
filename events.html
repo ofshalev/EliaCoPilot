@@ -552,16 +552,16 @@ function buildCompactSchedule(block){
     const hours=ensureDailyHours(date);
     const dial=pointerHour(ev);
     const original=parseInt(hours[dragging],10);
-    const candidate=nearest24(dial,original);
+    const candidate=mod24(Math.round(nearest24(dial,original)));
     const start=dragging==='timeFrom'?candidate:parseInt(hours.timeFrom,10);
     const finish=dragging==='timeTo'?candidate:parseInt(hours.timeTo,10);
     const span=mod24(finish-start);
-    if(span<0.5||span>12.5)return;
+    if(span<1||span>12)return;
     preview={start,end:finish};
     compactScheduleClock(svg,hours,preview);
-    // Display the nearest whole hour while the handle tracks the pointer smoothly.
+    // Update during dragging, but only at whole-hour positions.
     const label=card.querySelectorAll('.compact-time-step strong')[dragging==='timeFrom'?0:1];
-    if(label)label.textContent=hourText(Math.round(candidate));
+    if(label)label.textContent=hourText(candidate);
    };
    svg.addEventListener('pointerdown',ev=>{
     const rect=svg.getBoundingClientRect();
