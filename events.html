@@ -49,7 +49,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .street-bounds{display:grid;grid-template-columns:minmax(0,220px) minmax(0,220px) auto;align-items:end;gap:12px}
 .both-directions{display:flex;align-items:center;gap:8px;white-space:nowrap;min-height:40px;margin:0}
 .both-directions input{width:18px;height:18px;accent-color:#2864e2}
-#locationType,#direction{max-width:190px}#streetChoice{max-width:240px}
+#locationType{max-width:190px}#streetChoice{max-width:240px}
 .project-fields{grid-template-columns:minmax(0,205px) minmax(0,205px) minmax(0,1fr)}
 @media(max-width:600px){.street-bounds{grid-template-columns:1fr 1fr}.both-directions{grid-column:1/-1}}
 @media(max-width:520px){.project-fields{grid-template-columns:1fr}.project-line-field,.project-segment-field,.project-city-display{grid-column:auto}}
@@ -164,7 +164,6 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  </div>
  </div>
  <div><label for="workId">מספר עבודה / בקשה</label><input id="workId" placeholder="לדוגמה: 2182" dir="ltr"></div>
- <div><label for="direction">כיוון החסימה</label><select id="direction"><option value="">לא צוין</option><option>לצפון</option><option>לדרום</option><option>למזרח</option><option>למערב</option><option>חסימת צומת</option></select></div>
  <div class="full schedule-layout">
  <div class="schedule-dates"><label>תאריכי עבודה בשבוע הבא *</label><p class="hint">בחרו את ימי העבודה בנפרד. בעבודות לילה כל תאריך מייצג את תחילת הלילה, גם אם העבודה מסתיימת בבוקר למחרת.</p>
  <div class="calendar-shell"><div class="calendar-month" id="calendarMonth"></div><div class="calendar-weekdays" aria-hidden="true"><span>א׳</span><span>ב׳</span><span>ג׳</span><span>ד׳</span><span>ה׳</span><span>ו׳</span><span>ש׳</span></div><div id="datesPanel" class="dates-panel" role="group" aria-label="בחירת תאריכי עבודה"></div><div class="calendar-legend">רק ימי א׳–ה׳ של השבוע הבא זמינים לבחירה</div></div>
@@ -196,7 +195,7 @@ const LINE_SEGMENTS={
  'הקו החום':['B3','B5','B7','B8','B8.1','BE_2.3'],
  'הקו הירוק':['G1-5.2','G1-5.3','G2-6','G5-7']};
 const outputFields=['hasPpt','hasTable','hasWord','hasSigns','hasEmail'];
-const fields=['city','railLine','segment','locationType','workId','street','direction','workType','timeFrom','timeTo','description'];
+const fields=['city','railLine','segment','locationType','workId','street','workType','timeFrom','timeTo','description'];
 let events=[],editing=null;
 try{const saved=JSON.parse(localStorage.getItem(KEY));if(Array.isArray(saved))events=saved.filter(x=>x&&x.id)}catch(e){}
 function save(){localStorage.setItem(KEY,JSON.stringify(events))}
@@ -300,7 +299,6 @@ function clearSegmentLocationDetails(){
  $('fromStreet').value='';
  $('toStreet').value='';
  $('bothDirections').checked=false;
- $('direction').value='';
  resetCrossStreets();
  $('formStatus').textContent='';
 }
@@ -358,12 +356,12 @@ function openNew(){editing=null;$('eventForm').reset();$('formHeading').textCont
 $('toggleForm').onclick=()=>{$('formPanel').hidden?openNew():$('formPanel').hidden=true};
 $('cancelForm').onclick=()=>{$('formPanel').hidden=true;editing=null};
 function generateEventTitle(record){
- const location=(record.street||'').trim(),direction=(record.direction||'').trim();
+ const location=(record.street||'').trim();
  const junction=record.locationType==='צומת';
  const base=junction?'חסימת צומת '+[location,...(record.crossStreets||[])].filter(Boolean).join(' / '):location;
  const bounds=!junction?[(record.fromStreet||'').trim(),(record.toStreet||'').trim()]:['',''];
  const scope=bounds[0]&&bounds[1]?' מ'+bounds[0]+' עד '+bounds[1]:bounds[0]?' מ'+bounds[0]:bounds[1]?' עד '+bounds[1]:'';
- const suffix=direction&&direction!=='חסימת צומת'?' — '+direction:'';
+ const suffix=record.bothDirections?' — שני הכיוונים':'';
  return (base+scope+suffix).trim()||'אירוע ללא מיקום';
 }
 function getForm(){const result={};for(const f of fields)result[f]=$(f).value;
@@ -373,7 +371,7 @@ function getForm(){const result={};for(const f of fields)result[f]=$(f).value;
  result.fromStreet=$('locationType').value==='רחוב'?$('fromStreet').value.trim():'';
  result.toStreet=$('locationType').value==='רחוב'?$('toStreet').value.trim():'';
  result.bothDirections=$('locationType').value==='רחוב'&&$('bothDirections').checked;
- if(result.bothDirections)result.direction='שני הכיוונים';
+ result.direction=result.bothDirections?'שני הכיוונים':'';
  result.eventTitle=generateEventTitle(result);result.selectedDates=selectedDates();result.dateFrom=result.selectedDates[0]||'';result.dateTo=result.selectedDates.length?dayPlus(result.selectedDates.at(-1),result.timeTo<=result.timeFrom?1:0):'';for(const f of outputFields)result[f]=$(f).checked;return result}
 function putForm(record){
  for(const f of fields)if(f!=='segment')$(f).value=record[f]??'';
