@@ -92,7 +92,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  <div><label for="workId">מספר עבודה / בקשה</label><input id="workId" placeholder="לדוגמה: 2182" dir="ltr"></div>
  <div class="wide"><label for="street">מיקום / תחום חסימה *</label><input required id="street" placeholder="לדוגמה: אלנבי מהירקון עד פינסקר"></div>
  <div><label for="direction">כיוון החסימה</label><select id="direction"><option value="">לא צוין</option><option>לצפון</option><option>לדרום</option><option>למזרח</option><option>למערב</option><option>שני הכיוונים</option><option>חסימת צומת</option></select></div>
- <div><label for="workType">סוג עבודה</label><select id="workType"><option>עבודות לילה</option><option>עבודות יום</option><option>עבודות רצופות</option></select></div>
+ <div><label for="workType">סוג עבודה</label><select id="workType"><option>עבודות לילה</option><option>עבודות יום</option><option value="עבודות רצופות">ברצף</option></select></div>
  <div class="full"><label>תאריכי עבודה בשבוע הבא *</label><p class="hint">בחרו את ימי העבודה בנפרד. בעבודות לילה כל תאריך מייצג את תחילת הלילה, גם אם העבודה מסתיימת בבוקר למחרת.</p><div class="calendar-shell"><div class="calendar-month" id="calendarMonth"></div><div class="calendar-weekdays" aria-hidden="true"><span>א׳</span><span>ב׳</span><span>ג׳</span><span>ד׳</span><span>ה׳</span><span>ו׳</span><span>ש׳</span></div><div id="datesPanel" class="dates-panel" role="group" aria-label="בחירת תאריכי עבודה"></div><div class="calendar-legend">רק ימי א׳–ה׳ של השבוע הבא זמינים לבחירה</div></div><p class="hint" id="datesSummary" aria-live="polite">לא נבחרו תאריכים</p></div>
  <div><label for="timeFrom">שעת תחילה *</label><input id="timeFrom" type="time" value="22:00" required></div>
  <div><label for="timeTo">שעת סיום *</label><input id="timeTo" type="time" value="05:00" required></div>
@@ -159,6 +159,17 @@ function renderDates(checked=[]){
  }
  updateDatesSummary();
 }
+const DEFAULT_WORK_HOURS={
+ 'עבודות לילה':['22:00','05:00'],
+ 'עבודות יום':['09:00','17:00'],
+ 'עבודות רצופות':['05:00','05:00']
+};
+function applyWorkHours(){
+ const hours=DEFAULT_WORK_HOURS[$('workType').value];
+ if(!hours)return;
+ $('timeFrom').value=hours[0];$('timeTo').value=hours[1];
+}
+$('workType').addEventListener('change',applyWorkHours);
 function openNew(){editing=null;$('eventForm').reset();$('formHeading').textContent='צור אירוע חדש';$('saveEvent').textContent='שמור אירוע';updateSegments();renderDates();$('formPanel').hidden=false;$('formStatus').textContent='';$('formPanel').scrollIntoView({block:'start',behavior:'smooth'})}
 $('toggleForm').onclick=()=>{$('formPanel').hidden?openNew():$('formPanel').hidden=true};
 $('cancelForm').onclick=()=>{$('formPanel').hidden=true;editing=null};
