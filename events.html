@@ -418,6 +418,15 @@ function setClock(start,duration){
  clockDuration=duration===24?24:Math.min(12,Math.max(1,duration));
  drawClock();
 }
+function moveClockStartKeepingEnd(nextStart){
+ const start=mod24(nextStart);
+ if(clockDuration===24){setClock(start,24);return}
+ const end=mod24(clockStart+clockDuration);
+ const newDuration=mod24(end-start);
+ // A regular work interval must last 1–12 hours; never silently move the end.
+ if(newDuration<1||newDuration>12)return;
+ setClock(start,newDuration);
+}
 function clockHourFromPointer(ev){
  const svg=$('workClock'),rect=svg.getBoundingClientRect();
  const x=(ev.clientX-rect.left)*300/rect.width-150,y=(ev.clientY-rect.top)*300/rect.height-150;
@@ -431,7 +440,7 @@ function nearestStartHour(dialHour){
 function changeClockFromPointer(ev){
  if(!activeClockHandle)return;
  const dialHour=clockHourFromPointer(ev);
- if(activeClockHandle==='start')setClock(nearestStartHour(dialHour),clockDuration);
+ if(activeClockHandle==='start')moveClockStartKeepingEnd(nearestStartHour(dialHour));
  else{
   const interval=mod12(dialHour-mod12(clockStart));
   setClock(clockStart,interval|| (clockDuration===24?24:12));
@@ -445,8 +454,8 @@ $('workClock').addEventListener('pointerdown',ev=>{
 });
 $('workClock').addEventListener('pointermove',changeClockFromPointer);
 for(const type of ['pointerup','pointercancel','lostpointercapture'])$('workClock').addEventListener(type,()=>activeClockHandle=null);
-$('startMinus').onclick=()=>setClock(clockStart-1,clockDuration);
-$('startPlus').onclick=()=>setClock(clockStart+1,clockDuration);
+$('startMinus').onclick=()=>moveClockStartKeepingEnd(clockStart-1);
+$('startPlus').onclick=()=>moveClockStartKeepingEnd(clockStart+1);
 $('endMinus').onclick=()=>setClock(clockStart,clockDuration===24?12:clockDuration===1?12:clockDuration-1);
 $('endPlus').onclick=()=>setClock(clockStart,clockDuration===24?1:clockDuration===12?1:clockDuration+1);
 function applyWorkHours(){
