@@ -86,7 +86,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  <form id="eventForm">
  <div class="formgrid">
  <div class="wide"><label for="eventTitle">שם האירוע *</label><input required id="eventTitle" placeholder="לדוגמה: חסימת צומת בן יהודה / בן גוריון"></div>
- <div><label for="city">עיר *</label><input required id="city" list="cityOptions" placeholder="בחר או הקלד עיר"><datalist id="cityOptions"><option value="תל אביב-יפו"><option value="ראשון לציון"><option value="חולון"><option value="בת ים"><option value="גבעת שמואל"><option value="רמת גן"></datalist></div>
+ <div><label for="city">עיר *</label><input required id="city" list="cityOptions" placeholder="תיקבע לפי המקטע או תוזן ידנית"><p class="hint" id="cityHint">בחירת מקטע תעדכן את העיר אוטומטית.</p><datalist id="cityOptions"><option value="תל אביב-יפו"><option value="ראשון לציון"><option value="חולון"><option value="בת ים"><option value="גבעת שמואל"><option value="רמת גן"></datalist></div>
  <div><label for="railLine">קו / פרויקט</label><select id="railLine"><option value="">בחר קו</option><option>הקו הסגול</option><option>הקו החום</option><option>הקו הירוק</option><option>אחר</option></select></div>
  <div><label for="segment">מקטע</label><select id="segment"><option value="">בחר מקטע (רשות)</option></select></div>
  <div><label for="workId">מספר עבודה / בקשה</label><input id="workId" placeholder="לדוגמה: 2182" dir="ltr"></div>
@@ -133,8 +133,36 @@ function israelToday(){const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/J
 const today=israelToday(),currentStart=weekStart(today),nextStart=dayPlus(currentStart,7);
 function weekNumber(date){const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+4-(d.getDay()||7));const y=new Date(d.getFullYear(),0,1);return Math.ceil(((d-y)/86400000+1)/7)}
 $('eliaCurrentWeek').textContent=weekNumber(today);$('eliaNextWeek').textContent=weekNumber(nextStart);
-function updateSegments(){const list=$('segment'),prior=list.value;list.replaceChildren();const blank=document.createElement('option');blank.value='';blank.textContent='בחר מקטע (רשות)';list.append(blank);for(const code of LINE_SEGMENTS[$('railLine').value]||[]){const option=document.createElement('option');option.value=code;option.textContent=code;list.append(option)}if([...list.options].some(o=>o.value===prior))list.value=prior}
-$('railLine').onchange=updateSegments;
+function cityForSegment(segment){
+ if(!segment)return '';
+ if(/^PLW1\./.test(segment))return 'תל אביב-יפו';
+ if(/^PLW2\.[123]$/.test(segment))return 'רמת גן';
+ if(/^PLW2\.[567]$/.test(segment))return 'גבעת שמואל';
+ if(/^PLE2\.2$/.test(segment))return 'אור יהודה';
+ if(/^PLE2\.3$/.test(segment))return 'יהוד';
+ if(/^BE(?:_|\.|-|$)/.test(segment))return 'באר יעקב';
+ if(/^B\d/.test(segment))return 'ראשון לציון';
+ if(/^G[12](?:[.-]|$)/.test(segment))return 'חולון';
+ if(/^G5(?:[.-]|$)/.test(segment))return 'הרצליה';
+ return '';
+}
+function applySegmentCity(){
+ const city=cityForSegment($('segment').value),input=$('city');
+ input.readOnly=!!city;
+ if(city)input.value=city;
+ else if($('segment').value)input.value='';
+ $('cityHint').textContent=city?'העיר נקבעה אוטומטית לפי המקטע.':'מקטע ללא שיוך עיר מוגדר — ניתן להזין עיר ידנית.';
+}
+function updateSegments(){
+ const list=$('segment'),prior=list.value;list.replaceChildren();
+ const blank=document.createElement('option');blank.value='';blank.textContent='בחר מקטע (רשות)';list.append(blank);
+ for(const code of LINE_SEGMENTS[$('railLine').value]||[]){
+  const option=document.createElement('option');option.value=code;option.textContent=code;list.append(option);
+ }
+ if([...list.options].some(o=>o.value===prior))list.value=prior;
+}
+$('railLine').onchange=()=>{$('segment').value='';updateSegments();$('city').readOnly=false;$('city').value='';$('cityHint').textContent='בחרו מקטע כדי למלא את העיר אוטומטית.'};
+$('segment').onchange=applySegmentCity;
 const DATE_LABELS=['יום ראשון','יום שני','יום שלישי','יום רביעי','יום חמישי'];
 const nextWeekDates=DATE_LABELS.map((label,i)=>({label,date:dayPlus(nextStart,i)}));
 function selectedDates(){return [...$('datesPanel').querySelectorAll('input[type="checkbox"]:checked')].map(input=>input.value).sort()}
@@ -170,13 +198,13 @@ function applyWorkHours(){
  $('timeFrom').value=hours[0];$('timeTo').value=hours[1];
 }
 $('workType').addEventListener('change',applyWorkHours);
-function openNew(){editing=null;$('eventForm').reset();$('formHeading').textContent='צור אירוע חדש';$('saveEvent').textContent='שמור אירוע';updateSegments();renderDates();$('formPanel').hidden=false;$('formStatus').textContent='';$('formPanel').scrollIntoView({block:'start',behavior:'smooth'})}
+function openNew(){editing=null;$('eventForm').reset();$('formHeading').textContent='צור אירוע חדש';$('saveEvent').textContent='שמור אירוע';updateSegments();$('city').readOnly=false;$('cityHint').textContent='בחרו מקטע כדי למלא את העיר אוטומטית.';renderDates();$('formPanel').hidden=false;$('formStatus').textContent='';$('formPanel').scrollIntoView({block:'start',behavior:'smooth'})}
 $('toggleForm').onclick=()=>{$('formPanel').hidden?openNew():$('formPanel').hidden=true};
 $('cancelForm').onclick=()=>{$('formPanel').hidden=true;editing=null};
 function getForm(){const result={};for(const f of fields)result[f]=$(f).value;result.selectedDates=selectedDates();result.dateFrom=result.selectedDates[0]||'';result.dateTo=result.selectedDates.length?dayPlus(result.selectedDates.at(-1),result.timeTo<=result.timeFrom?1:0):'';for(const f of outputFields)result[f]=$(f).checked;return result}
 function putForm(record){
  for(const f of fields)if(f!=='segment')$(f).value=record[f]??'';
- updateSegments();$('segment').value=record.segment||'';
+ updateSegments();$('segment').value=record.segment||'';const mappedCity=cityForSegment(record.segment||'');$('city').readOnly=!!mappedCity;if(mappedCity)$('city').value=mappedCity;$('cityHint').textContent=mappedCity?'העיר נקבעה אוטומטית לפי המקטע.':'מקטע ללא שיוך עיר מוגדר — ניתן להזין עיר ידנית.';
  for(const f of outputFields)$(f).checked=!!record[f];
  const dates=Array.isArray(record.selectedDates)?record.selectedDates:(record.dateFrom?[record.dateFrom]:[]);
  renderDates(dates);
