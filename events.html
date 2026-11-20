@@ -506,7 +506,7 @@ function makeExtraBlockage(initial={}){
  scheduleDrafts.set(section,scheduleForBlockage(initial,inherited));
  attachBlockageScheduleControl(section);refreshScheduleHeads();
 }
-$('addBlockage').onclick=()=>makeExtraBlockage();
+$('addBlockage').onclick=()=>{recordActiveSchedule();makeExtraBlockage()};
 function clearSegmentLocationDetails(){
  // Changing segments invalidates all location-specific values from the previous section.
  $('street').value='';
