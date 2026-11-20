@@ -165,6 +165,24 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .primary-blockage .schedule-layout,.extra-blockage .schedule-layout{margin-top:12px;border-top:1px solid #dce5f1;padding-top:14px}
 .primary-blockage .schedule-dates,.extra-blockage .schedule-dates{flex:1 1 410px}
 .primary-blockage .schedule-hours,.extra-blockage .schedule-hours{flex:0 0 270px}
+#blockageScheduleEditor{display:none!important}
+.compact-blockage-schedule{border-top:1px solid #dce5f1;margin-top:12px;padding-top:10px;direction:rtl}
+.compact-schedule-top{margin-bottom:8px}
+.compact-work-type{max-width:175px;padding:6px 9px;font-size:12px}
+.compact-schedule-body{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.compact-days{flex:1 1 240px;min-width:0}
+.compact-days-caption{display:block;font-size:12px;color:#4c6580;margin-bottom:8px}
+.compact-day-buttons{display:flex;gap:5px;flex-wrap:wrap}
+.compact-day{border:1px solid #cbd8e8;border-radius:7px;padding:7px 9px;color:#315177;background:white;font-size:12px;min-width:48px}
+.compact-day.selected{background:#dceaff;border-color:#2864e2;color:#174a94;box-shadow:inset 0 0 0 1px #2864e2}
+.compact-time{flex:0 0 155px;display:flex;flex-direction:column;gap:3px;align-items:center}
+.compact-clock{height:155px;width:155px;touch-action:none}
+.compact-time-step{display:flex;justify-content:center;gap:6px;align-items:center;width:100%;font-size:12px;direction:rtl}
+.compact-time-step strong{direction:ltr;min-width:42px;text-align:center}
+.compact-time-step button{padding:3px 7px;min-width:25px}
+.compact-time label,.compact-days label{display:block;font-size:12px;font-weight:650;margin:5px 0;width:100%}
+.compact-time select,.compact-days input[type="date"]{width:100%;margin-top:4px;padding:7px}
+@media(max-width:590px){.compact-time{flex-basis:135px}.compact-clock{width:135px;height:135px}.compact-day{min-width:40px;padding:6px}}
 .schedule-layout{display:flex;direction:rtl;align-items:flex-start;gap:20px}
 .schedule-dates{flex:1 1 610px;min-width:0}
 .schedule-dates .calendar-shell{width:100%;max-width:610px;margin-top:12px}
@@ -364,12 +382,12 @@ function updateSegments(){
 }
 // The calendar/clock is a single editor moved into the blockage being adjusted.
 const scheduleDrafts=new Map();
-let activeScheduleBlock=null,loadedScheduleMode='עבודות לילה';
+let activeScheduleBlock=null;
 function workScheduleFromLegacy(record={}){
- return {workType:record.workType||'עבודות לילה',
-  selectedDates:Array.isArray(record.selectedDates)?[...record.selectedDates]:[],
-  dateFrom:record.dateFrom||'',dateTo:record.dateTo||'',
-  timeFrom:record.timeFrom||'22:00',timeTo:record.timeTo||'05:00'};
+ return {workType:record.workType==='עבודות מרובות'?'עבודות לילה':record.workType||'עבודות לילה',
+ selectedDates:Array.isArray(record.selectedDates)?[...record.selectedDates]:[],
+ dateFrom:record.dateFrom||'',dateTo:record.dateTo||'',
+ timeFrom:record.timeFrom||'22:00',timeTo:record.timeTo||'05:00'};
 }
 function scheduleForBlockage(b,legacy={}){
  return b&&b.workType?workScheduleFromLegacy(b):workScheduleFromLegacy(legacy);
@@ -379,73 +397,142 @@ function scheduleDatesOf(a){
  const dates=(a.selectedDates||[]).slice().sort();
  return {from:dates[0]||'',to:dates.length?dayPlus(dates.at(-1),(a.timeTo||'')<=(a.timeFrom||'')?1:0):''};
 }
-function recordActiveSchedule(){
- if(!activeScheduleBlock)return;
- const continuous=isContinuous(),dates=continuous?[]:selectedDates();
- const state={workType:$('workType').value,timeFrom:continuous?$('continuousStartHour').value:$('timeFrom').value,
-  timeTo:continuous?$('continuousEndHour').value:$('timeTo').value,selectedDates:dates,
-  dateFrom:continuous?continuousStart:(dates[0]||''),
-  dateTo:continuous?continuousEnd:(dates.length?dayPlus(dates.at(-1),$('timeTo').value<=$('timeFrom').value?1:0):'')};
- scheduleDrafts.set(activeScheduleBlock,state);
- refreshScheduleHeads();
+// Every blockage has its own small live clock and calendar, always visible.
+function recordActiveSchedule(){} // Inputs update scheduleDrafts immediately.
+function compactScheduleClock(svg,schedule){
+ svg.replaceChildren();
+ const start=parseInt(schedule.timeFrom,10)||0,end=parseInt(schedule.timeTo,10)||0;
+ const duration=mod24(end-start)||12;
+ clockElement(svg,'circle',{cx:150,cy:150,r:104,fill:'#fff',stroke:'#cedbe9','stroke-width':2});
+ const a=clockPoint(start,103),b=clockPoint(start+duration,103);
+ if(duration===12)clockElement(svg,'circle',{cx:150,cy:150,r:103,fill:'#dceaff',stroke:'#2864e2','stroke-width':3});
+ else clockElement(svg,'path',{d:'M 150 150 L '+a.join(' ')+' A 103 103 0 '+(duration>6?1:0)+' 1 '+b.join(' ')+' Z',fill:'#dceaff',stroke:'#2864e2','stroke-width':3});
+ for(let h=0;h<12;h++){
+  const p=clockPoint(h,132),text=clockElement(svg,'text',{x:p[0],y:p[1]+5,'text-anchor':'middle','font-size':18,fill:'#294b78','font-weight':h%3===0?800:500});
+  text.textContent=String(h||12);
+ }
+ for(const [h,fill] of [[start,'#2864e2'],[end,'#fff']]){
+  const p=clockPoint(h,103);
+  clockElement(svg,'circle',{cx:p[0],cy:p[1],r:10,fill,stroke:'#2864e2','stroke-width':3});
+ }
+ svg.setAttribute('aria-label',schedule.timeFrom+' עד '+schedule.timeTo);
 }
-function loadBlockageSchedule(block){
+function buildCompactSchedule(block){
+ const old=block.querySelector('.compact-blockage-schedule');if(old)old.remove();
  const schedule=scheduleDrafts.get(block)||workScheduleFromLegacy();
- activeScheduleBlock=block;
- block.append($('blockageScheduleEditor'));
- $('workType').value=schedule.workType||'עבודות לילה';
- const start=parseInt(schedule.timeFrom,10),end=parseInt(schedule.timeTo,10);
- if(Number.isInteger(start)&&Number.isInteger(end))setClock(start,mod24(end-start)||24);
- else applyWorkHours();
- continuousStart=schedule.workType==='עבודות רצופות'?schedule.dateFrom||'':'';
- continuousEnd=schedule.workType==='עבודות רצופות'?schedule.dateTo||'':'';
- if(isContinuous()){
-  const startDate=new Date((continuousStart||nextStart)+'T12:00:00'),base=new Date(nextStart+'T12:00:00');
-  calendarMonthOffset=(startDate.getFullYear()-base.getFullYear())*12+startDate.getMonth()-base.getMonth();
-  $('continuousStartHour').value=schedule.timeFrom||'05:00';$('continuousEndHour').value=schedule.timeTo||'05:00';
- }else calendarMonthOffset=0;
- toggleWorkTypeFields();
- if(!isContinuous())renderDates(schedule.selectedDates||[]);
- refreshScheduleHeads();
-}
-function editBlockageSchedule(block){
- if(activeScheduleBlock===block)return;
- recordActiveSchedule();
- loadBlockageSchedule(block);
+ const panel=document.createElement('div');panel.className='compact-blockage-schedule';
+ block.append(panel);
+ const top=document.createElement('div');top.className='compact-schedule-top';panel.append(top);
+ const kind=document.createElement('select');kind.className='compact-work-type';
+ for(const [value,label] of [['עבודות לילה','עבודות לילה'],['עבודות יום','עבודות יום'],['עבודות רצופות','עבודות ברצף']]){
+  const option=document.createElement('option');option.value=value;option.textContent=label;kind.append(option);
+ }
+ kind.value=schedule.workType;top.append(kind);
+ const body=document.createElement('div');body.className='compact-schedule-body';panel.append(body);
+ const datesArea=document.createElement('div');datesArea.className='compact-days';body.append(datesArea);
+ const timeArea=document.createElement('div');timeArea.className='compact-time';body.append(timeArea);
+ function setHours(from,to){
+  const a=parseInt(from,10),b=parseInt(to,10);
+  if(schedule.workType!=='עבודות רצופות'){
+   const interval=mod24(b-a);
+   if(interval<1||interval>12)return;
+  }
+  schedule.timeFrom=hourText(a);schedule.timeTo=hourText(b);renderTimes();
+ }
+ function renderTimes(){
+  timeArea.replaceChildren();
+  if(schedule.workType==='עבודות רצופות'){
+   const labels=[['התחלה','timeFrom'],['סיום','timeTo']];
+   for(const [name,key] of labels){
+    const wrap=document.createElement('label');wrap.textContent=name;const select=document.createElement('select');
+    for(let h=0;h<24;h++){const option=document.createElement('option');option.value=hourText(h);option.textContent=hourText(h);select.append(option)}
+    select.value=schedule[key];select.onchange=()=>{schedule[key]=select.value};wrap.append(select);timeArea.append(wrap);
+   }
+   return;
+  }
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 300 300');svg.classList.add('compact-clock');timeArea.append(svg);
+  compactScheduleClock(svg,schedule);
+  for(const key of ['timeFrom','timeTo']){
+   const wrap=document.createElement('div');wrap.className='compact-time-step';
+   const backward=document.createElement('button');backward.type='button';backward.className='alt';backward.textContent='−';backward.setAttribute('aria-label',key==='timeFrom'?'הקדם התחלה':'הקדם סיום');
+   const value=document.createElement('strong');value.textContent=schedule[key];
+   const forward=document.createElement('button');forward.type='button';forward.className='alt';forward.textContent='+';forward.setAttribute('aria-label',key==='timeFrom'?'דחה התחלה':'דחה סיום');
+   const change=delta=>{const from=parseInt(schedule.timeFrom,10),to=parseInt(schedule.timeTo,10);if(key==='timeFrom')setHours(mod24(from+delta),to);else setHours(from,mod24(to+delta))};
+   backward.onclick=()=>change(-1);forward.onclick=()=>change(1);
+   wrap.append(backward,value,forward);timeArea.append(wrap);
+  }
+  // Drag start/end on compact clocks as well as using + / − buttons.
+  let dragging=null;
+  const pointerHour=event=>{
+   const rect=svg.getBoundingClientRect(),x=(event.clientX-rect.left)*300/rect.width-150,y=(event.clientY-rect.top)*300/rect.height-150;
+   return mod12(Math.round(Math.atan2(x,-y)*6/Math.PI));
+  };
+  svg.addEventListener('pointerdown',event=>{
+   const rect=svg.getBoundingClientRect(),x=(event.clientX-rect.left)*300/rect.width-150,y=(event.clientY-rect.top)*300/rect.height-150;
+   const start=clockPoint(parseInt(schedule.timeFrom,10),103),end=clockPoint(parseInt(schedule.timeTo,10),103);
+   const distance=p=>Math.hypot(p[0]-150-x,p[1]-150-y);
+   if(Math.min(distance(start),distance(end))>38)return;
+   dragging=distance(start)<=distance(end)?'timeFrom':'timeTo';svg.setPointerCapture(event.pointerId);event.preventDefault();
+  });
+  svg.addEventListener('pointermove',event=>{
+   if(!dragging)return;const hour=pointerHour(event);
+   const original=parseInt(schedule[dragging],10);
+   const candidates=[hour,hour+12],nearest=candidates.sort((a,b)=>Math.min(mod24(a-original),mod24(original-a))-Math.min(mod24(b-original),mod24(original-b)))[0];
+   if(dragging==='timeFrom')setHours(nearest,schedule.timeTo);else setHours(schedule.timeFrom,nearest);
+  });
+  for(const name of ['pointerup','pointercancel','lostpointercapture'])svg.addEventListener(name,()=>dragging=null);
+ }
+ function renderDates(){
+  datesArea.replaceChildren();
+  if(schedule.workType==='עבודות רצופות'){
+   for(const [label,key] of [['תאריך התחלה','dateFrom'],['תאריך סיום','dateTo']]){
+    const wrap=document.createElement('label');wrap.textContent=label;
+    const input=document.createElement('input');input.type='date';input.value=schedule[key]||'';
+    input.onchange=()=>schedule[key]=input.value;wrap.append(input);datesArea.append(wrap);
+   }
+   return;
+  }
+  const heading=document.createElement('span');heading.className='compact-days-caption';heading.textContent='ימי עבודה בשבוע הבא';datesArea.append(heading);
+  const row=document.createElement('div');row.className='compact-day-buttons';datesArea.append(row);
+  const weekday=['א','ב','ג','ד','ה'];
+  nextWeekDates.forEach((item,i)=>{
+   const button=document.createElement('button');button.type='button';button.className='compact-day';
+   button.textContent=weekday[i]+' '+String(Number(item.date.slice(-2)));
+   const selected=schedule.selectedDates.includes(item.date);
+   button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
+   button.onclick=()=>{
+    if(selected)schedule.selectedDates=schedule.selectedDates.filter(d=>d!==item.date);
+    else schedule.selectedDates=[...schedule.selectedDates,item.date].sort();
+    renderDates();
+   };
+   row.append(button);
+  });
+ }
+ kind.onchange=()=>{
+  schedule.workType=kind.value;
+  const defaults=DEFAULT_WORK_HOURS[kind.value]||['22:00','05:00'];
+  schedule.timeFrom=defaults[0];schedule.timeTo=defaults[1];
+  if(kind.value==='עבודות רצופות'){
+   schedule.dateFrom=schedule.dateFrom||schedule.selectedDates[0]||nextStart;
+   schedule.dateTo=schedule.dateTo||dayPlus(schedule.dateFrom,1);
+  }
+  renderDates();renderTimes();
+ };
+ renderDates();renderTimes();
 }
 function attachBlockageScheduleControl(block){
- const head=block.querySelector('.blockage-schedule-head');
- if(!head)return;
- head.replaceChildren();
- const btn=document.createElement('button');btn.type='button';btn.className='alt';
- btn.textContent='ימים ושעות';btn.onclick=()=>editBlockageSchedule(block);
- const summary=document.createElement('span');summary.className='blockage-schedule-preview';
- head.append(btn,summary);
+ const old=block.querySelector('.blockage-schedule-head');if(old)old.hidden=true;
+ buildCompactSchedule(block);
 }
-function refreshScheduleHeads(){
- for(const block of [document.querySelector('.primary-blockage'),...$('additionalBlockages').children]){
-  const head=block.querySelector('.blockage-schedule-head');if(!head)return;
-  const summary=head.querySelector('.blockage-schedule-preview'),btn=head.querySelector('button');
-  if(!summary||!btn)return;
-  const a=scheduleDrafts.get(block)||{};
-  const dates=scheduleDatesOf(a);
-  const count=a.workType==='עבודות רצופות'?null:(a.selectedDates||[]).length;
-  summary.textContent=a.workType==='עבודות רצופות'
-   ?(dates.from&&dates.to?formatDate(dates.from)+'–'+formatDate(dates.to):'בחרו טווח תאריכים')+' · '+(a.timeFrom||'')+'–'+(a.timeTo||'')
-   :(count?count+' ימים · '+(a.timeFrom||'')+'–'+(a.timeTo||''):'לא נבחרו ימים');
-  summary.classList.toggle('invalid',!dates.from||!dates.to);
-  btn.textContent=block===activeScheduleBlock?'ימים ושעות (פתוח)':'ערוך ימים ושעות';
- }
-}
+function refreshScheduleHeads(){} // All schedules remain open and update in place.
 function initializeBlockageSchedules(record){
  scheduleDrafts.clear();activeScheduleBlock=null;
- const primary=document.querySelector('.primary-blockage'),blocks=[primary,...$('additionalBlockages').children];
+ const blocks=[document.querySelector('.primary-blockage'),...$('additionalBlockages').children];
  const stored=record?eventBlockages(record):[];
- for(let i=0;i<blocks.length;i++){
-  scheduleDrafts.set(blocks[i],scheduleForBlockage(stored[i],record||{}));
-  attachBlockageScheduleControl(blocks[i]);
- }
- loadBlockageSchedule(primary);
+ blocks.forEach((block,i)=>{
+  scheduleDrafts.set(block,scheduleForBlockage(stored[i],record||{}));
+  attachBlockageScheduleControl(block);
+ });
 }
 function normalizeBlockage(b){return {...b,locationType:b.locationType||'רחוב',street:b.street||'',fromStreet:b.fromStreet||'',toStreet:b.toStreet||'',crossStreets:Array.isArray(b.crossStreets)?b.crossStreets:[],bothDirections:!!b.bothDirections||b.direction==='שני הכיוונים'}}
 function eventBlockages(e){return Array.isArray(e.blockages)&&e.blockages.length?e.blockages.map(normalizeBlockage):[normalizeBlockage(e)]}
@@ -457,17 +544,16 @@ function multiBlockageTitle(blockages){
 function primaryBlockage(){const junction=$('locationType').value==='צומת',options=baseStreetOptions();return {locationType:$('locationType').value,street:options.length===1?options[0]:$('streetChoice').value,fromStreet:junction?'':$('fromStreet').value.trim(),toStreet:junction?'':$('toStreet').value.trim(),crossStreets:junction?crossStreetValues():[],bothDirections:!junction&&$('bothDirections').checked}}
 function extraBlockageData(section){const junction=section.querySelector('.extra-type').value==='צומת';return {locationType:junction?'צומת':'רחוב',street:section.querySelector('.extra-street').value,fromStreet:junction?'':section.querySelector('.extra-from').value.trim(),toStreet:junction?'':section.querySelector('.extra-to').value.trim(),bothDirections:!junction&&section.querySelector('.extra-both input').checked,crossStreets:junction?[...section.querySelectorAll('.extra-crosses input')].map(x=>x.value.trim()):[]}}
 function clearExtraBlockages(){
- const primary=document.querySelector('.primary-blockage'),editor=$('blockageScheduleEditor');
- if(primary&&editor.parentElement!==primary)primary.append(editor);
  activeScheduleBlock=null;
  $('additionalBlockages').replaceChildren();scheduleDrafts.clear();
+ const old=document.querySelector('.primary-blockage .compact-blockage-schedule');if(old)old.remove();
 }
 function renumberBlockages(){[...$('additionalBlockages').children].forEach((node,i)=>node.querySelector('.extra-heading strong').textContent='חסימה '+(i+2))}
 function makeExtraBlockage(initial={}){
  const b=normalizeBlockage(initial),section=document.createElement('div');section.className='extra-blockage';
  const heading=document.createElement('div');heading.className='extra-heading';const name=document.createElement('strong');
  const remove=document.createElement('button');remove.type='button';remove.className='danger';remove.textContent='הסר חסימה';remove.onclick=()=>{
-  if(activeScheduleBlock===section){recordActiveSchedule();loadBlockageSchedule(document.querySelector('.primary-blockage'))}
+  
   scheduleDrafts.delete(section);section.remove();renumberBlockages();refreshScheduleHeads();
  };heading.append(name,remove);section.append(heading);
  const scheduleHead=document.createElement('div');scheduleHead.className='blockage-schedule-head';section.append(scheduleHead);
