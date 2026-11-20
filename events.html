@@ -1080,7 +1080,7 @@ $('eventForm').onsubmit=e=>{
  const stamp=new Date().toISOString();
  if(editing){const idx=events.findIndex(x=>x.id===editing);if(idx>=0)events[idx]={...events[idx],...record,updatedAt:stamp}}
  else events.push({id:crypto.randomUUID?crypto.randomUUID():'event-'+Date.now(),eventStatus:'מתוכנן',...record,createdAt:stamp,updatedAt:stamp});
- save();$('formPanel').hidden=true;editing=null;$('statusFilter').value='';$('weekFilter').value='all';render();$('eventsList').scrollIntoView({behavior:'smooth'});
+ save();$('formPanel').hidden=true;editing=null;$('statusFilter').value='';$('projectFilter').value='';render();$('eventsList').scrollIntoView({behavior:'smooth'});
 };
 function editEvent(id){const ev=events.find(x=>x.id===id);if(!ev)return;editing=id;$('eventForm').reset();$('formHeading').textContent='עריכת אירוע';$('saveEvent').textContent='שמור שינויים';$('formPanel').hidden=false;$('formStatus').textContent='';putForm(ev);$('formPanel').scrollIntoView({behavior:'smooth'})}
 function deleteEvent(id){const ev=events.find(x=>x.id===id);if(!ev||!confirm('למחוק את האירוע '+ev.eventTitle+'?'))return;events=events.filter(x=>x.id!==id);save();render()}
