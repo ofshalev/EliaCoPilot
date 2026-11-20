@@ -236,9 +236,26 @@ $('import').onchange=async e=>{
   if(o.version===2&&Array.isArray(o.people)&&Array.isArray(o.groups))imported=o;
   else if(Array.isArray(o.groups))imported=migrateLegacy(o);
   else throw Error('מבנה קובץ לא נתמך');
-  if(!confirm('טעינת גיבוי תחליף את מאגר הנמענים והקבוצות בדפדפן. להמשיך?'))return;
-  data=imported;data.affiliations=[...new Set([...AFFILIATIONS,...(data.affiliations||[])])];if(!data.groups.length)data.groups=initial().groups;
-  current=data.groups[0].id;resetForm();drawAffiliations();persist();renderAll();message('הגיבוי נטען');
+  if(!confirm('למזג את הנמענים והקבוצות מהקובץ למאגר הקיים? נמענים עם אותו מייל לא ישוכפלו.'))return;
+  const existingEmails=new Map(data.people.map(p=>[emailKey(p.email),p]));
+  const idMap=new Map();let added=0,merged=0;
+  for(const p of imported.people){
+   if(!p||!p.email)continue;
+   const key=emailKey(p.email),existing=existingEmails.get(key);
+   if(existing){idMap.set(p.id,existing.id);merged++;continue}
+   const newPerson={id:id(),name:String(p.name||key.split('@')[0]),email:key,affiliation:String(p.affiliation||'')};
+   data.people.push(newPerson);existingEmails.set(key,newPerson);idMap.set(p.id,newPerson.id);added++;
+  }
+  for(const g of imported.groups){
+   if(!g||typeof g.name!=='string')continue;
+   const match=data.groups.find(x=>x.id===g.id);
+   const target=match||{id:id(),name:g.name,to:[],cc:[]};
+   if(!match)data.groups.push(target);
+   for(const field of ['to','cc'])target[field]=[...new Set([...(target[field]||[]),...(g[field]||[]).map(pid=>idMap.get(pid)).filter(Boolean)])];
+  }
+  data.affiliations=[...new Set([...AFFILIATIONS,...(data.affiliations||[]),...(imported.affiliations||[])])];
+  if(!data.groups.length)data.groups=initial().groups;
+  resetForm();drawAffiliations();persist();renderAll();message('הייבוא הושלם: '+added+' נמענים חדשים, '+merged+' כתובות קיימות שזוהו');
  }catch(err){message('שגיאה בטעינת הקובץ: '+err.message)}
  e.target.value='';
 };
