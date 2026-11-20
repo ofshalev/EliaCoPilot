@@ -345,7 +345,7 @@ function cityForSegment(segment){
  if(/^G5(?:[.-]|$)/.test(segment))return 'הרצליה';
  return '';
 }
-const PURPLE_STREETS={
+const SEGMENT_STREETS={
  'PLW1.1':['ארלוזורוב'],'PLW1.2':['ארלוזורוב'],'PLW1.3':['ארלוזורוב'],'PLW1.4':['ארלוזורוב'],
  'PLW1.5':['בן יהודה'],'PLW1.6':['בן יהודה'],'PLW1.7':['בן יהודה'],
  'PLW1.8':['אלנבי'],
@@ -355,11 +355,15 @@ const PURPLE_STREETS={
  'PLW2.1':['אלוף שדה'],'PLW2.2':['אלוף שדה'],'PLW2.3':['אלוף שדה'],
  'PLW2.5':['מקס ואנה ווב'],'PLW2.6':['ז׳בוטינסקי'],
  'PLW2.7':['אורי צבי גרינברג','זבולון המר'],
- 'PLE2.1':['כביש 461'],'PLE2.2':['כביש 461'],'PLE2.3':['כביש 461']
+ 'PLE2.1':['כביש 461'],'PLE2.2':['כביש 461'],'PLE2.3':['כביש 461'],
+ 'B3':['לוי אשכול','רבין','ההסתדרות'],
+ 'B5':['רוטשילד'],
+ 'B7':['ירושלים'],
+ 'BE_2.3':["ז'בוטינסקי"]
 };
 function readLegacyBounds(record){
  if(record.fromStreet||record.toStreet)return [record.fromStreet||'',record.toStreet||''];
- const raw=(record.street||'').trim(),options=PURPLE_STREETS[record.segment]||[];
+ const raw=(record.street||'').trim(),options=SEGMENT_STREETS[record.segment]||[];
  const prefix=options.find(v=>raw===v||raw.startsWith(v+' '));
  const rest=prefix?raw.slice(prefix.length).trim():raw;
  const match=rest.match(/^מ(?:רחוב\s+)?(.+?)\s+עד\s+(.+)$/);
@@ -380,7 +384,7 @@ function resetCrossStreets(values=[]){
  $('crossStreetList').replaceChildren();
  for(const value of values.length?values:[''])addCrossStreet(value);
 }
-function baseStreetOptions(){return PURPLE_STREETS[$('segment').value]||[]}
+function baseStreetOptions(){return SEGMENT_STREETS[$('segment').value]||[]}
 function updateStreetChoices(preserve=false){
  const select=$('streetChoice'),options=baseStreetOptions();
  const junction=$('locationType').value==='צומת',fixed=options.length===1,multiple=options.length>1;
@@ -1045,7 +1049,7 @@ function putForm(record){
  }
  toggleWorkTypeFields();
  updateSegments();$('segment').value=record.segment||'';if(!record.locationType)$('locationType').value=record.direction==='חסימת צומת'?'צומת':'רחוב';
- const baseOptions=PURPLE_STREETS[record.segment]||[];
+ const baseOptions=SEGMENT_STREETS[record.segment]||[];
  const oldName=(record.street||'').replace(/^חסימת צומת\s*/,'');
  const matched=baseOptions.find(name=>oldName===name||oldName.startsWith(name+' ')||oldName.startsWith(name+' /'));
  $('street').value=matched||'';
@@ -1072,7 +1076,7 @@ $('eventForm').onsubmit=e=>{
   }
  }
  if(!record.segment){$('formStatus').textContent='יש לבחור מקטע';return}
- if(!(PURPLE_STREETS[record.segment]||[]).length){$('formStatus').textContent='לא הוגדר רחוב למקטע הזה. יש להוסיף שיוך לפני יצירת האירוע.';return}
+ if(!(SEGMENT_STREETS[record.segment]||[]).length){$('formStatus').textContent='לא הוגדר רחוב למקטע הזה. יש להוסיף שיוך לפני יצירת האירוע.';return}
  if(!record.street.trim()){$('formStatus').textContent='יש לבחור רחוב מהרשימה';return}
  if(record.locationType==='צומת'&&!record.crossStreets.length){$('formStatus').textContent='יש להזין לפחות רחוב חוצה אחד';return}
  if(record.locationType==='צומת'&&crossStreetValues().some(x=>!x)){$('formStatus').textContent='יש למלא או להסיר שדה רחוב חוצה ריק';return}
