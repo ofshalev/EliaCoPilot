@@ -48,9 +48,6 @@ button.alt{background:#e9eff8;color:#294a6c}
 .details-line span{min-width:75px;color:#526b82}
 .details-line strong{direction:ltr;unicode-bidi:isolate}
 .slide-switch{display:flex;gap:8px;margin-bottom:12px}
-#blockageSlideTabs{display:contents}
-.slide-switch{flex-wrap:wrap}
-
 .slide-switch button.active{color:#fff;background:#2864e2}
 .return-event{display:inline-block;margin-top:15px;font-weight:700;color:#225bb1}
 .background-setup{display:flex;align-items:center;flex-wrap:wrap;gap:10px;background:#e9f1fa;border:1px solid #bfd3ec;border-radius:10px;padding:11px 14px;margin:0 0 16px;font-size:13px}
@@ -89,29 +86,24 @@ button.alt{background:#e9eff8;color:#294a6c}
 .toolbox button.selected-tool{background:#2864e2;color:#fff}
 .map-search-row{display:flex;gap:6px}.map-search-row input{min-width:0;flex:1}.map-search-row button{flex:0 0 auto}
 #closureSlide{container-type:inline-size;background:#fff}
-#closureSlide{container-type:inline-size;min-height:0}
-.slide.multi-closures{aspect-ratio:auto}
-.slide.multi-closures #closureSlide{min-height:calc(90px + 190px * var(--block-count))}
-#closureSlide .closure-slide-header{min-height:58px;height:auto;background:linear-gradient(115deg,#c7eadc 0%,#b7e2e4 65%,#f9fffc 100%);color:#21464a;display:flex;align-items:center;justify-content:flex-start;padding:16px 5%;font-size:clamp(13px,2.2cqw,24px);font-weight:800;border-bottom:1px solid #e3f0ed}
-#closureSlide .closure-rows{flex:1;display:flex;flex-direction:column;gap:0;padding:7px 3%;min-height:0}
-#closureSlide .closure-row{direction:ltr;display:flex;align-items:stretch;gap:2%;min-height:185px;padding:8px 0;border-bottom:1px solid #dbece6;cursor:pointer}
-#closureSlide .closure-row:last-child{border-bottom:0}
-#closureSlide .closure-row.active{background:#f2f9ff;box-shadow:inset 0 0 0 2px #b0cdec;border-radius:9px}
-#closureSlide .closure-map-box{width:46%;position:relative;min-height:170px;border-radius:10px;overflow:hidden;border:3px solid white;box-shadow:0 0 0 1px #d7e0e0;z-index:2}
-#closureSlide .closure-map{height:100%;width:100%;direction:ltr;background:#e6edf0}
+#closureSlide .closure-slide-header{height:24%;background:linear-gradient(115deg,#c7eadc 0%,#b7e2e4 65%,#f9fffc 100%);color:#21464a;display:flex;align-items:center;justify-content:flex-start;padding:0 5% 0 42%;font-size:clamp(12px,2.4cqw,25px);font-weight:800;border-bottom:1px solid #e3f0ed}
+#closureSlide .closure-slide-main{height:67%;display:flex;direction:ltr;gap:2%;padding:0 3%}
+#closureSlide .closure-map-box{width:46%;height:140%;align-self:flex-end;position:relative;border-radius:10px;overflow:hidden;border:3px solid white;box-shadow:0 0 0 1px #d7e0e0;z-index:2}
+#closureSlide #closureMap{height:100%;width:100%;direction:ltr;background:#e6edf0}
 #closureSlide .closure-side{width:52%;direction:rtl;padding:3% 1%;min-width:0;display:flex;flex-direction:column;justify-content:space-around}
-#closureSlide .closure-row-label{font-size:clamp(11px,1.5cqw,15px);color:#336379;font-weight:700;margin-bottom:2px}
-#closureSlide .closure-text{font-size:clamp(11px,1.7cqw,20px);color:#183b45;text-align:right;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
-#closureSlide .closure-legend{display:flex;flex-direction:column;gap:7px;font-size:clamp(10px,1.2cqw,14px);color:#29434c}
-#closureSlide .closure-legend>div{display:flex;justify-content:space-between;gap:8px;align-items:center}
-#closureSlide .closure-legend span{font-size:clamp(10px,1.7cqw,19px);white-space:nowrap}
-#closureSlide .closure-swatch{display:inline-block;background:rgba(240,40,42,.5);width:60px;height:12px}
-#closureSlide .routes-placeholder{font-size:clamp(10px,1.1cqw,12px)!important;background:#d5eefc;color:#517ca1;padding:3px 14px}
-#closureSlide .closure-slide-footer{min-height:35px;display:flex;justify-content:space-between;align-items:center;gap:5px;color:#35626b;font-size:clamp(9px,1.1cqw,12px);padding:7px 5%;border-top:1px solid #dfece7}
+#closureSlide .closure-text{font-size:clamp(11px,2cqw,22px);color:#183b45;text-align:right;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;max-height:32%;overflow:auto}
+#closureSlide .closure-legend{display:flex;flex-direction:column;gap:1.8cqw;font-size:clamp(10px,1.5cqw,16px);color:#29434c}
+#closureSlide .closure-legend>div{display:flex;justify-content:space-between;gap:12px;align-items:center}
+#closureSlide .closure-legend span{font-size:clamp(10px,2.3cqw,24px);white-space:nowrap}
+#closureSlide .closure-swatch{display:inline-block;background:rgba(240,40,42,.5);width:75px;height:14px}
+#closureSlide .routes-placeholder{font-size:clamp(10px,1.2cqw,14px)!important;background:#d5eefc;color:#517ca1;padding:4px 18px}
+#closureSlide .closure-slide-footer{height:9%;display:flex;justify-content:space-between;align-items:center;gap:5px;color:#35626b;font-size:clamp(9px,1.1cqw,12px);padding:0 5%;border-top:1px solid #dfece7}
 #closureSlide .leaflet-control-attribution{font-size:8px}
 #closureSlide .leaflet-control-zoom a{width:25px;height:25px;line-height:25px}
 #closureSlide .leaflet-container{font-family:Arial,sans-serif}
-#closureSlide .closure-sign{width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:18px}
+#closureSlide .closure-sign{width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;background:white;color:#b31d26;border:3px solid #eb151c;border-radius:50%;box-shadow:0 1px 5px #243c5077;cursor:pointer}
+#closureSlide .closure-sign.no-left,#closureSlide .closure-sign.no-right{position:relative}
+#closureSlide .closure-sign.work{background:#ffde52;border-color:#272727;color:#252525;border-radius:5px}
 @media(max-width:700px){#closureSlide .closure-slide-header{font-size:clamp(10px,2.5cqw,18px)}#closureSlide .closure-text{font-size:clamp(9px,2.2cqw,16px)}}
 [hidden]{display:none!important}
 @media(max-width:850px){.workspace{grid-template-columns:1fr}.slide-title{font-size:clamp(14px,4vw,29px)}.slide-period{font-size:clamp(11px,2.5vw,18px)}.slide-subtitle{font-size:clamp(10px,2.5vw,17px)}}
@@ -147,7 +139,7 @@ button.alt{background:#e9eff8;color:#294a6c}
 </div>
 <div id="closureTools" hidden>
 <h2>שקופית 3 · ארגז כלים</h2>
-<div class="readonly" id="activeBlockageLabel"></div>
+<label for="blockageSelect">חסימה לעריכה</label><select id="blockageSelect"></select>
 <label for="closureDescription">תיאור החסימה בשקופית</label>
 <textarea id="closureDescription" rows="3" placeholder="תיאור החסימה שיופיע מתחת לכותרת"></textarea>
 <label for="mapSearch">חיפוש מיקום במפה (עיר / רחוב / צומת)</label>
@@ -172,7 +164,7 @@ button.alt{background:#e9eff8;color:#294a6c}
 </section>
 <section class="panel">
 <h2>תצוגה מקדימה — שתי שקופיות</h2>
-<div class="slide-switch"><button type="button" class="alt active" data-slide="1" aria-pressed="true">1 · שער המצגת</button><button type="button" class="alt" data-slide="2" aria-pressed="false">2 · פרטי העבודות</button><button type="button" class="alt" data-slide="3" aria-pressed="false">3 · תיאור החסימות ומפות</button></div>
+<div class="slide-switch"><button type="button" class="alt active" data-slide="1" aria-pressed="true">1 · שער המצגת</button><button type="button" class="alt" data-slide="2" aria-pressed="false">2 · פרטי העבודות</button><button type="button" class="alt" data-slide="3" aria-pressed="false">3 · תיאור החסימה ומפה</button></div>
 <div class="preview-shell">
 <div class="slide" id="slide">
 <div id="coverSlide" class="slide-frame">
@@ -194,8 +186,14 @@ button.alt{background:#e9eff8;color:#294a6c}
 </div>
 <div id="closureSlide" class="slide-frame closure-slide" hidden>
 <div class="closure-slide-header">מהות הסגירה | תיאור החסימה</div>
-<div id="closureRows" class="closure-rows"></div>
-<div class="closure-slide-footer"><span>מפות עבודה · תצוגת עריכה</span><span id="closureBrand">שקופית 3</span></div>
+<div class="closure-slide-main">
+<div class="closure-map-box"><div id="closureMap" aria-label="מפת אזור העבודה"></div></div>
+<div class="closure-side">
+<div class="closure-text" id="previewClosureDescription"></div>
+<div class="closure-legend"><div>ביטולי פניות / חסימה <span>⛔ &nbsp; ↰ &nbsp; ↱</span></div><div>סימון אזור העבודה <span class="closure-swatch"></span></div><div>קווים מושפעים <span class="routes-placeholder">בהמשך</span></div></div>
+</div>
+</div>
+<div class="closure-slide-footer"><span>מפת עבודה · תצוגת עריכה</span><span id="closureBrand"></span></div>
 </div>
 </div>
 </div>
@@ -373,8 +371,7 @@ if(!event){$('missing').hidden=false}else{
   try{localStorage.setItem(CLOSURE_KEY,JSON.stringify(records))}
   catch(e){$('mapToolStatus').textContent='לא ניתן לשמור את הסימונים בדפדפן: '+e.message}
  }
- let selectedBlock=0,drawMode='pan',vertices=[],draftLine=null,draftFill=null;
- const maps=[],tileLayers=[],layerGroups=[];
+ let selectedBlock=0,map=null,tiles=null,layerGroup=null,drawMode='pan',vertices=[],draftLine=null,draftFill=null;
  const presets={
   'no-entry':{glyph:'−',label:'אין כניסה'},
   'no-left':{glyph:'↰',label:'אין פנייה שמאלה'},
@@ -395,188 +392,162 @@ if(!event){$('missing').hidden=false}else{
   const html='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="34" height="34" role="img" aria-label="'+t.label+'" style="filter:drop-shadow(0 1px 2px #20304466)">'+body+'</svg>';
   return L.divIcon({className:'',html,iconSize:[34,34],iconAnchor:[17,17]});
  }
- function mapFor(i){return maps[i]||null}
- function renderAnnotations(i){
-  const layer=layerGroups[i],r=getRecord(i);
-  if(!layer)return;
-  layer.clearLayers();
+ function ensureMap(){
+  if(map)return true;
+  if(typeof L==='undefined'){
+   $('mapToolStatus').textContent='ספריית המפה לא נטענה. בדקו את החיבור לאינטרנט ורעננו את הדף.';
+   return false;
+  }
+  map=L.map('closureMap',{zoomControl:true,scrollWheelZoom:false,attributionControl:true});
+  layerGroup=L.featureGroup().addTo(map);
+  map.on('click',ev=>{
+   if(drawMode==='polygon'){
+    vertices.push([ev.latlng.lat,ev.latlng.lng]);drawDraft();
+    $('mapToolStatus').textContent=vertices.length<3?'סמנו לפחות 3 נקודות כדי לסיים מצולע':'לחצו על סיים מצולע, או המשיכו להוסיף נקודות';
+   }else if(presets[drawMode]){
+    getRecord(selectedBlock).signs.push({type:drawMode,point:[ev.latlng.lat,ev.latlng.lng]});
+    storeClosure();renderAnnotations();
+   }
+  });
+  map.on('mousemove',ev=>{
+   if(drawMode==='polygon'&&vertices.length){
+    const points=[...vertices,[ev.latlng.lat,ev.latlng.lng]];
+    if(draftLine)draftLine.setLatLngs(points);
+   }
+  });
+  map.on('moveend',()=>{
+   const r=getRecord(selectedBlock);
+   const c=map.getCenter();r.center=[c.lat,c.lng];r.zoom=map.getZoom();
+   storeClosure();
+  });
+  setBasemap();
+  return true;
+ }
+ function setBasemap(){
+  if(!map)return;
+  if(tiles)map.removeLayer(tiles);
+  const token=$('mapboxToken').value.trim();
+  if(token&&token.startsWith('pk.')){
+   tiles=L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token='+encodeURIComponent(token),{
+    maxZoom:20,attribution:'© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © OpenStreetMap'
+   });
+   tiles.on('tileerror',()=>{$('mapToolStatus').textContent='שגיאה בטעינת Mapbox. בדקו את מפתח הגישה או השתמשו ברקע ברירת המחדל.'});
+  }else{
+   tiles=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
+    subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap © CARTO'
+   });
+  }
+  tiles.addTo(map);
+ }
+ function drawDraft(){
+  if(!map)return;
+  if(draftLine)map.removeLayer(draftLine);
+  if(draftFill)map.removeLayer(draftFill);
+  draftLine=null;draftFill=null;
+  if(vertices.length){
+   draftLine=L.polyline(vertices,{color:'#ea202e',weight:3,dashArray:'6 6',interactive:false}).addTo(map);
+   if(vertices.length>=3)draftFill=L.polygon(vertices,{color:'#ea202e',weight:2,fillColor:'#f13b3b',fillOpacity:.35,interactive:false}).addTo(map);
+  }
+  $('finishPolygon').hidden=!(drawMode==='polygon');
+  $('finishPolygon').disabled=vertices.length<3;
+  $('cancelPolygon').hidden=drawMode!=='polygon';
+ }
+ function renderAnnotations(){
+  if(!layerGroup)return;
+  layerGroup.clearLayers();
+  const r=getRecord(selectedBlock);
   for(const [index,poly] of (r.polygons||[]).entries()){
    if(!Array.isArray(poly)||poly.length<3)continue;
-   const shape=L.polygon(poly,{color:'#e62b35',weight:2,fillColor:'#ef2e33',fillOpacity:.4}).addTo(layer);
-   shape.bindTooltip('חסימה '+(index+1)+' · לחצו להסרה');
-   shape.on('click',ev=>{
+   const layer=L.polygon(poly,{color:'#e62b35',weight:2,fillColor:'#ef2e33',fillOpacity:.4}).addTo(layerGroup);
+   layer.bindTooltip('חסימה '+(index+1)+' · לחצו להסרה');
+   layer.on('click',ev=>{
     L.DomEvent.stopPropagation(ev);
-    chooseBlock(i);
     if(confirm('להסיר מצולע חסימה זה?')){
-     r.polygons.splice(index,1);storeClosure();renderAnnotations(i);
+     r.polygons.splice(index,1);storeClosure();renderAnnotations();
     }
    });
   }
   for(const [index,sign] of (r.signs||[]).entries()){
    if(!presets[sign.type]||!Array.isArray(sign.point))continue;
-   const marker=L.marker(sign.point,{icon:signIcon(sign.type)}).addTo(layer);
+   const marker=L.marker(sign.point,{icon:signIcon(sign.type)}).addTo(layerGroup);
    marker.bindTooltip(presets[sign.type].label+' · לחצו להסרה');
    marker.on('click',ev=>{
     L.DomEvent.stopPropagation(ev);
-    chooseBlock(i);
     if(confirm('להסיר תמרור זה?')){
-     r.signs.splice(index,1);storeClosure();renderAnnotations(i);
+     r.signs.splice(index,1);storeClosure();renderAnnotations();
     }
    });
-  }
- }
- function drawDraft(){
-  const map=mapFor(selectedBlock);
-  if(draftLine){draftLine.remove();draftLine=null}
-  if(draftFill){draftFill.remove();draftFill=null}
-  if(map&&vertices.length){
-   draftLine=L.polyline(vertices,{color:'#ea202e',weight:3,dashArray:'6 6',interactive:false}).addTo(map);
-   if(vertices.length>=3)draftFill=L.polygon(vertices,{color:'#ea202e',weight:2,fillColor:'#f13b3b',fillOpacity:.35,interactive:false}).addTo(map);
-  }
-  $('finishPolygon').hidden=drawMode!=='polygon';
-  $('finishPolygon').disabled=vertices.length<3;
-  $('cancelPolygon').hidden=drawMode!=='polygon';
- }
- function setBasemap(){
-  for(let i=0;i<maps.length;i++){
-   const map=maps[i];if(!map)continue;
-   if(tileLayers[i])map.removeLayer(tileLayers[i]);
-   const token=$('mapboxToken').value.trim();
-   if(token.startsWith('pk.')){
-    tileLayers[i]=L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token='+encodeURIComponent(token),{
-     maxZoom:20,attribution:'© Mapbox © OpenStreetMap'
-    });
-    tileLayers[i].on('tileerror',()=>{$('mapToolStatus').textContent='שגיאה בטעינת Mapbox. בדקו את מפתח הגישה.'});
-   }else{
-    tileLayers[i]=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
-     maxZoom:19,attribution:'© OpenStreetMap contributors'
-    });
-   }
-   tileLayers[i].addTo(map);
   }
  }
  function selectTool(tool){
   drawMode=tool;vertices=[];drawDraft();
   document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('selected-tool',b.dataset.tool===tool));
-  for(const map of maps)if(map)map.getContainer().style.cursor=tool==='pan'?'grab':'crosshair';
-  $('mapToolStatus').textContent=tool==='pan'?'לחצו על שורת חסימה כדי לערוך אותה, וגררו את המפה להזזה':
+  if(map)map.getContainer().style.cursor=tool==='pan'?'grab':'crosshair';
+  $('mapToolStatus').textContent=tool==='pan'?'גררו את המפה כדי להזיז את האזור':
    tool==='polygon'?'לחצו על המפה להוספת קודקודים; בסוף לחצו סיים מצולע':
    'לחצו על המפה כדי להציב '+presets[tool].label;
  }
- function chooseBlock(i,retainTool=false){
-  if(i<0||i>=blocks.length)return;
-  if(i!==selectedBlock){vertices=[];drawDraft()}
+ function chooseBlock(i){
+  if(map&&selectedBlock!==i){
+   const r=getRecord(selectedBlock),c=map.getCenter();
+   r.center=[c.lat,c.lng];r.zoom=map.getZoom();storeClosure();
+  }
   selectedBlock=i;
   const r=getRecord(i);
-  $('activeBlockageLabel').textContent='חסימה '+(i+1)+' מתוך '+blocks.length+' · '+(blocks[i].street||'ללא רחוב');
+  $('blockageSelect').value=String(i);
   $('closureDescription').value=r.description||'';
-  document.querySelectorAll('.closure-row').forEach((row,index)=>row.classList.toggle('active',index===i));
-  if(!retainTool)selectTool('pan');
- }
- function createRows(){
-  const root=$('closureRows');root.replaceChildren();
-  for(let i=0;i<blocks.length;i++){
-   const row=document.createElement('div');row.className='closure-row';row.dataset.blockage=String(i);
-   const mapBox=document.createElement('div');mapBox.className='closure-map-box';
-   const mapEl=document.createElement('div');mapEl.className='closure-map';mapEl.id='closureMap'+i;
-   mapEl.setAttribute('aria-label','מפת חסימה '+(i+1));mapBox.append(mapEl);
-   const side=document.createElement('div');side.className='closure-side';
-   const label=document.createElement('div');label.className='closure-row-label';
-   label.textContent='חסימה '+(i+1)+' · '+(blocks[i].street||'ללא רחוב');
-   const description=document.createElement('div');description.className='closure-text';description.id='previewClosureDescription'+i;
-   description.textContent=getRecord(i).description||'';
-   const legend=document.createElement('div');legend.className='closure-legend';
-   for(const [name,content,cssClass] of [
-    ['ביטולי פניות / חסימה','⛔ ↰ ↱',''],
-    ['סימון אזור העבודה','','closure-swatch'],
-    ['קווים מושפעים','בהמשך','routes-placeholder']]){
-    const line=document.createElement('div'),key=document.createElement('span'),val=document.createElement('span');
-    key.textContent=name;val.textContent=content;
-    if(cssClass)val.className=cssClass;
-    line.append(key,val);legend.append(line);
-   }
-   side.append(label,description,legend);row.append(mapBox,side);
-   row.addEventListener('click',()=>chooseBlock(i,true));
-   root.append(row);
-  }
-  $('slide').style.setProperty('--block-count',String(blocks.length));
- }
- function ensureMaps(){
-  if(typeof L==='undefined'){
-   $('mapToolStatus').textContent='ספריית המפה לא נטענה. בדקו את החיבור לאינטרנט ורעננו את הדף.';
-   return false;
-  }
-  for(let i=0;i<blocks.length;i++){
-   if(maps[i])continue;
-   const r=getRecord(i);
-   const map=L.map('closureMap'+i,{zoomControl:true,scrollWheelZoom:false});
-   maps[i]=map;
-   layerGroups[i]=L.featureGroup().addTo(map);
+  $('previewClosureDescription').textContent=r.description||'';
+  if(map){
    map.setView(Array.isArray(r.center)?r.center:fallbackCenter,Number.isFinite(+r.zoom)?+r.zoom:14);
-   map.on('click',ev=>{
-    if(i!==selectedBlock)chooseBlock(i,true);
-    if(drawMode==='polygon'){
-     vertices.push([ev.latlng.lat,ev.latlng.lng]);drawDraft();
-     $('mapToolStatus').textContent=vertices.length<3?'סמנו לפחות 3 נקודות':'לחצו על סיים מצולע או המשיכו להוסיף נקודות';
-    }else if(presets[drawMode]){
-     const r=getRecord(i);
-     r.signs.push({type:drawMode,point:[ev.latlng.lat,ev.latlng.lng]});
-     storeClosure();renderAnnotations(i);
-    }
-   });
-   map.on('mousemove',ev=>{
-    if(i===selectedBlock&&drawMode==='polygon'&&vertices.length&&draftLine){
-     draftLine.setLatLngs([...vertices,[ev.latlng.lat,ev.latlng.lng]]);
-    }
-   });
-   map.on('moveend',()=>{
-    const c=map.getCenter(),r=getRecord(i);
-    r.center=[c.lat,c.lng];r.zoom=map.getZoom();storeClosure();
-   });
-   renderAnnotations(i);
+   renderAnnotations();
   }
-  setBasemap();
-  return true;
+  selectTool('pan');
  }
- createRows();
- chooseBlock(0);
+ for(let i=0;i<blocks.length;i++){
+  const opt=document.createElement('option');
+  opt.value=String(i);
+  opt.textContent='חסימה '+(i+1)+' · '+(blocks[i].street||'ללא רחוב');
+  $('blockageSelect').append(opt);
+ }
+ $('blockageSelect').onchange=()=>chooseBlock(Number($('blockageSelect').value));
  $('closureDescription').oninput=()=>{
-  const value=$('closureDescription').value;
-  getRecord(selectedBlock).description=value;
-  const display=$('previewClosureDescription'+selectedBlock);
-  if(display)display.textContent=value;
+  getRecord(selectedBlock).description=$('closureDescription').value;
+  $('previewClosureDescription').textContent=$('closureDescription').value;
   storeClosure();
  };
  $('mapboxToken').value=localStorage.getItem(MAPBOX_KEY)||'';
  $('mapboxToken').onchange=()=>{
-  const token=$('mapboxToken').value.trim();
-  if(token&&(!token.startsWith('pk.')||token.length>256)){
-   $('mapToolStatus').textContent='נדרש מפתח Mapbox ציבורי המתחיל ב־pk.';return;
+  const t=$('mapboxToken').value.trim();
+  if(t&&(!t.startsWith('pk.')||t.length>256)){
+   $('mapToolStatus').textContent='נדרש מפתח Mapbox ציבורי המתחיל ב־pk.';
+   return;
   }
-  localStorage.setItem(MAPBOX_KEY,token);setBasemap();
+  localStorage.setItem(MAPBOX_KEY,t);
+  setBasemap();
  };
  document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>selectTool(b.dataset.tool));
  $('finishPolygon').onclick=()=>{
   if(vertices.length<3)return;
   getRecord(selectedBlock).polygons.push(vertices.map(p=>p.slice()));
-  vertices=[];storeClosure();drawDraft();renderAnnotations(selectedBlock);
-  $('mapToolStatus').textContent='מצולע החסימה נשמר במפת חסימה '+(selectedBlock+1);
+  vertices=[];storeClosure();drawDraft();renderAnnotations();
+  $('mapToolStatus').textContent='המצולע נשמר. אפשר להמשיך לסמן חסימות נוספות.';
  };
- $('cancelPolygon').onclick=()=>selectTool('pan');
+ $('cancelPolygon').onclick=()=>{vertices=[];drawDraft();selectTool('pan')};
  $('undoMap').onclick=()=>{
   if(vertices.length){vertices.pop();drawDraft();return}
   const r=getRecord(selectedBlock);
   if(r.signs.length)r.signs.pop();
   else if(r.polygons.length)r.polygons.pop();
-  storeClosure();renderAnnotations(selectedBlock);
+  storeClosure();renderAnnotations();
  };
  $('clearMap').onclick=()=>{
-  if(!confirm('לנקות את הסימונים רק בחסימה '+(selectedBlock+1)+'?'))return;
+  if(!confirm('לנקות את כל הסימונים בחסימה הנוכחית?'))return;
   const r=getRecord(selectedBlock);r.polygons=[];r.signs=[];vertices=[];
-  storeClosure();drawDraft();renderAnnotations(selectedBlock);
+  storeClosure();drawDraft();renderAnnotations();
  };
  $('mapSearchButton').onclick=async()=>{
-  const query=$('mapSearch').value.trim();if(!query)return;
+  const query=$('mapSearch').value.trim();
+  if(!query)return;
   $('mapSearchStatus').textContent='מחפש מיקום...';
   try{
    const url='https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(query+(query.includes(city)?'':', '+city+', ישראל'));
@@ -584,24 +555,25 @@ if(!event){$('missing').hidden=false}else{
    if(!response.ok)throw Error('שירות החיפוש לא זמין');
    const matches=await response.json();
    if(!matches.length){$('mapSearchStatus').textContent='לא נמצא מיקום. נסו שם רחוב או צומת אחר.';return}
-   const map=mapFor(selectedBlock);if(!map)return;
    map.setView([+matches[0].lat,+matches[0].lon],17);
-   $('mapSearchStatus').textContent='מפת חסימה '+(selectedBlock+1)+' התמקדה במיקום';
+   $('mapSearchStatus').textContent='המפה התמקדה במיקום. כעת אפשר לסמן חסימה.';
   }catch(error){$('mapSearchStatus').textContent='שגיאה בחיפוש: '+error.message}
  };
  $('mapSearch').addEventListener('keydown',ev=>{if(ev.key==='Enter'){$('mapSearchButton').click();ev.preventDefault()}});
+ chooseBlock(0);
  function displaySlide(n){
-  const isClosure=n==='3';
   $('coverSlide').hidden=n!=='1';
   $('detailsSlide').hidden=n!=='2';
-  $('closureSlide').hidden=!isClosure;
+  $('closureSlide').hidden=n!=='3';
   $('coverInputs').hidden=n!=='1';
   $('detailsInputs').hidden=n!=='2';
-  $('closureTools').hidden=!isClosure;
-  $('slide').classList.toggle('multi-closures',isClosure&&blocks.length>1);
-  if(isClosure&&ensureMaps()){
-   for(const map of maps)if(map)requestAnimationFrame(()=>map.invalidateSize());
-   setTimeout(()=>{for(const map of maps)if(map)map.invalidateSize()},250);
+  $('closureTools').hidden=n!=='3';
+  if(n==='3'&&ensureMap()){
+   const r=getRecord(selectedBlock);
+   map.setView(r.center||fallbackCenter,r.zoom||14);
+   renderAnnotations();
+   requestAnimationFrame(()=>map.invalidateSize());
+   setTimeout(()=>map.invalidateSize(),240);
   }
   for(const button of document.querySelectorAll('[data-slide]')){
    const active=button.dataset.slide===n;
