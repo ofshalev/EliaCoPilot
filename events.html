@@ -1211,7 +1211,7 @@ function render(){
   const name=eventBlockages(e).length>1?multiBlockageTitle(eventBlockages(e))
    :(e.eventTitle||'אירוע ללא שם').replace(/^חסימת\s+(?=צומת(?:\s|$))/,'').trim();
   txt(tag(info,'strong','event-title'),name);
-  txt(tag(info,'div','event-meta'),(eventBlockages(e).length>1?[e.city]:[e.city,e.street,e.direction]).filter(Boolean).join(' · '));
+  txt(tag(info,'div','event-meta'),e.city||'');
   const whenEl=tag(info,'div','event-meta');
   const addWhen=(value,red=false)=>{const el=tag(whenEl,'span',red?'time-alert':'');el.textContent=value;};
   const span=widestEventSpan(e);
