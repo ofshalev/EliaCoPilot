@@ -16,15 +16,15 @@ main{max-width:1080px;margin:26px auto;padding:0 18px}
 h1{margin:0 0 12px;font-size:25px}p{line-height:1.7}
 .note{color:#52677d;margin:0}
 .segment-sections{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
-.segment-section{background:#fff;border:2px solid var(--line-color);border-radius:10px;padding:0;box-shadow:0 3px 12px #1025400c;text-align:center;overflow:hidden;align-self:start}
-.segment-toggle{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;border:0;background:#fff;color:var(--line-color);font:800 17px Arial,sans-serif;padding:12px 14px;cursor:pointer}
+.segment-section{background:transparent;border:0;border-radius:0;padding:0;box-shadow:none;text-align:center;overflow:visible;align-self:start}
+.segment-toggle{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;border:2px solid var(--line-color);border-radius:9px;background:#fff;color:var(--line-color);font:800 17px Arial,sans-serif;padding:12px 14px;cursor:pointer}
 .segment-toggle:hover,.segment-toggle:focus-visible{background:#f5f7fb}
 .segment-toggle:focus-visible{outline:3px solid var(--line-color);outline-offset:-3px}
 .segment-toggle::after{content:"⌄";font-size:19px;line-height:1;transition:transform .15s}
 .segment-toggle[aria-expanded="true"]::after{transform:rotate(180deg)}
-.segment-list{border-top:1px solid #dbe3ed;padding:10px 12px 14px;display:flex;flex-direction:column;gap:7px;text-align:center}
+.segment-list{border:0;padding:10px 0 0;display:flex;flex-direction:column;gap:7px;text-align:center}
 .segment-list[hidden]{display:none}
-.segment-code{border:1px solid #d9e2ec;border-radius:7px;background:#f8fafc;color:#273c55;padding:7px 4px;font:700 13px Arial,sans-serif;direction:ltr}
+.segment-code{border:1px solid #e1e7ef;border-radius:7px;background:#fff;color:#273c55;padding:9px 7px;font:700 13px Arial,sans-serif;direction:ltr}
 .segment-count{font-size:12px;font-weight:400;opacity:.8}
 .segment-purple{--line-color:#7844aa}
 .segment-brown{--line-color:#89552f}
