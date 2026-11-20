@@ -234,7 +234,7 @@ function dayPlus(date,days){if(!date)return '';const d=new Date(date+'T12:00:00'
 function weekStart(d){const n=new Date(d+'T12:00:00');n.setDate(n.getDate()-n.getDay());return localISO(n)}
 function israelToday(){const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const part=t=>p.find(x=>x.type===t).value;return part('year')+'-'+part('month')+'-'+part('day')}
 const today=israelToday(),currentStart=weekStart(today),nextStart=dayPlus(currentStart,7);
-function weekNumber(date){const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+4-(d.getDay()||7));const y=new Date(d.getFullYear(),0,1);return Math.ceil(((d-y)/86400000+1)/7)}
+function weekNumber(date){const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+4-d.getDay());const y=new Date(d.getFullYear(),0,1);return Math.ceil(((d-y)/86400000+1)/7)}
 $('eliaCurrentWeek').textContent=weekNumber(today);$('eliaNextWeek').textContent=weekNumber(nextStart);
 function cityForSegment(segment){
  if(!segment)return '';
