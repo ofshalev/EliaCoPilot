@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Elia CoPilot — מחולל מייל</title>
+<style>
+:root{font-family:Arial,sans-serif;background:#f3f6fb;color:#172b46}*{box-sizing:border-box}body{margin:0}header{background:#14283f;color:white;padding:25px max(20px,calc((100vw - 1180px)/2));position:relative;min-height:114px}header strong{font-size:29px}header p{margin:5px 0;opacity:.8;font-size:14px}
+nav{display:flex;gap:9px;flex-wrap:wrap;padding:12px max(20px,calc((100vw - 1180px)/2));background:#e5edf7;border-bottom:1px solid #cbd6e3}nav a{font-weight:700;color:#245bb4;text-decoration:none;background:white;border-radius:8px;padding:9px 12px;font-size:14px}nav a[aria-current]{color:#152a44}
+main{max-width:1100px;margin:24px auto;padding:0 18px}.card{background:white;border:1px solid #dce4ee;border-radius:14px;padding:22px;margin-bottom:17px;box-shadow:0 6px 25px #1025400c}h1{font-size:23px;margin:0 0 8px}h2{font-size:17px;margin:0 0 13px}p{line-height:1.65}label{display:block;font-weight:bold;font-size:14px;margin-bottom:6px}input,textarea,select{font:14px Arial,sans-serif;padding:10px;border:1px solid #c4d2e2;border-radius:8px;background:white;color:#172b46;width:100%}textarea{resize:vertical;min-height:90px}input:focus,textarea:focus,select:focus,.editor:focus{outline:2px solid #a5c2ff}button{background:#2864e2;color:white;border:0;border-radius:8px;padding:10px 14px;font:bold 14px Arial,sans-serif;cursor:pointer}button.alt{background:#e9f0fb;color:#24476b}button.danger{background:#fff0f0;color:#a33}.actions{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:13px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.hint{font-size:13px;color:#63768b}.field{margin-bottom:13px}.recipient-line{display:grid;grid-template-columns:88px minmax(0,1fr) auto;gap:10px;align-items:start;margin-bottom:12px}.recipient-line>.field-label{font-weight:bold;padding-top:10px}.recipient-selected{display:flex;gap:6px;flex-wrap:wrap;min-height:40px;padding:6px;border:1px solid #c4d2e2;border-radius:8px;background:#fafcff;align-items:center}.recipient-selected .placeholder{color:#8090a4;padding:4px}.chip{display:inline-flex;align-items:center;gap:5px;max-width:100%;background:#e7f0ff;color:#173d74;border-radius:20px;padding:5px 9px;font-size:12px}.chip span{overflow-wrap:anywhere}.chip button{padding:0 4px;border:0;background:transparent;color:#234b7f;font-size:17px}.toolbar{display:flex;flex-wrap:wrap;gap:6px;padding:8px;border:1px solid #d6e0eb;border-radius:9px 9px 0 0;background:#f8fafd}.toolbar button{min-width:35px;padding:7px 9px}.editor{min-height:240px;border:1px solid #c4d2e2;border-top:0;border-radius:0 0 9px 9px;padding:15px;line-height:1.7;overflow-wrap:anywhere}.editor:empty:before{content:attr(data-placeholder);color:#98a6b6}.section-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.section-row .grow{flex:1}.attachment{display:inline-flex;gap:8px;align-items:center;background:#f2f6fb;border-radius:8px;padding:7px 10px;font-size:13px;margin:4px}.attachment button{padding:3px 6px}.status{min-height:24px;margin-top:14px;color:#27633e;font-size:13px}.picker{border:1px solid #bed0e6;background:#f9fbff;padding:16px;border-radius:12px;margin:12px 0 17px}.picker[hidden]{display:none}.picker-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.picker-results{max-height:280px;overflow:auto;border:1px solid #dbe4ee;border-radius:8px;background:white}.pick-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px;border-bottom:1px solid #e6edf5;font-size:13px}.pick-item strong{display:block}.pick-item small{display:block;color:#687b8e;overflow-wrap:anywhere}.pick-item button{white-space:nowrap}.mini{font-size:12px;padding:6px 10px}.muted{color:#647990}.elapsed{color:#9b5b18}
+.elia-weeks{position:absolute;top:10px;left:18px;display:flex;direction:ltr;align-items:flex-start;gap:16px;white-space:nowrap}.elia-week-block{display:flex;flex-direction:column;align-items:center;gap:4px;direction:rtl}.elia-week-label{font-size:16px;font-weight:700;color:#d0dbea}.elia-week-next{background:#e8f1ff;color:#173e75;border:1px solid #9fc4fc;border-radius:9px;padding:8px 20px;font-size:34px;font-weight:800}.elia-week-current{color:#d0dbea;opacity:.56;font-size:20px;font-weight:700;padding:6px 10px}.elia-week-block-current .elia-week-label{opacity:.56}
+@media(max-width:650px){header{padding-top:100px}.recipient-line{grid-template-columns:45px minmax(0,1fr)}.recipient-line>button{grid-column:2}.grid,.picker-grid{grid-template-columns:1fr}.card{padding:15px}}
+</style></head><body>
+<header><strong>Elia CoPilot</strong><p>מחולל מייל · הודעה חדשה</p><div class="elia-weeks"><div class="elia-week-block"><span class="elia-week-label">שבוע הבא</span><span class="elia-week-next" id="eliaNextWeek">–</span></div><div class="elia-week-block elia-week-block-current"><span class="elia-week-label">שבוע נוכחי</span><span class="elia-week-current" id="eliaCurrentWeek">–</span></div></div></header>
+<nav aria-label="כלי Elia CoPilot"><a href="./events.html">📅 אירועים</a><a href="./segments.html">🛣️ מקטעים</a><a href="./mail-generator.html" aria-current="page">✉️ מחולל מייל</a><a href="./word-generator.html">📄 מחולל Word</a><a href="./contacts.html">👥 נמענים</a><a href="./sign-generator.html">🪧 מחולל שלטים</a><a href="./notice-template.html">📢 הודעה על רקע קבוע</a><a href="./work-importer.html">📊 ייבוא עבודות</a></nav>
+<main>
+<section class="card"><div class="section-row"><div class="grow"><h1>מייל חדש</h1><p class="hint">מייל כללי עם נמענים וקבוצות מתוך המאגר. המידע נשמר רק בדפדפן.</p></div><a href="./weekly-email.html">המחולל השבועי הקודם</a></div>
+<div class="grid"><div class="field"><label for="template">תבנית</label><select id="template"><option value="blank">מייל חדש (ריק)</option></select></div><div class="field"><label for="from">מאת (לציון בלבד)</label><input id="from" type="email" dir="ltr" placeholder="your-email@example.com"></div></div>
+<div class="recipient-line"><div class="field-label">אל</div><div class="recipient-selected" id="toChips"></div><button type="button" class="alt" data-pick="to">בחר נמענים</button></div>
+<div class="recipient-line"><div class="field-label">עותק</div><div class="recipient-selected" id="ccChips"></div><button type="button" class="alt" data-pick="cc">בחר נמענים</button></div>
+<div class="recipient-line"><div class="field-label">עותק מוסתר</div><div class="recipient-selected" id="bccChips"></div><button type="button" class="alt" data-pick="bcc">בחר נמענים</button></div>
+<div class="picker" id="picker" hidden><div class="section-row"><h2 id="pickerTitle">בחירת נמענים</h2><div class="grow"></div><button class="alt" id="closePicker" type="button">סגור</button></div>
+<div class="picker-grid"><div class="field"><label for="search">חיפוש איש קשר</label><input id="search" placeholder="שם, מייל או שיוך"></div><div class="field"><label for="orgFilter">שיוך</label><select id="orgFilter"><option value="">כל השיוכים</option></select></div></div>
+<div class="picker-grid"><div><h2>נמענים אישיים</h2><div class="picker-results" id="peopleChoices"></div></div><div><h2>קבוצות נמענים</h2><div class="picker-results" id="groupChoices"></div><p class="hint">בחירת קבוצה תוסיף לנמען הנוכחי את אנשי הקשר המתאימים (אל או עותק); עבור עותק מוסתר יתווספו כל חברי הקבוצה.</p></div></div>
+<div class="field" style="margin-top:12px"><label for="manualEmail">כתובת מייל חופשית</label><div class="section-row"><div class="grow"><input id="manualEmail" type="email" dir="ltr" placeholder="name@example.com"></div><button id="addManual" type="button">הוסף כתובת</button></div></div></div>
+<div class="field"><label for="replyTo">השב אל (Reply-To) — רשות</label><input id="replyTo" type="email" dir="ltr" placeholder="reply@example.com"></div>
+<div class="field"><label for="subject">נושא</label><input id="subject" placeholder="נושא ההודעה"></div>
+<div class="grid"><div class="field"><label for="importance">חשיבות</label><select id="importance"><option value="normal">רגילה</option><option value="high">גבוהה</option><option value="low">נמוכה</option></select></div><div class="field"><label for="signature">חתימה</label><select id="signature"><option value="off">ללא חתימה</option><option value="saved">השתמש בחתימה השמורה</option></select></div></div>
+<div class="field"><label>גוף ההודעה</label><div class="toolbar" aria-label="עיצוב גוף המייל"><button class="alt" type="button" data-command="bold" title="מודגש"><b>B</b></button><button class="alt" type="button" data-command="italic" title="נטוי"><i>I</i></button><button class="alt" type="button" data-command="underline" title="קו תחתון"><u>U</u></button><button class="alt" type="button" data-command="insertUnorderedList" title="רשימה">☷</button><button class="alt" type="button" data-command="justifyRight" title="יישור לימין">⇥</button><button class="alt" type="button" data-command="justifyLeft" title="יישור לשמאל">⇤</button><button class="alt" type="button" id="insertLink">🔗 קישור</button><button class="alt" type="button" id="clearFormatting">נקה עיצוב</button></div><div id="bodyEditor" class="editor" contenteditable="true" dir="rtl" role="textbox" aria-multiline="true" data-placeholder="כתוב את ההודעה..."></div></div>
+<div class="field"><label for="files">קבצים מצורפים</label><input id="files" type="file" multiple><div id="fileList"></div><p class="hint">הקבצים נכללים בקובץ EML להורדה, אך לא בפתיחת טיוטה באמצעות mailto.</p></div>
+<div class="actions"><button id="downloadEml" type="button">הורד מייל EML (כולל קבצים)</button><button id="openMail" class="alt" type="button">פתח באפליקציית הדואר (ללא קבצים)</button><button id="copySubject" class="alt" type="button">העתק נושא</button><button id="copyBody" class="alt" type="button">העתק גוף</button></div>
+</section>
+<section class="card"><h2>טיוטות וחתימה</h2><p class="hint">טיוטה נשמרת במחשב הזה (לא כולל קבצים מצורפים). לחיצה על מייל חדש תנקה את העורך.</p><div class="actions"><button id="saveDraft" type="button" class="alt">שמור טיוטה</button><button id="loadDraft" type="button" class="alt">טען טיוטה</button><button id="newMail" type="button" class="alt">מייל חדש</button><button id="saveSignature" type="button" class="alt">ערוך חתימה שמורה</button></div><div id="status" class="status" role="status"></div></section>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const PEOPLE_KEY='elia_copilot_contacts_v2',DRAFT_KEY='elia_copilot_mail_draft_v1',SIGNATURE_KEY='elia_copilot_mail_signature_v1';
+let db={people:[],groups:[]},selected={to:[],cc:[],bcc:[]},activeField='to',attachments=[];
+function cleanEmail(s){return String(s||'').trim().toLowerCase()}
+function status(s){$('status').textContent=s}
+function loadContacts(){
+ try{const d=JSON.parse(localStorage.getItem(PEOPLE_KEY));if(d&&Array.isArray(d.people)&&Array.isArray(d.groups)){db=d;return}}catch(e){}
+ try{const d=JSON.parse(localStorage.getItem('elia_copilot_contacts_v1'));if(d&&Array.isArray(d.groups)){
+   const map=new Map();db={people:[],groups:[]};
+   for(const g of d.groups){const group={id:g.id,name:g.name,to:[],cc:[]};for(const field of ['to','cc'])for(const email of g[field]||[]){const key=cleanEmail(email);if(!map.has(key)){const p={id:'legacy-'+db.people.length,name:key.split('@')[0],email:key,affiliation:''};map.set(key,p);db.people.push(p)}group[field].push(map.get(key).id)}db.groups.push(group)}
+ }}catch(e){}
+}
+function entryOf(email){return db.people.find(p=>cleanEmail(p.email)===cleanEmail(email))}
+function addRecipient(field,email){
+ const key=cleanEmail(email);if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(key)){status('כתובת מייל לא תקינה');return false}
+ if(!selected[field].includes(key))selected[field].push(key);
+ // Avoid accidentally placing the same recipient in multiple visible fields.
+ for(const f of ['to','cc','bcc'])if(f!==field)selected[f]=selected[f].filter(e=>e!==key);
+ renderSelected();return true
+}
+function renderSelected(){
+ for(const field of ['to','cc','bcc']){
+  const el=$(field+'Chips');el.replaceChildren();if(!selected[field].length){const txt=document.createElement('span');txt.className='placeholder';txt.textContent='לא נבחרו נמענים';el.append(txt);continue}
+  for(const email of selected[field]){const chip=document.createElement('span');chip.className='chip';const name=document.createElement('span');const person=entryOf(email);name.textContent=(person?.name||email)+(person?.name?' · '+email:'');const del=document.createElement('button');del.type='button';del.setAttribute('aria-label','הסר '+email);del.textContent='×';del.onclick=()=>{selected[field]=selected[field].filter(e=>e!==email);renderSelected()};chip.append(name,del);el.append(chip)}
+ }
+}
+function pickerRender(){
+ const query=$('search').value.toLowerCase().trim(),aff=$('orgFilter').value,people=$('peopleChoices'),groups=$('groupChoices');people.replaceChildren();groups.replaceChildren();
+ for(const p of [...db.people].sort((a,b)=>String(a.name).localeCompare(String(b.name),'he'))){
+  if(aff&&p.affiliation!==aff)continue;
+  if(query&&!(p.name+' '+p.email+' '+(p.affiliation||'')).toLowerCase().includes(query))continue;
+  const row=document.createElement('div');row.className='pick-item';const desc=document.createElement('div');const strong=document.createElement('strong');strong.textContent=p.name||p.email;const small=document.createElement('small');small.textContent=p.email+' · '+(p.affiliation||'ללא שיוך');desc.append(strong,small);
+  const btn=document.createElement('button');btn.type='button';btn.className='mini alt';btn.textContent=selected[activeField].includes(cleanEmail(p.email))?'נבחר':'הוסף';btn.disabled=selected[activeField].includes(cleanEmail(p.email));btn.onclick=()=>{addRecipient(activeField,p.email);pickerRender()};row.append(desc,btn);people.append(row);
+ }
+ if(!people.children.length)people.textContent='אין תוצאות';
+ for(const g of db.groups){
+  const emails=(activeField==='bcc'?[...(g.to||[]),...(g.cc||[])]:g[activeField]||[]).map(pid=>db.people.find(p=>p.id===pid)?.email).filter(Boolean);
+  const unique=[...new Set(emails.map(cleanEmail))];
+  const row=document.createElement('div');row.className='pick-item';const desc=document.createElement('div');const title=document.createElement('strong');title.textContent=g.name;const small=document.createElement('small');small.textContent=unique.length+' נמענים';desc.append(title,small);
+  const btn=document.createElement('button');btn.type='button';btn.className='mini alt';btn.textContent='הוסף קבוצה';btn.disabled=!unique.length;btn.onclick=()=>{for(const email of unique)addRecipient(activeField,email);pickerRender();status('נוספו '+unique.length+' כתובות מהקבוצה')};row.append(desc,btn);groups.append(row);
+ }
+ if(!groups.children.length)groups.textContent='אין קבוצות';
+}
+function openPicker(field){
+ loadContacts();activeField=field;$('picker').hidden=false;
+ $('pickerTitle').textContent='בחירת נמענים — '+({to:'אל',cc:'עותק',bcc:'עותק מוסתר'}[field]);
+ $('search').value='';$('orgFilter').replaceChildren();
+ const all=document.createElement('option');all.value='';all.textContent='כל השיוכים';$('orgFilter').append(all);
+ for(const name of [...new Set(db.people.map(p=>p.affiliation).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'))){const opt=document.createElement('option');opt.value=name;opt.textContent=name;$('orgFilter').append(opt)}
+ pickerRender();$('picker').scrollIntoView({behavior:'smooth',block:'nearest'})
+}
+document.querySelectorAll('[data-pick]').forEach(btn=>btn.onclick=()=>openPicker(btn.dataset.pick));
+$('closePicker').onclick=()=>{$('picker').hidden=true};
+$('search').oninput=pickerRender;$('orgFilter').onchange=pickerRender;
+$('addManual').onclick=()=>{if(addRecipient(activeField,$('manualEmail').value)){$('manualEmail').value='';pickerRender()}};
+function htmlBody(){let html=$('bodyEditor').innerHTML;const saved=localStorage.getItem(SIGNATURE_KEY)||'';if($('signature').value==='saved'&&saved)html+='<div style="margin-top:20px">'+escapeHtml(saved).replace(/\n/g,'<br>')+'</div>';return html}
+function plainBody(){const node=$('bodyEditor');let txt=node.innerText;const saved=localStorage.getItem(SIGNATURE_KEY)||'';if($('signature').value==='saved'&&saved)txt+='\n\n'+saved;return txt}
+function escapeHtml(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function mimeBase64(buffer){const bytes=new Uint8Array(buffer);let bin='';for(let i=0;i<bytes.length;i+=8192)bin+=String.fromCharCode(...bytes.slice(i,i+8192));return btoa(bin).replace(/.{1,76}/g,'$&\r\n').trim()}
+function encodedHeader(t){return '=?UTF-8?B?'+btoa(unescape(encodeURIComponent(t)))+'?='}
+function safeFilename(s){return String(s).replace(/[\r\n"\\]/g,'_')}
+function addresses(f){return selected[f].join(', ')}
+async function buildEml(){
+ const subj=$('subject').value.trim();if(!subj)throw Error('יש להזין נושא');
+ const from=$('from').value.trim(),reply=$('replyTo').value.trim();
+ const header=['MIME-Version: 1.0','Date: '+new Date().toUTCString(),'Subject: '+encodedHeader(subj),'To: '+addresses('to')];
+ if(from)header.push('From: '+from);if(reply)header.push('Reply-To: '+reply);
+ if(selected.cc.length)header.push('Cc: '+addresses('cc'));if(selected.bcc.length)header.push('Bcc: '+addresses('bcc'));
+ if($('importance').value==='high')header.push('Importance: high','X-Priority: 1');if($('importance').value==='low')header.push('Importance: low','X-Priority: 5');
+ const plain=plainBody(),html='<!doctype html><html lang="he" dir="rtl"><meta charset="utf-8"><body>'+htmlBody()+'</body></html>';
+ const boundary='ELIA-'+Date.now(),alt='ELIA-alt-'+Date.now();
+ const lines=[...header,'Content-Type: multipart/mixed; boundary="'+boundary+'"','',
+ '--'+boundary,'Content-Type: multipart/alternative; boundary="'+alt+'"','',
+ '--'+alt,'Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64','',mimeBase64(new TextEncoder().encode(plain).buffer),
+ '--'+alt,'Content-Type: text/html; charset=UTF-8','Content-Transfer-Encoding: base64','',mimeBase64(new TextEncoder().encode(html).buffer),'--'+alt+'--'];
+ for(const f of attachments){lines.push('--'+boundary,'Content-Type: '+(f.type||'application/octet-stream')+'; name="'+safeFilename(f.name)+'"','Content-Transfer-Encoding: base64','Content-Disposition: attachment; filename="'+safeFilename(f.name)+'"','',mimeBase64(await f.arrayBuffer()))}
+ lines.push('--'+boundary+'--','');return lines.join('\r\n')
+}
+$('downloadEml').onclick=async()=>{try{
+ const eml=await buildEml(),blob=new Blob([eml],{type:'message/rfc822'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='EliaCoPilot_Email.eml';a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);status('קובץ EML נוצר. יש לבדוק את הנמענים והקבצים לפני שליחה.')
+}catch(e){status(e.message)}};
+$('openMail').onclick=()=>{
+ const subject=$('subject').value.trim(),txt=plainBody();const u='mailto:'+selected.to.map(encodeURIComponent).join(',')+'?cc='+encodeURIComponent(addresses('cc'))+'&bcc='+encodeURIComponent(addresses('bcc'))+'&subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(txt);
+ if(u.length>1800){status('הודעה ארוכה מדי לפתיחה אמינה ב-mailto. מומלץ להוריד EML.');return}
+ location.href=u;
+};
+$('copySubject').onclick=()=>copy($('subject').value);$('copyBody').onclick=()=>copy(plainBody());
+async function copy(s){try{await navigator.clipboard.writeText(s);status('הועתק ללוח')}catch(e){status('לא ניתן להעתיק אוטומטית')}}
+document.querySelectorAll('[data-command]').forEach(btn=>btn.onclick=()=>{$('bodyEditor').focus();document.execCommand(btn.dataset.command,false,null)});
+$('insertLink').onclick=()=>{const link=prompt('כתובת הקישור (https://)');if(link&&/^https?:\/\//i.test(link)){$('bodyEditor').focus();document.execCommand('createLink',false,link)}};
+$('clearFormatting').onclick=()=>{$('bodyEditor').focus();document.execCommand('removeFormat',false,null)};
+$('files').onchange=()=>{attachments=[...$('files').files];renderFiles()};
+function renderFiles(){const area=$('fileList');area.replaceChildren();for(const [i,f] of attachments.entries()){const wrap=document.createElement('span');wrap.className='attachment';const label=document.createElement('span');label.textContent=f.name+' ('+(f.size/1024).toFixed(0)+' KB)';const del=document.createElement('button');del.className='alt mini';del.textContent='×';del.onclick=()=>{attachments.splice(i,1);$('files').value='';renderFiles()};wrap.append(label,del);area.append(wrap)}}
+function snapshot(){return {selected,from:$('from').value,replyTo:$('replyTo').value,subject:$('subject').value,importance:$('importance').value,signature:$('signature').value,body:$('bodyEditor').innerHTML}}
+function restore(d){selected={to:[...(d.selected?.to||[])],cc:[...(d.selected?.cc||[])],bcc:[...(d.selected?.bcc||[])]};$('from').value=d.from||'';$('replyTo').value=d.replyTo||'';$('subject').value=d.subject||'';$('importance').value=d.importance||'normal';$('signature').value=d.signature||'off';$('bodyEditor').innerHTML=d.body||'';renderSelected()}
+$('saveDraft').onclick=()=>{localStorage.setItem(DRAFT_KEY,JSON.stringify(snapshot()));status('הטיוטה נשמרה בדפדפן ללא הקבצים המצורפים')};
+$('loadDraft').onclick=()=>{try{const obj=JSON.parse(localStorage.getItem(DRAFT_KEY));if(!obj){status('אין טיוטה שמורה');return}restore(obj);status('הטיוטה נטענה (ללא קבצים)')}catch(e){status('לא ניתן לקרוא את הטיוטה')}};
+$('newMail').onclick=()=>{if(!confirm('לנקות את ההודעה הנוכחית?'))return;restore({});attachments=[];$('files').value='';renderFiles();$('picker').hidden=true;status('נפתח מייל חדש')};
+$('saveSignature').onclick=()=>{const value=prompt('כתוב את החתימה שתישמר בדפדפן:',localStorage.getItem(SIGNATURE_KEY)||'');if(value!==null){localStorage.setItem(SIGNATURE_KEY,value);$('signature').value=value?'saved':'off';status('החתימה נשמרה')}};
+loadContacts();renderSelected();
+(function(){const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const get=t=>Number(parts.find(p=>p.type===t).value);const today=new Date(Date.UTC(get('year'),get('month')-1,get('day')));function week(date){const d=new Date(date);const w=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-w);const start=new Date(Date.UTC(d.getUTCFullYear(),0,1));return Math.ceil((((d-start)/86400000)+1)/7)}const next=new Date(today);next.setUTCDate(next.getUTCDate()+7);$('eliaNextWeek').textContent=week(next);$('eliaCurrentWeek').textContent=week(today)})();
+</script></body></html>
