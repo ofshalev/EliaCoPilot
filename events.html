@@ -257,6 +257,17 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  <p class="note note-banner" style="margin-top:12px"><b>גרסת ניסיון:</b> אירועים נשמרים כרגע בדפדפן במחשב הזה בלבד. הם עדיין לא משותפים לצוות.</p>
  <div class="actions"><button type="button" id="toggleForm">+ צור אירוע חדש</button><button type="button" class="alt" id="exportEvents">ייצא אירועים JSON</button><label style="display:inline-flex;align-items:center;gap:8px;margin:0;cursor:pointer" class="pill">ייבא אירועים JSON <input id="importEvents" type="file" accept=".json,application/json" style="width:180px;padding:4px"></label></div>
 </section>
+<section class="card" id="siteImportPanel" hidden>
+ <h2>טיוטות אירועים מטבלת מנהל עבודה</h2>
+ <p class="note" id="siteImportInfo"></p>
+ <p class="note" style="margin:8px 0">פעילות אחת = כרטיס אחד עם כל לילות העבודה שלה. בדקו מיקום, מקטע, תיאור ותאריכים. לא ייווצרו כרטיסים לפני אישורכם.</p>
+ <div id="siteImportCards" style="display:grid;gap:9px;margin-top:12px"></div>
+ <div class="actions">
+  <button type="button" id="approveSiteEvents">צור כרטיסים מסומנים</button>
+  <button type="button" id="discardSiteEvents" class="alt">בטל טיוטות</button>
+ </div>
+ <p id="siteImportStatus" role="status" class="note"></p>
+</section>
 <section class="card" id="formPanel" hidden>
  <h2 id="formHeading">צור אירוע חדש</h2>
  <form id="eventForm">
@@ -1236,6 +1247,48 @@ for(const el of ['projectFilter','statusFilter'])$(el).onchange=render;
 $('search').oninput=render;
 $('exportEvents').onclick=()=>{const blob=new Blob([JSON.stringify({version:1,events},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='EliaCoPilot_Events.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2500)};
 $('importEvents').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;try{const obj=JSON.parse(await file.text());const incoming=Array.isArray(obj)?obj:obj.events;if(!Array.isArray(incoming))throw Error('קובץ לא תקין');if(!confirm('למזג את האירועים מהקובץ למאגר המקומי?'))return;const map=new Map(events.map(x=>[x.id,x]));for(const ev of incoming)if(ev&&typeof ev.id==='string'&&ev.eventTitle)map.set(ev.id,ev);events=[...map.values()];save();render()}catch(err){alert('שגיאה בייבוא: '+err.message)}e.target.value=''};
-render();
+
+const SITE_PENDING_KEY='elia_copilot_pending_site_events_v1';
+let pendingSiteImport=null;
+function displaySiteDate(date){return /^\d{4}-\d{2}-\d{2}$/.test(date||'')?date.slice(8)+'/'+date.slice(5,7)+'/'+date.slice(0,4):String(date||'')}
+function initSiteImport(){
+ try{const candidate=JSON.parse(localStorage.getItem(SITE_PENDING_KEY)||'null');if(candidate&&Array.isArray(candidate.proposals)&&candidate.proposals.length)pendingSiteImport=candidate}catch(e){}
+ const panel=$('siteImportPanel');if(!pendingSiteImport){panel.hidden=true;return}
+ panel.hidden=false;const proposals=pendingSiteImport.proposals;
+ $('siteImportInfo').textContent='קובץ: '+(pendingSiteImport.source||'לא צוין')+' · '+proposals.length+' פעילויות מוצעות';
+ const container=$('siteImportCards');container.replaceChildren();
+ proposals.forEach((p,i)=>{
+  const duplicate=events.some(x=>x.importKey&&x.importKey===p.importKey);
+  const card=document.createElement('div');card.style.cssText='border:1px solid #cbd9e9;border-radius:9px;padding:12px;background:#f8fbff';
+  const label=document.createElement('label');label.style.cssText='display:flex;gap:9px;align-items:center;cursor:pointer';
+  const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.dataset.proposalIndex=String(i);checkbox.checked=!duplicate&&!p.importIssues?.length;checkbox.disabled=duplicate;
+  const heading=document.createElement('strong');heading.textContent=(p.segment||'מקטע לא ידוע')+' · '+(p.workId||'ללא מספר בקשה')+' · '+(p.eventTitle||'אירוע');
+  label.append(checkbox,heading);card.append(label);
+  const details=document.createElement('p');details.className='note';details.style.margin='5px 0';details.textContent=(p.city||'עיר חסרה')+' · '+(p.selectedDates||[]).map(displaySiteDate).join(', ')+' · '+(p.timeFrom||'?')+'–'+(p.timeTo||'?')+' · '+(p.street||'רחוב לא זוהה');card.append(details);
+  const warning=document.createElement('p');warning.className='note';warning.style.margin='5px 0';warning.style.color=duplicate?'#426883':'#8a5700';
+  warning.textContent=duplicate?'כבר קיים אירוע ממקור זה — יידלג':p.importIssues?.length?'לבדיקה: '+p.importIssues.join(' · '):'מוכן ליצירת כרטיס';
+  card.append(warning);container.append(card);
+ });
+ $('approveSiteEvents').onclick=()=>{
+  const selected=[...container.querySelectorAll('input[type=checkbox]:checked')].map(el=>proposals[Number(el.dataset.proposalIndex)]);
+  if(!selected.length){$('siteImportStatus').textContent='יש לבחור לפחות פעילות אחת';return}
+  const uncertain=selected.filter(p=>(p.importIssues||[]).length);
+  const warning=uncertain.length?' '+uncertain.length+' מהכרטיסים כוללים פרטים לא ודאיים וידרשו עריכה.':'';
+  if(!confirm('ליצור '+selected.length+' כרטיסי אירועים בסטטוס ממתין לאישור?'+warning))return;
+  let added=0;for(const p of selected){
+   if(events.some(x=>x.importKey===p.importKey))continue;
+   const stamp=new Date().toISOString(),id=(crypto.randomUUID?crypto.randomUUID():'site-event-'+Date.now()+'-'+added);
+   const {importIssues,...rest}=p;
+   events.push({...rest,id,eventStatus:'ממתין לאישור',sourceWarnings:importIssues||[],createdAt:stamp,updatedAt:stamp});added++;
+  }
+  try{save()}catch(err){$('siteImportStatus').textContent='שגיאה בשמירת האירועים: '+err.message;return}
+  localStorage.removeItem(SITE_PENDING_KEY);pendingSiteImport=null;panel.hidden=true;
+  $('statusFilter').value='';$('projectFilter').value='';render();$('siteImportStatus').textContent='נוצרו '+added+' כרטיסים';
+ };
+ $('discardSiteEvents').onclick=()=>{if(!confirm('לבטל את טיוטות הייבוא?'))return;localStorage.removeItem(SITE_PENDING_KEY);pendingSiteImport=null;panel.hidden=true};
+ if(location.search.includes('reviewSiteImport=1'))panel.scrollIntoView({block:'start'});
+}
+
+render();initSiteImport();
 </script>
 </body></html>
