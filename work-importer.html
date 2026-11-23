@@ -13,7 +13,7 @@
 <p id="fileInfo" class="hint"></p></section>
 <section class="card hidden" id="mappingPanel"><h2>התאמת עמודות מקור</h2><p class="hint">ננסה לזהות אוטומטית כותרות של מנהלים שונים. אם אחת ההתאמות אינה נכונה, בחרו את העמודה בעצמכם. אפשר להשאיר שדה ריק.</p><div class="grid"><div class="field"><label for="headerRow">שורת כותרות בקובץ</label><select id="headerRow"></select></div><div class="field"><label for="previewCount">מספר רשומות מקור</label><input id="previewCount" disabled></div><div class="field"><label for="defaultTimes">שעות בהיעדר שעות במקור</label><select id="defaultTimes"><option value="">השאר ריק לבדיקה</option><option value="22:00|05:00">22:00–05:00 (לילה)</option></select></div></div><div id="mapping" class="map-grid"></div><div class="actions"><button id="convert">צור שורות למעקב</button></div></section>
 <section class="card hidden" id="outputPanel"><h2>שורות מוכנות להדבקה — A עד O</h2><p class="hint">פורמט התאריכים: יום/חודש/שנה (DD/MM/YYYY)</p><div id="summary"></div><div id="dateBreakdown" class="hint" style="margin:10px 0;direction:rtl"></div><details id="rejectedDetails" class="hidden"><summary>רשומות מקור שלא הומרו — הצג לפרטים</summary><div id="rejectedList" class="hint" style="max-height:220px;overflow:auto;white-space:pre-wrap"></div></details><div class="notice">שימו לב: עמודות E, G–J נשארות ריקות, כולל J (שבוע) שמחושבת בקובץ המעקב. בהדבקת A–O ודאו שהנוסחאות בעמודה J נשמרות — מומלץ להעתיק את הטווחים A–I ו-K–O בנפרד, או להשתמש בייצוא ולבחור את העמודות הדרושות. ערכי תח״צ לא ברורים מסומנים לבדיקה.</div>
-<div class="actions"><button id="copyAI">העתק A–I</button><button id="copyKO">העתק K–O</button><button id="copyAll" class="alt">העתק A–O (כולל J ריקה)</button><button id="download" class="alt">הורד XLSX</button><button id="downloadCsv" class="alt">הורד TSV</button></div>
+<div class="actions"><button id="copyAI">העתק A–I</button><button id="copyKO">העתק K–O</button><button id="copyAll" class="alt">העתק A–O (כולל J ריקה)</button><button id="download" class="alt">הורד XLSX</button><button id="downloadCsv" class="alt">הורד TSV</button><button id="stageEvents" class="alt" type="button">הכן כרטיסי אירועים לבדיקה</button></div><div id="eventDraftStatus" class="hint" role="status"></div>
 <p class="hint">ערכו תאים ישירות בתצוגה. בהעתקה לדפדפן תומך, תאריכי A, K ו-L יועתקו כתאריכי Excel מספריים עם תצוגת DD/MM/YYYY. אם הדפדפן תומך בטקסט בלבד, הורידו XLSX כדי לשמור על סוג התאים. A–I ו-K–O מודבקים בנפרד כדי לשמור על הנוסחה בעמודה J.</p><div class="sheet-wrap"><table dir="rtl"><thead id="thead"></thead><tbody id="tbody"></tbody></table></div><p class="status" id="status" role="status"></p></section>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -77,6 +77,55 @@ function excelSerial(v){const m=value(v).match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d
 function excelClipboardHtml(from,to){const lines=rows.map(row=>'<tr>'+row.arr.slice(from,to).map((v,j)=>{const column=from+j;const date=[0,10,11].includes(column)?excelSerial(v):null;return date!==null?"<td style=\"mso-number-format:'dd/mm/yyyy'\">"+date+'</td>':'<td>'+xmlEscape(v)+'</td>'}).join('')+'</tr>');return '<html><head><meta charset="utf-8"></head><body><table>'+lines.join('')+'</table></body></html>'}
 async function copy(from,to){if(!rows.length)return status('אין שורות להעתקה');const plain=tsv(from,to);try{if(!navigator.clipboard?.write||typeof ClipboardItem==='undefined')throw Error('rich clipboard unavailable');const item=new ClipboardItem({'text/html':new Blob([excelClipboardHtml(from,to)],{type:'text/html'}),'text/plain':new Blob([plain],{type:'text/plain'})});await navigator.clipboard.write([item]);status('הועתקו '+rows.length+' שורות עם תאריכי Excel. הדביקו בתא הראשון של הטווח ובדקו מיון לפי תאריך.');return}catch(e){try{await navigator.clipboard.writeText(plain);status('הועתק טקסט בלבד: הדפדפן לא תמך בהעתקת תאים מסוג תאריך. כדי לשמור על תאריכים מספריים, השתמשו בהורד XLSX.');return}catch(err){const ta=document.createElement('textarea');ta.value=plain;ta.style.position='fixed';ta.style.top='-1000px';document.body.append(ta);ta.select();const ok=document.execCommand('copy');ta.remove();status(ok?'הועתק טקסט בלבד. לתאריכים אמיתיים יש להשתמש בהורד XLSX.':'ההעתקה נחסמה בדפדפן')}}}
 $('copyAI').onclick=()=>copy(0,9);$('copyKO').onclick=()=>copy(10,15);$('copyAll').onclick=()=>copy(0,15);
+
+// Event proposals use the already reviewed output rows. Nights from one activity
+// are grouped into one card; no event is inserted without explicit approval.
+const EVENT_QUEUE_KEY='elia_copilot_pending_site_events_v1';
+const importerStreetOptions={
+ 'PLW1.1':['ארלוזורוב'],'PLW1.2':['ארלוזורוב'],'PLW1.3':['ארלוזורוב'],'PLW1.4':['ארלוזורוב'],
+ 'PLW1.5':['בן יהודה'],'PLW1.6':['בן יהודה'],'PLW1.7':['בן יהודה'],'PLW1.8':['אלנבי'],
+ 'PLW1.9.1':['אלנבי','יהודה הלוי','העלייה'],'PLW1.9.2':['אלנבי','יהודה הלוי','העלייה'],
+ 'PLW1.10':['לוינסקי',"צ'לנוב"],'PLW1.12':['ההגנה'],'PLW1.13':['ההגנה'],
+ 'PLW2.1':['אלוף שדה'],'PLW2.2':['אלוף שדה'],'PLW2.3':['אלוף שדה'],
+ 'PLW2.5':['מקס ואנה ווב'],'PLW2.6':['ז׳בוטינסקי'],
+ 'PLW2.7':['אורי צבי גרינברג','זבולון המר'],'PLE2.1':['כביש 461'],'PLE2.2':['כביש 461'],'PLE2.3':['כביש 461'],
+ 'B3':['לוי אשכול','רבין','ההסתדרות'],'B5':['רוטשילד'],'B7':['ירושלים'],'BE_2.3':["ז'בוטינסקי"],'G2-6':['שנקר']};
+function eventCity(segment){if(/^PLW1\./.test(segment))return 'תל אביב';if(/^PLW2\.[123]$/.test(segment))return 'רמת גן';if(/^PLW2\.[567]$/.test(segment))return 'גבעת שמואל';if(segment==='PLE2.2')return 'אור יהודה';if(segment==='PLE2.3')return 'יהוד';if(/^B\d/.test(segment))return 'ראשון לציון';if(/^BE/.test(segment))return 'באר יעקב';if(/^G[12]/.test(segment))return 'חולון';if(/^G5/.test(segment))return 'הרצליה';return ''}
+function inferEventLocation(segment,description){
+ const options=importerStreetOptions[segment]||[];
+ const matching=options.filter(street=>description.includes(street));
+ const street=matching.length===1?matching[0]:options.length===1?options[0]:'';
+ const junction=/צומת/.test(description),locations=description.match(/(?:מ|מרחוב)\s*([^\s,]+(?:\s+[^\s,]+)?)\s+עד\s+([^,;]+)/);
+ return {locationType:junction?'צומת':'רחוב',street,fromStreet:!junction&&locations?locations[1].trim():'',toStreet:!junction&&locations?locations[2].trim():'',crossStreets:[],bothDirections:/שני הכיוונים/.test(description),
+  warning:!street?'רחוב לא זוהה בוודאות':junction?'יש לוודא רחובות חוצים בצומת':''};
+}
+function eventLine(segment){return /^PLW|^PLE/.test(segment)?'הקו הסגול':/^B/.test(segment)?'הקו החום':/^G/.test(segment)?'הקו הירוק':'אחר'}
+function eventISO(v){const m=String(v||'').match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/);return m?validDate(+m[3],+m[2],+m[1]):''}
+function stageEventProposals(){
+ if(!rows.length){status('אין שורות להפקת אירועים');return}
+ const groups=new Map();for(const row of rows){const a=row.arr,segment=value(a[2]),desc=value(a[3]),plan=value(a[5]);const groupKey=[segment,plan,desc].join('|');
+  if(!groups.has(groupKey))groups.set(groupKey,{segment,desc,plan,dates:new Set(),dailyHours:{},sourceRows:new Set()});
+  const g=groups.get(groupKey),d=eventISO(a[10]);if(d){g.dates.add(d);g.dailyHours[d]={timeFrom:value(a[12]),timeTo:value(a[13])}}g.sourceRows.add(row.index+1)}
+ const proposals=[];for(const [key,g] of groups){const dates=[...g.dates].sort();if(!dates.length)continue;const first=g.dailyHours[dates[0]]||{};
+ const segment=g.segment,location=inferEventLocation(segment,g.desc),city=eventCity(segment);
+ const issues=[];if(!segment)issues.push('מקטע חסר');if(!city)issues.push('עיר לא זוהתה');if(location.warning)issues.push(location.warning);
+ if(!first.timeFrom||!first.timeTo)issues.push('שעות חסרות');
+ const dateTo=dates.reduce((latest,d)=>{const h=g.dailyHours[d];const finalDate=h.timeTo<=h.timeFrom?plusDay(d,1):d;return finalDate>latest?finalDate:latest},'');
+ const blockage={...location,workType:first.timeFrom>=first.timeTo?'עבודות לילה':'עבודות יום',selectedDates:dates,dateFrom:dates[0],dateTo,timeFrom:first.timeFrom,timeTo:first.timeTo,dailyHours:g.dailyHours};
+ delete blockage.warning;
+ const sourceKey=[sourceFile,segment,g.plan,g.desc,dates.join(',')].join('|');
+ proposals.push({id:'',eventTitle:g.desc||'עבודה ללא תיאור',city,railLine:eventLine(segment),segment,locationType:location.locationType,
+ workId:g.plan,street:location.street,fromStreet:location.fromStreet,toStreet:location.toStreet,crossStreets:location.crossStreets,
+ bothDirections:location.bothDirections,description:g.desc,workType:blockage.workType,timeFrom:first.timeFrom,timeTo:first.timeTo,
+ dateFrom:dates[0],dateTo,selectedDates:dates,dailyHours:g.dailyHours,blockages:[blockage],eventStatus:'ממתין לאישור',
+ importSource:sourceFile,importKey:sourceKey,importIssues:issues,sourceRows:[...g.sourceRows]})}
+ if(!proposals.length){status('לא זוהו פעילויות עם תאריכים תקינים');return}
+ try{localStorage.setItem(EVENT_QUEUE_KEY,JSON.stringify({version:1,source:sourceFile,createdAt:new Date().toISOString(),proposals}));
+ $('eventDraftStatus').textContent='הוכנו '+proposals.length+' כרטיסי אירועים לבדיקה ('+proposals.filter(p=>p.importIssues.length).length+' דורשים השלמת נתונים). מעבר למסך אירועים…';
+ window.location.href='./events.html?reviewSiteImport=1'}catch(err){$('eventDraftStatus').textContent='לא ניתן להעביר טיוטות לאירועים: '+err.message}
+}
+$('stageEvents').onclick=stageEventProposals;
+
 function save(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000)}
 $('downloadCsv').onclick=()=>save(new Blob(['\ufeff'+tsv(0,15)],{type:'text/tab-separated-values;charset=utf-8'}),'Elia_Work_Import.tsv');
 $('download').onclick=()=>{if(!rows.length)return;const data=rows.map(r=>r.arr.map((v,i)=>{if(i===0||i===10||i===11){const m=v.match(/^(\d\d)[./](\d\d)[./](\d{4})$/);if(m)return new Date(Date.UTC(+m[3],+m[2]-1,+m[1],12))}return v}));const ws=XLSX.utils.aoa_to_sheet(data,{cellDates:true});ws['!cols']=[{wch:13},{wch:7},{wch:16},{wch:57},{wch:10},{wch:13},...Array(4).fill({wch:10}),{wch:13},{wch:13},{wch:9},{wch:9},{wch:15}];ws['!views']=[{rightToLeft:true}];for(const addr of Object.keys(ws)){if(!/^[A-Z]+\d+$/.test(addr))continue;if(ws[addr].t==='d')ws[addr].z='dd/mm/yyyy'}const book=XLSX.utils.book_new();XLSX.utils.book_append_sheet(book,ws,'Import A-O');XLSX.writeFile(book,'Elia_Work_Import.xlsx',{cellDates:true});status('קובץ Excel נוצר. אין לייבא לעמודה J מעל הנוסחאות הקיימות.')};
