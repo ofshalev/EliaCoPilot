@@ -1240,6 +1240,7 @@ function render(){
   }
   const done=outputFields.filter(f=>e[f]).length;
   txt(tag(info,'div','event-meta'),(e.workId?'מספר עבודה / בקשה: '+e.workId+' · ':'')+'תוצרים: '+done+' מתוך '+outputFields.length);
+  if(e.importSource){txt(tag(info,'div','event-meta'),'מקור: '+e.importSource+(e.sourceWarnings?.length?' · יש לבדוק: '+e.sourceWarnings.join(' · '):''))}
   const ppt=tag(row,'button','alt presentation-icon presentation-side');ppt.type='button';ppt.textContent='▣ מצגת';ppt.title='ערוך מצגת';ppt.setAttribute('aria-label','ערוך מצגת: '+name);ppt.onclick=()=>{window.location.href='presentation-editor.html?event='+encodeURIComponent(e.id)};const actions=tag(row,'div','actions');const edit=tag(actions,'button','alt');edit.textContent='ערוך';edit.onclick=()=>editEvent(e.id);const del=tag(actions,'button','danger');del.textContent='מחק';del.onclick=()=>deleteEvent(e.id);
  }
 }
@@ -1282,8 +1283,9 @@ function initSiteImport(){
    events.push({...rest,id,eventStatus:'ממתין לאישור',sourceWarnings:importIssues||[],createdAt:stamp,updatedAt:stamp});added++;
   }
   try{save()}catch(err){$('siteImportStatus').textContent='שגיאה בשמירת האירועים: '+err.message;return}
-  localStorage.removeItem(SITE_PENDING_KEY);pendingSiteImport=null;panel.hidden=true;
-  $('statusFilter').value='';$('projectFilter').value='';render();$('siteImportStatus').textContent='נוצרו '+added+' כרטיסים';
+  const completedKeys=new Set(selected.map(p=>p.importKey));const remaining=proposals.filter(p=>!completedKeys.has(p.importKey)&&!events.some(x=>x.importKey===p.importKey));
+  if(remaining.length){pendingSiteImport={...pendingSiteImport,proposals:remaining};localStorage.setItem(SITE_PENDING_KEY,JSON.stringify(pendingSiteImport));}else{localStorage.removeItem(SITE_PENDING_KEY);pendingSiteImport=null;panel.hidden=true;}
+  $('statusFilter').value='';$('projectFilter').value='';render();$('siteImportStatus').textContent='נוצרו '+added+' כרטיסים';if(remaining.length)initSiteImport();
  };
  $('discardSiteEvents').onclick=()=>{if(!confirm('לבטל את טיוטות הייבוא?'))return;localStorage.removeItem(SITE_PENDING_KEY);pendingSiteImport=null;panel.hidden=true};
  if(location.search.includes('reviewSiteImport=1'))panel.scrollIntoView({block:'start'});
