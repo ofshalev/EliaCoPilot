@@ -113,10 +113,32 @@ $('downloadEml').onclick=async()=>{try{
  const eml=await buildEml(),blob=new Blob([eml],{type:'message/rfc822'}),url=URL.createObjectURL(blob),a=document.createElement('a');
  a.href=url;a.download='EliaCoPilot_Email.eml';a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);status('קובץ EML נוצר. יש לבדוק את הנמענים והקבצים לפני שליחה.')
 }catch(e){status(e.message)}};
-$('openMail').onclick=()=>{
- const subject=$('subject').value.trim(),txt=plainBody();const u='mailto:'+selected.to.map(encodeURIComponent).join(',')+'?cc='+encodeURIComponent(addresses('cc'))+'&bcc='+encodeURIComponent(addresses('bcc'))+'&subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(txt);
- if(u.length>1800){status('הודעה ארוכה מדי לפתיחה אמינה ב-mailto. מומלץ להוריד EML.');return}
- location.href=u;
+function mailtoDraft(subject,body){
+ const base='mailto:'+selected.to.map(encodeURIComponent).join(',');
+ const params=['cc='+encodeURIComponent(addresses('cc')),'bcc='+encodeURIComponent(addresses('bcc')),'subject='+encodeURIComponent(subject)];
+ if(body!==undefined)params.push('body='+encodeURIComponent(body));
+ return base+'?'+params.join('&');
+}
+async function copyDraftBody(txt){
+ try{
+  if(navigator.clipboard&&navigator.clipboard.write&&typeof ClipboardItem!=='undefined'){
+   const html='<html><body dir="rtl">'+htmlBody()+'</body></html>';
+   await navigator.clipboard.write([new ClipboardItem({'text/plain':new Blob([txt],{type:'text/plain'}),'text/html':new Blob([html],{type:'text/html'})})]);
+   return true;
+  }
+ }catch(e){}
+ try{await navigator.clipboard.writeText(txt);return true}catch(e){}
+ const field=document.createElement('textarea');field.value=txt;field.style.position='fixed';field.style.opacity='0';document.body.appendChild(field);field.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}finally{field.remove()}return ok;
+}
+$('openMail').onclick=async()=>{
+ const subject=$('subject').value.trim(),txt=plainBody();
+ const full=mailtoDraft(subject,txt),short=mailtoDraft(subject);
+ const attachmentNote=attachments.length?' יש לצרף את הקבצים ידנית או להוריד EML.':'';
+ if(full.length<=1800){status('פותח טיוטה באפליקציית הדואר.'+attachmentNote);location.href=full;return}
+ if(short.length>1800){status('רשימת הנמענים או הנושא ארוכים מדי לפתיחה אמינה. יש להוריד EML כדי לשמור את כל הנמענים.');return}
+ if(!await copyDraftBody(txt)){status('לא ניתן להעתיק את גוף ההודעה. יש להעתיק אותו ידנית או להוריד EML.');return}
+ status('גוף המייל המלא הועתק ללוח. לאחר פתיחת Outlook יש ללחוץ Ctrl+V בגוף ההודעה.'+attachmentNote);
+ location.href=short;
 };
 $('copySubject').onclick=()=>copy($('subject').value);$('copyBody').onclick=()=>copy(plainBody());
 async function copy(s){try{await navigator.clipboard.writeText(s);status('הועתק ללוח')}catch(e){status('לא ניתן להעתיק אוטומטית')}}
