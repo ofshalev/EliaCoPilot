@@ -282,11 +282,13 @@ function parseSplitSummary(items){
 
 function parseSchedule(value){
  const v=clean(value).replace(/[–—]/g,'-').replace(/\s+/g,' ');
- const compact=v.match(/(?<!\d)((?:\d{1,2}\s*[+\-]\s*)+)(\d{1,2})[./](\d{1,2})[./](20\d{2})(?!\d)/);
+ const compact=v.match(/(?<![\d./])((?:\d{1,2}\s*[+\-]\s*)+)(\d{1,2})[./](\d{1,2})[./](20\d{2})(?!\d)/);
  const full=[...v.matchAll(/(?<!\d)(\d{1,2})[./](\d{1,2})[./](20\d{2})(?!\d)/g)];
  function dt(d,m,y){const x=new Date(Date.UTC(+y,+m-1,+d));return x.getUTCDate()===+d&&x.getUTCMonth()===+m-1?x:null}
+ const cross=v.match(/(?<![\d./])(\d{1,2})[./](\d{1,2})(?:[./](20\d{2}))?\s*([-+])\s*(\d{1,2})[./](\d{1,2})[./](20\d{2})(?!\d)/);
  let arr=[];
- if(compact){arr=[...compact[1].matchAll(/\d{1,2}/g)].map(x=>dt(x[0],compact[3],compact[4]));arr.push(dt(compact[2],compact[3],compact[4]));if(compact[1].includes('-')&&!compact[1].includes('+')&&arr.length===2&&arr[0]&&arr[1]&&arr[1]>=arr[0]){const dates=[];for(let t=+arr[0];t<=+arr[1]&&dates.length<32;t+=86400000)dates.push(new Date(t));arr=dates;}}
+ if(cross){const [,d1,m1,y1,sep,d2,m2,y2]=cross;const a=dt(d1,m1,y1||(+y2-(+m1>+m2?1:0))),b=dt(d2,m2,y2);if(a&&b&&a<=b){arr=[a,b];if(sep==='-'&&b-a<=31*86400000){arr=[];for(let t=+a;t<=+b;t+=86400000)arr.push(new Date(t));}}}
+ else if(compact){arr=[...compact[1].matchAll(/\d{1,2}/g)].map(x=>dt(x[0],compact[3],compact[4]));arr.push(dt(compact[2],compact[3],compact[4]));if(compact[1].includes('-')&&!compact[1].includes('+')&&arr.length===2&&arr[0]&&arr[1]&&arr[1]>=arr[0]){const dates=[];for(let t=+arr[0];t<=+arr[1]&&dates.length<32;t+=86400000)dates.push(new Date(t));arr=dates;}}
  else if(full.length){arr=full.map(x=>dt(x[1],x[2],x[3]));if(full.length===2&&/[-–]/.test(v.slice(full[0].index+full[0][0].length,full[1].index))&&arr[1]>=arr[0]){const dates=[];for(let t=+arr[0];t<=+arr[1]&&dates.length<32;t+=86400000)dates.push(new Date(t));arr=dates;}}
  return [...new Map(arr.filter(Boolean).map(d=>[+d,d])).values()].sort((a,b)=>a-b);
 }
@@ -304,7 +306,8 @@ function formatSchedule(value){
 function dateCandidates(text){
  const raw=clean(text).replace(/[–—־]/g,'-').replace(/[＋]/g,'+').replace(/\s+/g,' ');
  const patterns=[
-  /(?<!\d)(\d{1,2}\s*[-+]\s*\d{1,2}[./]\d{1,2}[./]20\d{2})(?!\d)/g,
+  /(?<![\d./])(\d{1,2}[./]\d{1,2}(?:[./]20\d{2})?\s*[-+]\s*\d{1,2}[./]\d{1,2}[./]20\d{2})(?!\d)/g,
+  /(?<![\d./])(\d{1,2}\s*[-+]\s*\d{1,2}[./]\d{1,2}[./]20\d{2})(?!\d)/g,
   /(?<!\d)(\d{1,2}[./]\d{1,2}[./]20\d{2}\s*[-+]\s*\d{1,2}[./]\d{1,2}[./]20\d{2})(?!\d)/g,
   /(?<!\d)(\d{1,2}(?:\s*\+\s*\d{1,2}){2,}[./]\d{1,2}[./]20\d{2})(?!\d)/g,
   /(?<!\d)(\d{1,2}[./]\d{1,2}[./]20\d{2})(?!\d)/g
@@ -315,7 +318,7 @@ function dateCandidates(text){
   const dates=parseSchedule(v);
   if(!dates.length)continue;
   const nearby=raw.slice(Math.max(0,m.index-35),Math.min(raw.length,m.index+m[0].length+25));
-  const score=(dates.length>1?100:0)+(i===0||i===1?30:0)+(/ימים?|בתאריך|תאריכים/.test(nearby)?20:0);
+  const score=(dates.length>1?100:0)+(i===0?300:i===1||i===2?30:0)+(/ימים?|בתאריך|תאריכים/.test(nearby)?20:0);
   result.push({value:v,score,count:dates.length});
  }
  return result;
@@ -383,7 +386,7 @@ function parsePdfPages(pages){
  for(let i=0;i<Math.min(3,all.length);i++){
   const fromItems=dateFromPdfItems(pages[i]);
   const fromText=dateFromText(all[i]);
-  for(const value of [fromItems,fromText])if(value)scheduleCandidates.push({value,score:parseSchedule(value).length>1?100:1,page:i+1});
+  for(const value of [fromItems,fromText])if(value)scheduleCandidates.push({value,score:dateCandidates(value).reduce((max,c)=>Math.max(max,c.score),0),page:i+1});
   if(!times.length)times=timeFromText(all[i]);
  }
  scheduleCandidates.sort((a,b)=>b.score-a.score||a.page-b.page);
