@@ -2,6 +2,7 @@ const express = require('express');
 const { Pool } = require('pg');
 const crypto = require('node:crypto');
 const auth = require('./cloud-auth.cjs');
+const cloudContacts=require('./cloud-contacts.cjs');
 const cloudEvents=require('./cloud-events.cjs');
 const path=require('node:path');
 const app = express();
@@ -39,10 +40,11 @@ async function changeAccount(req,res,disable){
 app.post('/admin/users/password',adminOnly,(req,res)=>changeAccount(req,res,false));
 app.post('/admin/users/disable',adminOnly,(req,res)=>changeAccount(req,res,true));
 cloudEvents.register(app,pool,user);
-app.get(['/events.html','/segments.html'],async(req,res)=>{
+cloudContacts.register(app,pool,user);
+app.get(['/events.html','/segments.html','/contacts.html'],async(req,res)=>{
  if(!await user(req))return res.redirect('/');
  res.set('Content-Security-Policy',"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
- res.sendFile(path.join(__dirname,req.path==='/segments.html'?'segments.html':'events.html'));
+ res.sendFile(path.join(__dirname,req.path.slice(1)));
 });
 app.use((err,req,res,next)=>{console.error('Request failed');res.status(500).send('Service error');});
-auth.initialize(pool).then(()=>cloudEvents.initialize(pool)).then(()=>app.listen(Number(process.env.PORT||3000),'0.0.0.0')).catch(()=>{console.error('Database initialization failed');process.exit(1);});
+auth.initialize(pool).then(()=>cloudEvents.initialize(pool)).then(()=>cloudContacts.initialize(pool)).then(()=>app.listen(Number(process.env.PORT||3000),'0.0.0.0')).catch(()=>{console.error('Database initialization failed');process.exit(1);});
