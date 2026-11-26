@@ -204,11 +204,12 @@ button.alt{background:#e9eff8;color:#294a6c}
 </div></div>
 </main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script>
+<script type="module">
 'use strict';
 const $=id=>document.getElementById(id);
 const eventId=new URLSearchParams(location.search).get('event');
-const events=(()=>{try{return JSON.parse(localStorage.getItem('elia_copilot_events_v1'))||[]}catch{return []}})();
+let events=[];
+try{const res=await fetch('/api/events');if(!res.ok)throw Error('load');events=(await res.json()).events;}catch(e){alert('טעינת האירוע נכשלה');}
 const event=events.find(e=>e.id===eventId);
 if(!event){$('missing').hidden=false}else{
  $('workspace').hidden=false;
