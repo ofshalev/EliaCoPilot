@@ -1,0 +1,11 @@
+const express = require('express');
+const { Pool } = require('pg');
+const app = express();
+app.disable('x-powered-by');
+const pool = process.env.DATABASE_URL ? new Pool({connectionString:process.env.DATABASE_URL,max:3,connectionTimeoutMillis:3000,query_timeout:3000}) : null;
+if(pool) pool.on('error',()=>console.error('Database pool error'));
+app.use((req,res,next)=>{res.set('Cache-Control','no-store');res.set('X-Content-Type-Options','nosniff');next();});
+app.get('/',(req,res)=>res.type('text/plain').send('Elia CoPilot cloud infrastructure — setup in progress.'));
+app.get('/health',(req,res)=>res.json({status:'ok'}));
+app.get('/ready',async(req,res)=>{try{if(!pool) throw new Error('Not configured');await pool.query('SELECT 1');res.json({status:'ready'});}catch{res.status(503).json({status:'not_ready'});}});
+app.listen(Number(process.env.PORT || 3000),'0.0.0.0');
