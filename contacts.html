@@ -54,7 +54,7 @@ header.hero,body>header{display:flex;align-items:center;justify-content:space-be
 @media(max-width:480px){.entry-grid{grid-template-columns:1fr}.member-row{grid-template-columns:minmax(0,1fr) 45px 45px}}
 </style></head><body>
 <header><strong>Elia CoPilot</strong><p>ניהול נמענים לפי פרויקט / סוג עבודה</p><div class="elia-weeks" aria-label="שבוע הבא והשבוע הנוכחי"><div class="elia-week-block"><span class="elia-week-label">שבוע הבא</span><span class="elia-week-next" id="eliaNextWeek">–</span></div><div class="elia-week-block elia-week-block-current"><span class="elia-week-label">שבוע נוכחי</span><span class="elia-week-current" id="eliaCurrentWeek">–</span></div></div></header>
-<nav aria-label="כלי Elia CoPilot"><a href="/events.html">📅 אירועים</a><a href="/segments.html">🛣️ מקטעים</a><a href="/contacts.html" aria-current="page">👥 קבוצות נמענים</a><a href="/account">חשבון / יציאה</a></nav>
+<nav aria-label="כלי Elia CoPilot"><a href="/events.html">📅 אירועים</a><a href="/segments.html">🛣️ מקטעים</a><a href="/contacts.html" aria-current="page">👥 קבוצות נמענים</a><a href="/mail-generator.html">✉️ מחולל מייל</a><a href="/account">חשבון / יציאה</a></nav>
 
 <main>
 <section class="card">
@@ -101,7 +101,7 @@ header.hero,body>header{display:flex;align-items:center;justify-content:space-be
 </section>
 <section class="card">
  <h2>גיבוי והעברה</h2>
- <p class="help">הנמענים והקבוצות נשמרים בדפדפן הזה בלבד. אין סנכרון בין מחשבים. מומלץ לשמור גיבוי במקום עבודה מאובטח; הוא מכיל כתובות מייל ושמות.</p>
+ <p class="help">הנמענים והקבוצות נשמרים במסד הנתונים המרכזי ומשותפים למשתמשים המורשים. מומלץ לשמור גיבוי במקום עבודה מאובטח; הוא מכיל כתובות מייל ושמות.</p>
  <div class="actions"><button id="export" type="button" class="alt">הורד גיבוי JSON</button><label class="uploadLabel">טען גיבוי JSON<input type="file" id="import" accept=".json,application/json"></label></div>
 </section>
 </main>
@@ -227,7 +227,7 @@ $('memberSearch').oninput=renderMembers;$('memberAffiliation').onchange=renderMe
 $('addGroup').onclick=async()=>{const name=prompt('שם הקבוצה החדשה');if(!name?.trim())return;const g={id:id(),name:name.trim(),to:[],cc:[]};data.groups.push(g);current=g.id;if(!await persist())return;renderAll();message('הקבוצה נוצרה')};
 $('saveGroup').onclick=async()=>{const name=$('groupName').value.trim();if(!name){message('חסר שם לקבוצה');return}chosenGroup().name=name;if(!await persist())return;renderGroups();message('שם הקבוצה נשמר')};
 $('deleteGroup').onclick=async()=>{if(data.groups.length<2){message('יש להשאיר לפחות קבוצה אחת');return}if(!confirm('למחוק את הקבוצה '+chosenGroup().name+'?'))return;data.groups=data.groups.filter(g=>g.id!==current);current=data.groups[0].id;if(!await persist())return;renderAll();message('הקבוצה נמחקה')};
-$('useGroup').onclick=()=>{location.href='/events.html'};
+$('useGroup').onclick=()=>{location.href='/mail-generator.html'};
 async function copy(text){try{await navigator.clipboard.writeText(text);message('הועתק ללוח')}catch(e){message('לא ניתן להעתיק אוטומטית')}}
 $('copyTo').onclick=()=>copy(memberEmails(chosenGroup().to).join('; '));
 $('copyCc').onclick=()=>copy(memberEmails(chosenGroup().cc).join('; '));
