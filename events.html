@@ -262,7 +262,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  <h1>אירועים <span id="totalEvents" class="pill">0 אירועים</span></h1>
  <p class="note">ניהול עבודות וחסימות לפי תאריך, עיר ומקטע, עם מעקב אחר התוצרים של כל אירוע.</p>
  <p class="note note-banner" style="margin-top:12px"><b>גרסת ענן:</b> האירועים נשמרים במסד הנתונים המרכזי ומשותפים למשתמשים המורשים במערכת.</p>
- <div class="actions"><button type="button" id="toggleForm">+ צור אירוע חדש</button><button type="button" class="alt" id="openWorkImport">📊 ייבוא עבודות</button><label id="workDrop" class="pill" style="border:1px dashed #8ca4c2;cursor:pointer;padding:8px">בחרו או גררו קובץ Excel <input id="workFile" type="file" accept=".xls,.xlsx,.xlsm" style="width:180px"></label><span id="workImportMessage" role="status"></span><div hidden><button id="exportEvents" type="button"></button><input id="importEvents" type="file"></div></div>
+ <div class="actions"><button type="button" id="toggleForm">+ צור אירוע חדש</button><label id="workDrop" class="pill" style="border:1px dashed #8ca4c2;cursor:pointer;padding:8px">📊 ייבוא עבודות <input id="workFile" type="file" accept=".xls,.xlsx,.xlsm" style="width:180px"></label><span id="workImportMessage" role="status"></span><div hidden><button id="exportEvents" type="button"></button><input id="importEvents" type="file"></div></div>
 </section>
 <iframe hidden title="עיבוד קובץ עבודות" id="workImportFrame"></iframe><section class="card" id="siteImportPanel" hidden>
  <h2>טיוטות אירועים מטבלת מנהל עבודה</h2>
@@ -1316,7 +1316,7 @@ function importNorm(v){return String(v??'').normalize('NFKC').replace(/[׳״'"�
 function importFingerprint(e){const blocks=e.blockages?.length?e.blockages:[e];return JSON.stringify([importNorm(e.segment),importNorm(e.city),blocks.map(b=>[importNorm(b.locationType),importNorm(b.street),importNorm(b.fromStreet),importNorm(b.toStreet),(b.crossStreets||[]).map(importNorm).sort(),!!b.bothDirections,importNorm(b.workType||e.workType),[...(b.selectedDates||e.selectedDates||[])].sort().map(d=>[d,b.dailyHours?.[d]?.timeFrom||e.dailyHours?.[d]?.timeFrom||b.timeFrom||e.timeFrom,b.dailyHours?.[d]?.timeTo||e.dailyHours?.[d]?.timeTo||b.timeTo||e.timeTo]),b.dateFrom||e.dateFrom,b.dateTo||e.dateTo]).map(x=>JSON.stringify(x)).sort()])}
 function importDuplicate(a,b){return !!(a.importKey&&a.importKey===b.importKey)||importFingerprint(a)===importFingerprint(b)}
 function importPossibleUpdate(a,b){return !!(a.workId&&b.workId&&importNorm(a.workId)===importNorm(b.workId)&&importNorm(a.segment)===importNorm(b.segment))}
-$('openWorkImport').onclick=()=>$('workFile').click();
+
 let importBusy=false;
 function submitWorkFile(file){if(!file||importBusy)return;if(!/\.(xlsx?|xlsm)$/i.test(file.name)){ $('workImportMessage').textContent='יש לבחור קובץ Excel';return}importBusy=true;$('workImportMessage').textContent='מעבד '+file.name+'...';const frame=$('workImportFrame');frame.onload=()=>frame.contentWindow.postMessage({type:'elia-import-file',file},location.origin);frame.src='/work-importer.html?embedded=1';}
 $('workFile').onchange=e=>{submitWorkFile(e.target.files[0]);e.target.value=''};
