@@ -9,7 +9,7 @@ main{max-width:1100px;margin:24px auto;padding:0 18px}.card{background:white;bor
 @media(max-width:650px){header{padding-top:100px}.recipient-line{grid-template-columns:45px minmax(0,1fr)}.recipient-line>button{grid-column:2}.grid,.picker-grid{grid-template-columns:1fr}.card{padding:15px}}
 </style></head><body>
 <header><strong>Elia CoPilot</strong><p>מחולל מייל · הודעה חדשה</p><div class="elia-weeks"><div class="elia-week-block"><span class="elia-week-label">שבוע הבא</span><span class="elia-week-next" id="eliaNextWeek">–</span></div><div class="elia-week-block elia-week-block-current"><span class="elia-week-label">שבוע נוכחי</span><span class="elia-week-current" id="eliaCurrentWeek">–</span></div></div></header>
-<nav aria-label="כלי Elia CoPilot"><a href="./events.html">📅 אירועים</a><a href="./segments.html">🛣️ מקטעים</a><a href="./mail-generator.html" aria-current="page">✉️ מחולל מייל</a><a href="./word-generator.html">📄 מחולל Word</a><a href="./contacts.html">👥 נמענים</a><a href="./sign-generator.html">🪧 מחולל שלטים</a><a href="./notice-template.html">📢 הודעה על רקע קבוע</a><a href="./work-importer.html">📊 ייבוא עבודות</a></nav>
+<nav aria-label="כלי Elia CoPilot"><a href="/events.html">📅 אירועים</a><a href="/segments.html">🛣️ מקטעים</a><a href="/contacts.html">👥 קבוצות נמענים</a><a href="/mail-generator.html" aria-current="page">✉️ מחולל מייל</a><a href="/account">חשבון / יציאה</a></nav>
 <main>
 <section class="card"><div class="section-row"><div class="grow"><h1>מייל חדש</h1><p class="hint">מייל כללי עם נמענים וקבוצות מתוך המאגר. המידע נשמר רק בדפדפן.</p></div><a href="./weekly-email.html">המחולל השבועי הקודם</a></div>
 <div class="grid"><div class="field"><label for="template">תבנית</label><select id="template"><option value="blank">מייל חדש (ריק)</option></select></div><div class="field"><label for="from">מאת (לציון בלבד)</label><input id="from" type="email" dir="ltr" placeholder="your-email@example.com"></div></div>
@@ -36,12 +36,9 @@ const PEOPLE_KEY='elia_copilot_contacts_v2',DRAFT_KEY='elia_copilot_mail_draft_v
 let db={people:[],groups:[]},selected={to:[],cc:[],bcc:[]},activeField='to',attachments=[];
 function cleanEmail(s){return String(s||'').trim().toLowerCase()}
 function status(s){$('status').textContent=s}
-function loadContacts(){
- try{const d=JSON.parse(localStorage.getItem(PEOPLE_KEY));if(d&&Array.isArray(d.people)&&Array.isArray(d.groups)){db=d;return}}catch(e){}
- try{const d=JSON.parse(localStorage.getItem('elia_copilot_contacts_v1'));if(d&&Array.isArray(d.groups)){
-   const map=new Map();db={people:[],groups:[]};
-   for(const g of d.groups){const group={id:g.id,name:g.name,to:[],cc:[]};for(const field of ['to','cc'])for(const email of g[field]||[]){const key=cleanEmail(email);if(!map.has(key)){const p={id:'legacy-'+db.people.length,name:key.split('@')[0],email:key,affiliation:''};map.set(key,p);db.people.push(p)}group[field].push(map.get(key).id)}db.groups.push(group)}
- }}catch(e){}
+async function loadContacts(){
+ const res=await fetch('/api/contacts');if(!res.ok)throw Error('contacts');
+ const state=await res.json();db=state.data||{people:[],groups:[]};
 }
 function entryOf(email){return db.people.find(p=>cleanEmail(p.email)===cleanEmail(email))}
 function addRecipient(field,email){
@@ -74,8 +71,8 @@ function pickerRender(){
  }
  if(!groups.children.length)groups.textContent='אין קבוצות';
 }
-function openPicker(field){
- loadContacts();activeField=field;$('picker').hidden=false;
+async function openPicker(field){
+ try{await loadContacts()}catch(e){status('טעינת נמענים נכשלה');return}activeField=field;$('picker').hidden=false;
  $('pickerTitle').textContent='בחירת נמענים — '+({to:'אל',cc:'עותק',bcc:'עותק מוסתר'}[field]);
  $('search').value='';$('orgFilter').replaceChildren();
  const all=document.createElement('option');all.value='';all.textContent='כל השיוכים';$('orgFilter').append(all);
@@ -153,6 +150,6 @@ $('saveDraft').onclick=()=>{localStorage.setItem(DRAFT_KEY,JSON.stringify(snapsh
 $('loadDraft').onclick=()=>{try{const obj=JSON.parse(localStorage.getItem(DRAFT_KEY));if(!obj){status('אין טיוטה שמורה');return}restore(obj);status('הטיוטה נטענה (ללא קבצים)')}catch(e){status('לא ניתן לקרוא את הטיוטה')}};
 $('newMail').onclick=()=>{if(!confirm('לנקות את ההודעה הנוכחית?'))return;restore({});attachments=[];$('files').value='';renderFiles();$('picker').hidden=true;status('נפתח מייל חדש')};
 $('saveSignature').onclick=()=>{const value=prompt('כתוב את החתימה שתישמר בדפדפן:',localStorage.getItem(SIGNATURE_KEY)||'');if(value!==null){localStorage.setItem(SIGNATURE_KEY,value);$('signature').value=value?'saved':'off';status('החתימה נשמרה')}};
-loadContacts();renderSelected();
+loadContacts().then(renderSelected).catch(()=>status('טעינת נמענים נכשלה'));renderSelected();
 (function(){const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const get=t=>Number(parts.find(p=>p.type===t).value);const today=new Date(Date.UTC(get('year'),get('month')-1,get('day')));function week(date){const d=new Date(date);const w=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-w);const start=new Date(Date.UTC(d.getUTCFullYear(),0,1));return Math.ceil((((d-start)/86400000)+1)/7)}const next=new Date(today);next.setUTCDate(next.getUTCDate()+7);$('eliaNextWeek').textContent=week(next);$('eliaCurrentWeek').textContent=week(today)})();
 </script></body></html>
