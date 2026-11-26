@@ -58,6 +58,8 @@ header.hero,body>header{display:flex;align-items:center;justify-content:space-be
 .elia-week-current{display:block;text-align:center;color:#d0dbea;opacity:.56;font-size:20px;font-weight:700;line-height:1.3;padding:6px 10px}
 .elia-week-block-current .elia-week-label{opacity:.56}
 @media(max-width:600px){header.hero,body>header{padding-top:100px}.elia-week-next{font-size:28px;padding:7px 16px}.elia-week-current{font-size:16px}}
+
+#signHorizontalScroll{position:fixed;bottom:0;z-index:1000;height:20px;overflow-x:scroll;overflow-y:hidden;background:#e5edf7;border:1px solid #9aacc2;direction:rtl;box-shadow:0 -2px 8px #0002}#signHorizontalScroll[hidden]{display:none}#signHorizontalScroll>div{height:1px}@media print{#signHorizontalScroll{display:none!important}}
 </style></head><body>
 <header><strong>Elia CoPilot</strong><p>מחולל שלטים אוטומטי — PDF → A3 אופקי</p><div class="elia-weeks" aria-label="שבוע הבא והשבוע הנוכחי"><div class="elia-week-block"><span class="elia-week-label">שבוע הבא</span><span class="elia-week-next" id="eliaNextWeek">–</span></div><div class="elia-week-block elia-week-block-current"><span class="elia-week-label">שבוע נוכחי</span><span class="elia-week-current" id="eliaCurrentWeek">–</span></div></div></header>
 <nav aria-label="כלי Elia CoPilot"><a href="./events.html" style="font-weight:700;color:#245bb4;text-decoration:none;background:#fff;border-radius:8px;padding:9px 13px">📅 אירועים</a><a href="./segments.html" style="font-weight:700;color:#245bb4;text-decoration:none;background:#fff;border-radius:8px;padding:9px 13px">🛣️ מקטעים</a><a href="./mail-generator.html">✉️ מחולל מייל</a><a href="./word-generator.html">📄 מחולל Word</a><a href="./contacts.html">👥 קבוצות נמענים</a><a href="./sign-generator.html" aria-current="page">🪧 מחולל שלטים</a><a href="./notice-template.html" style="font-weight:700;color:#245bb4;text-decoration:none;background:#fff;border-radius:8px;padding:9px 13px">📢 הודעה על רקע קבוע</a><a href="./work-importer.html" style="font-weight:700;color:#245bb4;text-decoration:none;background:#fff;border-radius:8px;padding:9px 13px">📊 ייבוא עבודות</a></nav>
@@ -556,4 +558,17 @@ $('importJson').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{co
  document.getElementById('eliaNextWeek').textContent=isoWeek(next);
  document.getElementById('eliaCurrentWeek').textContent=isoWeek(today);
 })();
-</script></body></html>
+</script>
+<script>
+(function(){
+ const wrap=document.querySelector('.tablewrap'); if(!wrap)return;
+ const bar=document.createElement('div');bar.id='signHorizontalScroll';bar.hidden=true;bar.setAttribute('aria-label','גלילה אופקית של טבלת התחנות');bar.tabIndex=0;
+ const track=document.createElement('div');bar.appendChild(track);document.body.appendChild(bar);
+ bar.style.direction=getComputedStyle(wrap).direction;
+ function refresh(){const r=wrap.getBoundingClientRect();const left=Math.max(0,r.left),right=Math.min(innerWidth,r.right);const visible=right>left&&r.top<innerHeight-20&&r.bottom>0&&wrap.scrollWidth>wrap.clientWidth+1;bar.hidden=!visible;if(!visible)return;bar.style.left=left+'px';bar.style.width=(right-left)+'px';track.style.width=(wrap.scrollWidth-wrap.clientWidth+bar.clientWidth)+'px';if(bar.scrollLeft!==wrap.scrollLeft)bar.scrollLeft=wrap.scrollLeft;}
+ wrap.addEventListener('scroll',()=>{if(!bar.hidden&&bar.scrollLeft!==wrap.scrollLeft)bar.scrollLeft=wrap.scrollLeft;},{passive:true});
+ bar.addEventListener('scroll',()=>{if(!bar.hidden&&wrap.scrollLeft!==bar.scrollLeft)wrap.scrollLeft=bar.scrollLeft;},{passive:true});
+ window.addEventListener('scroll',refresh,{passive:true});window.addEventListener('resize',refresh);const observer=new ResizeObserver(refresh);observer.observe(wrap);const table=wrap.querySelector('table');if(table)observer.observe(table);new MutationObserver(refresh).observe(wrap,{childList:true,subtree:true});refresh();
+})();
+</script>
+</body></html>
