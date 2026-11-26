@@ -54,7 +54,7 @@ header.hero,body>header{display:flex;align-items:center;justify-content:space-be
 @media(max-width:480px){.entry-grid{grid-template-columns:1fr}.member-row{grid-template-columns:minmax(0,1fr) 45px 45px}}
 </style></head><body>
 <header><strong>Elia CoPilot</strong><p>ניהול נמענים לפי פרויקט / סוג עבודה</p><div class="elia-weeks" aria-label="שבוע הבא והשבוע הנוכחי"><div class="elia-week-block"><span class="elia-week-label">שבוע הבא</span><span class="elia-week-next" id="eliaNextWeek">–</span></div><div class="elia-week-block elia-week-block-current"><span class="elia-week-label">שבוע נוכחי</span><span class="elia-week-current" id="eliaCurrentWeek">–</span></div></div></header>
-<nav aria-label="כלי Elia CoPilot"><a href="./events.html" style="font-weight:700;color:#245bb4;text-decoration:none;background:#fff;border-radius:8px;padding:9px 13px">📅 אירועים</a><a href="./segments.html" style="font-weight:700;color:#245bb4;text-decoration:none;background:#fff;border-radius:8px;padding:9px 13px">🛣️ מקטעים</a><a href="./mail-generator.html">✉️ מחולל מייל</a><a href="./word-generator.html">📄 מחולל Word</a><a href="./contacts.html" aria-current="page">👥 קבוצות נמענים</a><a href="./sign-generator.html" style="font-weight:700;color:#245bb4;text-decoration:none;background:#fff;border-radius:8px;padding:9px 13px">🪧 מחולל שלטים</a><a href="./notice-template.html" style="font-weight:700;color:#245bb4;text-decoration:none;background:#fff;border-radius:8px;padding:9px 13px">📢 הודעה על רקע קבוע</a><a href="./work-importer.html" style="font-weight:700;color:#245bb4;text-decoration:none;background:#fff;border-radius:8px;padding:9px 13px">📊 ייבוא עבודות</a></nav>
+<nav aria-label="כלי Elia CoPilot"><a href="/events.html">📅 אירועים</a><a href="/segments.html">🛣️ מקטעים</a><a href="/contacts.html" aria-current="page">👥 קבוצות נמענים</a><a href="/account">חשבון / יציאה</a></nav>
 
 <main>
 <section class="card">
@@ -132,20 +132,26 @@ function migrateLegacy(legacy){
  if(!data.groups.length)data.groups=initial().groups;
  return data;
 }
-function load(){
- try{const obj=JSON.parse(localStorage.getItem(KEY));if(obj&&obj.version===2&&Array.isArray(obj.people)&&Array.isArray(obj.groups))return obj}catch(e){}
- try{const old=JSON.parse(localStorage.getItem(LEGACY));if(old&&Array.isArray(old.groups))return migrateLegacy(old)}catch(e){}
- return initial();
-}
+function load(){return initial()}
 let data=load(),current=localStorage.getItem(ACTIVE)||data.groups[0]?.id,editing=null;
 if(!data.groups.length)data.groups=initial().groups;
 if(!data.groups.some(g=>g.id===current))current=data.groups[0].id;
 data.affiliations=[...new Set([...AFFILIATIONS,...(data.affiliations||[])])];
 function memberEmails(ids){return [...new Set((ids||[]).map(pid=>data.people.find(p=>p.id===pid)?.email).filter(Boolean).map(emailKey))]}
-function persist(){
- localStorage.setItem(KEY,JSON.stringify(data));
- localStorage.setItem(LEGACY,JSON.stringify({version:1,groups:data.groups.map(g=>({id:g.id,name:g.name,to:memberEmails(g.to),cc:memberEmails(g.cc)}))}));
- localStorage.setItem(ACTIVE,current);
+let revision='0',ready=false;
+async function persist(){
+ if(!ready)return false;
+ document.body.inert=true;
+ try{
+ const res=await fetch('/api/contacts',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision,data})});
+ if(!res.ok)throw Error('save');
+ revision=(await res.json()).revision;return true;
+ }catch(e){alert('השמירה נכשלה. הדף ייטען מחדש כדי למנוע אובדן נתונים.');location.reload();return false}
+ finally{document.body.inert=false}
+}
+async function startCloud(){
+ document.body.inert=true;
+ try{const res=await fetch('/api/contacts');if(!res.ok)throw Error('load');const state=await res.json();revision=state.revision;data=state.data||initial();current=data.groups[0].id;ready=true;drawAffiliations();renderAll();}catch(e){alert('טעינת נמענים נכשלה');return}document.body.inert=false;
 }
 function message(t){$('status').textContent=t}
 function fillSelect(el,options,emptyLabel){
@@ -171,19 +177,19 @@ function renderPeople(){
   row.insertCell().textContent=p.affiliation||'לא הוגדר';
   const actions=row.insertCell();
   const edit=document.createElement('button');edit.className='alt small-btn';edit.textContent='ערוך';edit.onclick=()=>{editing=p.id;$('personName').value=p.name;$('personEmail').value=p.email;$('personAffiliation').value=p.affiliation;$('personSave').textContent='שמור שינויים';$('cancelEdit').hidden=false;$('personName').focus()};
-  const del=document.createElement('button');del.className='danger small-btn';del.textContent='מחק';del.onclick=()=>{if(!confirm('למחוק את '+p.name+' מכל הקבוצות?'))return;data.people=data.people.filter(x=>x.id!==p.id);for(const g of data.groups){g.to=g.to.filter(x=>x!==p.id);g.cc=g.cc.filter(x=>x!==p.id)}persist();renderAll();message('הנמען הוסר')};
+  const del=document.createElement('button');del.className='danger small-btn';del.textContent='מחק';del.onclick=async()=>{if(!confirm('למחוק את '+p.name+' מכל הקבוצות?'))return;data.people=data.people.filter(x=>x.id!==p.id);for(const g of data.groups){g.to=g.to.filter(x=>x!==p.id);g.cc=g.cc.filter(x=>x!==p.id)}if(!await persist())return;renderAll();message('הנמען הוסר')};
   actions.append(edit,del);
  }
 }
 function resetForm(){editing=null;$('personForm').reset();$('personSave').textContent='הוסף נמען';$('cancelEdit').hidden=true}
-$('personForm').onsubmit=e=>{
+$('personForm').onsubmit=async e=>{
  e.preventDefault();
  const name=$('personName').value.trim(),email=emailKey($('personEmail').value),affiliation=$('personAffiliation').value;
  if(!name||!email||!affiliation){message('יש למלא שם, מייל ושיוך');return}
  if(data.people.some(p=>emailKey(p.email)===email&&p.id!==editing)){message('כתובת המייל כבר קיימת במאגר');return}
  if(editing){const p=data.people.find(p=>p.id===editing);if(p)Object.assign(p,{name,email,affiliation})}
  else data.people.push({id:id(),name,email,affiliation});
- persist();resetForm();renderAll();message('פרטי הנמען נשמרו');
+ if(!await persist())return;resetForm();renderAll();message('פרטי הנמען נשמרו');
 };
 $('cancelEdit').onclick=resetForm;
 function chosenGroup(){return data.groups.find(g=>g.id===current)||data.groups[0]}
@@ -191,7 +197,7 @@ function renderGroups(){
  const list=$('groupList');list.replaceChildren();
  for(const g of data.groups){
   const button=document.createElement('button');button.type='button';button.textContent=g.name+' ('+new Set([...(g.to||[]),...(g.cc||[])]).size+')';button.className=g.id===current?'active':'';
-  button.onclick=()=>{current=g.id;persist();renderGroups();renderMembers()};
+  button.onclick=async()=>{current=g.id;renderGroups();renderMembers()};
   list.append(button);
  }
  $('groupName').value=chosenGroup().name;
@@ -206,7 +212,7 @@ function renderMembers(){
   const who=document.createElement('div');who.className='identity';const name=document.createElement('strong');name.textContent=p.name;const details=document.createElement('small');details.textContent=' · '+(p.affiliation||'לא הוגדר')+' · '+p.email;who.append(name,details);row.append(who);
   for(const key of ['to','cc']){
    const label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.checked=(g[key]||[]).includes(p.id);check.setAttribute('aria-label',(key==='to'?'אל':'עותק')+' — '+p.name);
-   check.onchange=()=>{g[key]=check.checked?[...new Set([...(g[key]||[]),p.id])]:(g[key]||[]).filter(x=>x!==p.id);persist();renderGroups()};
+   check.onchange=async()=>{g[key]=check.checked?[...new Set([...(g[key]||[]),p.id])]:(g[key]||[]).filter(x=>x!==p.id);if(!await persist())return;renderGroups()};
    label.append(check);row.append(label);
   }
   list.append(row);
@@ -218,15 +224,15 @@ $('tabGroups').onclick=()=>showPanel('groups');
 function showPanel(which){const people=which==='people';$('peoplePanel').hidden=!people;$('groupsPanel').hidden=people;$('tabPeople').setAttribute('aria-selected',String(people));$('tabGroups').setAttribute('aria-selected',String(!people))}
 $('personSearch').oninput=renderPeople;$('affiliationFilter').onchange=renderPeople;
 $('memberSearch').oninput=renderMembers;$('memberAffiliation').onchange=renderMembers;
-$('addGroup').onclick=()=>{const name=prompt('שם הקבוצה החדשה');if(!name?.trim())return;const g={id:id(),name:name.trim(),to:[],cc:[]};data.groups.push(g);current=g.id;persist();renderAll();message('הקבוצה נוצרה')};
-$('saveGroup').onclick=()=>{const name=$('groupName').value.trim();if(!name){message('חסר שם לקבוצה');return}chosenGroup().name=name;persist();renderGroups();message('שם הקבוצה נשמר')};
-$('deleteGroup').onclick=()=>{if(data.groups.length<2){message('יש להשאיר לפחות קבוצה אחת');return}if(!confirm('למחוק את הקבוצה '+chosenGroup().name+'?'))return;data.groups=data.groups.filter(g=>g.id!==current);current=data.groups[0].id;persist();renderAll();message('הקבוצה נמחקה')};
-$('useGroup').onclick=()=>{persist();location.href='./index.html'};
+$('addGroup').onclick=async()=>{const name=prompt('שם הקבוצה החדשה');if(!name?.trim())return;const g={id:id(),name:name.trim(),to:[],cc:[]};data.groups.push(g);current=g.id;if(!await persist())return;renderAll();message('הקבוצה נוצרה')};
+$('saveGroup').onclick=async()=>{const name=$('groupName').value.trim();if(!name){message('חסר שם לקבוצה');return}chosenGroup().name=name;if(!await persist())return;renderGroups();message('שם הקבוצה נשמר')};
+$('deleteGroup').onclick=async()=>{if(data.groups.length<2){message('יש להשאיר לפחות קבוצה אחת');return}if(!confirm('למחוק את הקבוצה '+chosenGroup().name+'?'))return;data.groups=data.groups.filter(g=>g.id!==current);current=data.groups[0].id;if(!await persist())return;renderAll();message('הקבוצה נמחקה')};
+$('useGroup').onclick=()=>{location.href='/events.html'};
 async function copy(text){try{await navigator.clipboard.writeText(text);message('הועתק ללוח')}catch(e){message('לא ניתן להעתיק אוטומטית')}}
 $('copyTo').onclick=()=>copy(memberEmails(chosenGroup().to).join('; '));
 $('copyCc').onclick=()=>copy(memberEmails(chosenGroup().cc).join('; '));
 $('export').onclick=()=>{
- persist();const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+ const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
  const a=document.createElement('a');a.href=url;a.download='EliaCoPilot_Contacts_Backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000)
 };
 $('import').onchange=async e=>{
@@ -255,12 +261,12 @@ $('import').onchange=async e=>{
   }
   data.affiliations=[...new Set([...AFFILIATIONS,...(data.affiliations||[]),...(imported.affiliations||[])])];
   if(!data.groups.length)data.groups=initial().groups;
-  resetForm();drawAffiliations();persist();renderAll();message('הייבוא הושלם: '+added+' נמענים חדשים, '+merged+' כתובות קיימות שזוהו');
+  resetForm();drawAffiliations();if(!await persist())return;renderAll();message('הייבוא הושלם: '+added+' נמענים חדשים, '+merged+' כתובות קיימות שזוהו');
  }catch(err){message('שגיאה בטעינת הקובץ: '+err.message)}
  e.target.value='';
 };
 drawAffiliations();
-persist();renderAll();
+startCloud();
 </script><script>
 /* ISO 8601 week numbers, calculated for Israel's local calendar date. */
 (function(){
