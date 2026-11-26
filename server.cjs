@@ -41,9 +41,9 @@ app.post('/admin/users/password',adminOnly,(req,res)=>changeAccount(req,res,fals
 app.post('/admin/users/disable',adminOnly,(req,res)=>changeAccount(req,res,true));
 cloudEvents.register(app,pool,user);
 cloudContacts.register(app,pool,user);
-app.get(['/events.html','/segments.html','/contacts.html','/mail-generator.html'],async(req,res)=>{
+app.get(['/events.html','/segments.html','/contacts.html','/mail-generator.html','/word-generator.html','/work-importer.html'],async(req,res)=>{
  if(!await user(req))return res.redirect('/');
- res.set('Content-Security-Policy',"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+ res.set('Content-Security-Policy',"default-src 'none'; script-src 'unsafe-inline'"+(req.path==='/work-importer.html'?' https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js':'')+"; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
  res.sendFile(path.join(__dirname,req.path.slice(1)));
 });
 app.use((err,req,res,next)=>{console.error('Request failed');res.status(500).send('Service error');});
