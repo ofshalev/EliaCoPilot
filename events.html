@@ -256,7 +256,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 </head>
 <body>
 <header><div><strong>Elia CoPilot</strong><p>ניהול אירועי עבודות תחבורה ציבורית</p></div><div class="elia-weeks" aria-label="שבוע הבא והשבוע הנוכחי"><button type="button" class="elia-week-block" id="selectNextWeek" aria-pressed="true" title="הצג אירועי השבוע הבא"><span class="elia-week-label">שבוע הבא</span><span class="elia-week-next" id="eliaNextWeek">–</span></button><button type="button" class="elia-week-block elia-week-block-current" id="selectCurrentWeek" aria-pressed="false" title="הצג אירועי השבוע הנוכחי"><span class="elia-week-label">שבוע נוכחי</span><span class="elia-week-current" id="eliaCurrentWeek">–</span></button></div></header>
-<nav aria-label="כלי Elia CoPilot"><a href="./events.html" aria-current="page">📅 אירועים</a><a href="./segments.html" style="font-weight:700;color:#245bb4;text-decoration:none;background:#fff;border-radius:8px;padding:9px 13px">🛣️ מקטעים</a><a href="./mail-generator.html">✉️ מחולל מייל</a><a href="./word-generator.html">📄 מחולל Word</a><a href="./contacts.html">👥 קבוצות נמענים</a><a href="./sign-generator.html">🪧 מחולל שלטים</a><a href="./notice-template.html">📢 הודעה על רקע קבוע</a><a href="./work-importer.html" style="font-weight:700;color:#245bb4;text-decoration:none;background:#fff;border-radius:8px;padding:9px 13px">📊 ייבוא עבודות</a></nav>
+<nav aria-label="כלי Elia CoPilot"><a href="/events.html" aria-current="page">📅 אירועים</a><a href="/account">חשבון / יציאה</a></nav>
 <main>
 <section class="card">
  <h1>אירועים <span id="totalEvents" class="pill">0 אירועים</span></h1>
@@ -346,8 +346,10 @@ const LINE_SEGMENTS={
 const outputFields=['hasPpt','hasTable','hasWord','hasSigns','hasEmail'];
 const fields=['city','railLine','segment','locationType','workId','street','workType','timeFrom','timeTo','description'];
 let events=[],editing=null;
-try{const saved=JSON.parse(localStorage.getItem(KEY));if(Array.isArray(saved))events=saved.filter(x=>x&&x.id)}catch(e){}
-function save(){localStorage.setItem(KEY,JSON.stringify(events))}
+let revision=null, committed=[], saving=false;
+async function loadCloud(){const response=await fetch('/api/events',{cache:'no-store'});if(response.status===401){location.href='/';throw Error('Login required')}if(!response.ok)throw Error('Load failed');const data=await response.json();revision=data.revision;events=data.events;committed=structuredClone(events);}
+async function save(){if(saving||revision===null)throw Error('Storage unavailable');saving=true;try{const response=await fetch('/api/events',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision,events})});if(!response.ok)throw Error(response.status===409?'אירועים עודכנו על ידי משתמש אחר. יש לרענן ולנסות שוב.':'השמירה נכשלה');revision=(await response.json()).revision;committed=structuredClone(events);}catch(e){events=structuredClone(committed);render();throw e;}finally{saving=false;}}
+async function safeSave(){try{await save();return true}catch(e){alert(e.message);return false}}
 function localISO(d){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
 function dayPlus(date,days){if(!date)return '';const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+days);return localISO(d)}
 function weekStart(d){const n=new Date(d+'T12:00:00');n.setDate(n.getDate()-n.getDay());return localISO(n)}
@@ -1095,8 +1097,8 @@ function putForm(record){
  renderDates(isContinuous()?undefined:dates);
  if(!isContinuous()&&dates.some(d=>!nextWeekDates.some(x=>x.date===d)))$('formStatus').textContent='האירוע כולל תאריך מחוץ לשבוע הבא. כדי לשמור שינויים, בחרו תאריכים מתוך הלוח החדש.';
 }
-$('eventForm').onsubmit=e=>{
- e.preventDefault();const record=getForm();
+$('eventForm').onsubmit=async e=>{
+ e.preventDefault();if(saving||revision===null)return;const record=getForm();
  for(let i=0;i<record.blockages.length;i++){
   const b=record.blockages[i],range=scheduleDatesOf(b);
   if(!range.from||!range.to){$('formStatus').textContent='יש לבחור ימים או טווח תאריכים לחסימה '+(i+1);return}
@@ -1113,10 +1115,10 @@ $('eventForm').onsubmit=e=>{
  const stamp=new Date().toISOString();
  if(editing){const idx=events.findIndex(x=>x.id===editing);if(idx>=0)events[idx]={...events[idx],...record,updatedAt:stamp}}
  else events.push({id:crypto.randomUUID?crypto.randomUUID():'event-'+Date.now(),eventStatus:'מתוכנן',...record,createdAt:stamp,updatedAt:stamp});
- save();$('formPanel').hidden=true;editing=null;$('statusFilter').value='';$('projectFilter').value='';render();$('eventsList').scrollIntoView({behavior:'smooth'});
+ if(!await safeSave())return;$('formPanel').hidden=true;editing=null;$('statusFilter').value='';$('projectFilter').value='';render();$('eventsList').scrollIntoView({behavior:'smooth'});
 };
 function editEvent(id){const ev=events.find(x=>x.id===id);if(!ev)return;editing=id;$('eventForm').reset();$('formHeading').textContent='עריכת אירוע';$('saveEvent').textContent='שמור שינויים';$('formPanel').hidden=false;$('formStatus').textContent='';putForm(ev);$('formPanel').scrollIntoView({behavior:'smooth'})}
-function deleteEvent(id){const ev=events.find(x=>x.id===id);if(!ev||!confirm('למחוק את האירוע '+ev.eventTitle+'?'))return;events=events.filter(x=>x.id!==id);save();render()}
+async function deleteEvent(id){if(saving||revision===null)return;const ev=events.find(x=>x.id===id);if(!ev||!confirm('למחוק את האירוע '+ev.eventTitle+'?'))return;events=events.filter(x=>x.id!==id);if(await safeSave())render()}
 function txt(el,str){el.textContent=String(str??'');return el}
 function tag(el,kind,cls){const n=document.createElement(kind);if(cls)n.className=cls;el.append(n);return n}
 function formatDate(s){return s?s.split('-').reverse().join('/'):'—'}
@@ -1299,13 +1301,13 @@ function render(){
   const done=outputFields.filter(f=>e[f]).length;
   txt(tag(info,'div','event-meta'),(e.workId?'מספר עבודה / בקשה: '+e.workId+' · ':'')+'תוצרים: '+done+' מתוך '+outputFields.length);
   if(e.importSource){txt(tag(info,'div','event-meta'),'מקור: '+e.importSource+(e.sourceWarnings?.length?' · יש לבדוק: '+e.sourceWarnings.join(' · '):''))}
-  const ppt=tag(row,'button','alt presentation-icon presentation-side');ppt.type='button';ppt.textContent='▣ מצגת';ppt.title='ערוך מצגת';ppt.setAttribute('aria-label','ערוך מצגת: '+name);ppt.onclick=()=>{window.location.href='presentation-editor.html?event='+encodeURIComponent(e.id)};const actions=tag(row,'div','actions');const edit=tag(actions,'button','alt');edit.textContent='ערוך';edit.onclick=()=>editEvent(e.id);const del=tag(actions,'button','danger');del.textContent='מחק';del.onclick=()=>deleteEvent(e.id);
+  const ppt=tag(row,'button','alt presentation-icon presentation-side');ppt.type='button';ppt.textContent='▣ מצגת';ppt.title='ערוך מצגת';ppt.setAttribute('aria-label','ערוך מצגת: '+name);ppt.disabled=true;ppt.title='בקרוב';const actions=tag(row,'div','actions');const edit=tag(actions,'button','alt');edit.textContent='ערוך';edit.onclick=()=>editEvent(e.id);const del=tag(actions,'button','danger');del.textContent='מחק';del.onclick=()=>deleteEvent(e.id);
  }
 }
 for(const el of ['projectFilter','statusFilter'])$(el).onchange=render;
 $('search').oninput=render;
 $('exportEvents').onclick=()=>{const blob=new Blob([JSON.stringify({version:1,events},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='EliaCoPilot_Events.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2500)};
-$('importEvents').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;try{const obj=JSON.parse(await file.text());const incoming=Array.isArray(obj)?obj:obj.events;if(!Array.isArray(incoming))throw Error('קובץ לא תקין');if(!confirm('למזג את האירועים מהקובץ למאגר המקומי?'))return;const map=new Map(events.map(x=>[x.id,x]));for(const ev of incoming)if(ev&&typeof ev.id==='string'&&ev.eventTitle)map.set(ev.id,ev);events=[...map.values()];save();render()}catch(err){alert('שגיאה בייבוא: '+err.message)}e.target.value=''};
+$('importEvents').onchange=async e=>{const file=e.target.files?.[0];if(!file||saving||revision===null)return;try{const obj=JSON.parse(await file.text());const incoming=Array.isArray(obj)?obj:obj.events;if(!Array.isArray(incoming))throw Error('קובץ לא תקין');if(!confirm('למזג את האירועים מהקובץ למאגר המשותף?'))return;const map=new Map(events.map(x=>[x.id,x]));for(const ev of incoming)if(ev&&typeof ev.id==='string'&&ev.eventTitle)map.set(ev.id,ev);events=[...map.values()];save();render()}catch(err){alert('שגיאה בייבוא: '+err.message)}e.target.value=''};
 
 const SITE_PENDING_KEY='elia_copilot_pending_site_events_v1';
 let pendingSiteImport=null;
@@ -1328,7 +1330,7 @@ function initSiteImport(){
   warning.textContent=duplicate?'כבר קיים אירוע ממקור זה — יידלג':p.importIssues?.length?'לבדיקה: '+p.importIssues.join(' · '):'מוכן ליצירת כרטיס';
   card.append(warning);container.append(card);
  });
- $('approveSiteEvents').onclick=()=>{
+ $('approveSiteEvents').onclick=async()=>{if(saving||revision===null)return;
   const selected=[...container.querySelectorAll('input[type=checkbox]:checked')].map(el=>proposals[Number(el.dataset.proposalIndex)]);
   if(!selected.length){$('siteImportStatus').textContent='יש לבחור לפחות פעילות אחת';return}
   const uncertain=selected.filter(p=>(p.importIssues||[]).length);
@@ -1340,7 +1342,7 @@ function initSiteImport(){
    const {importIssues,...rest}=p;
    events.push({...rest,id,eventStatus:'ממתין לאישור',sourceWarnings:importIssues||[],createdAt:stamp,updatedAt:stamp});added++;
   }
-  try{save()}catch(err){$('siteImportStatus').textContent='שגיאה בשמירת האירועים: '+err.message;return}
+  try{await save()}catch(err){$('siteImportStatus').textContent='שגיאה בשמירת האירועים: '+err.message;return}
   const completedKeys=new Set(selected.map(p=>p.importKey));const remaining=proposals.filter(p=>!completedKeys.has(p.importKey)&&!events.some(x=>x.importKey===p.importKey));
   if(remaining.length){pendingSiteImport={...pendingSiteImport,proposals:remaining};localStorage.setItem(SITE_PENDING_KEY,JSON.stringify(pendingSiteImport));}else{localStorage.removeItem(SITE_PENDING_KEY);pendingSiteImport=null;panel.hidden=true;}
   $('statusFilter').value='';$('projectFilter').value='';render();$('siteImportStatus').textContent='נוצרו '+added+' כרטיסים';if(remaining.length)initSiteImport();
@@ -1349,6 +1351,6 @@ function initSiteImport(){
  if(location.search.includes('reviewSiteImport=1'))panel.scrollIntoView({block:'start'});
 }
 
-render();initSiteImport();
+loadCloud().then(()=>{render();initSiteImport()}).catch(()=>alert('טעינת האירועים נכשלה. יש לרענן את הדף.'));
 </script>
 </body></html>
