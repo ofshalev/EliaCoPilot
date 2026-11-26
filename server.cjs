@@ -2,11 +2,14 @@ const express = require('express');
 const { Pool } = require('pg');
 const crypto = require('node:crypto');
 const auth = require('./cloud-auth.cjs');
+const cloudEvents=require('./cloud-events.cjs');
+const path=require('node:path');
 const app = express();
 app.disable('x-powered-by');
 const pool = new Pool({connectionString:process.env.DATABASE_URL,max:3,connectionTimeoutMillis:3000,query_timeout:5000});
 pool.on('error',()=>console.error('Database pool error'));
 app.use((req,res,next)=>{res.set('Cache-Control','no-store');res.set('X-Content-Type-Options','nosniff');res.set('X-Frame-Options','DENY');res.set('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");next();});
+app.use(express.json({limit:'8mb'}));
 app.use(express.urlencoded({extended:false,limit:'8kb'}));
 const origin='https://elia-copilot.onrender.com';
 app.use((req,res,next)=>{if(req.method==='POST' && req.get('origin')!==origin)return res.sendStatus(403);next();});
@@ -16,7 +19,8 @@ const token=req=>(req.headers.cookie||'').match(/(?:^|;\s*)elia_session=([a-f0-9
 async function user(req){const t=token(req);if(!t)return null;return (await pool.query('SELECT u.username,u.role FROM cloud_sessions s JOIN cloud_users u USING(username) WHERE s.token_hash=$1 AND s.expires_at>now() AND u.active',[auth.digest(t)])).rows[0];}
 app.get('/health',(req,res)=>res.json({status:'ok'}));
 app.get('/ready',async(req,res)=>{try{await pool.query('SELECT 1');res.json({status:'ready'});}catch{res.status(503).json({status:'not_ready'});}});
-app.get('/',async(req,res)=>{const u=await user(req);if(!u)return res.send(login());res.send(page('<h2>שלום, '+u.username+'</h2>'+(u.role==='admin'?'<p><a href="/admin/users">ניהול משתמשים</a></p>':'')+'<p>התחברת בהצלחה. ממשק העבודה בהקמה.</p><form method="post" action="/logout"><button>יציאה</button></form>'));});
+app.get('/',async(req,res)=>{if(await user(req))return res.redirect('/events.html');return res.send(login());});
+app.get('/account',async(req,res)=>{const u=await user(req);if(!u)return res.send(login());res.send(page('<h2>שלום, '+u.username+'</h2>'+(u.role==='admin'?'<p><a href="/admin/users">ניהול משתמשים</a></p>':'')+'<p>התחברת בהצלחה. <a href="/events.html">חזרה לאירועים</a></p><form method="post" action="/logout"><button>יציאה</button></form>'));});
 let attempts=0,windowStart=Date.now();
 app.post('/login',async(req,res)=>{if(Date.now()-windowStart>60000){attempts=0;windowStart=Date.now();}if(++attempts>20)return res.status(429).send(login('<p>נא לנסות שוב בעוד דקה.</p>'));const name=String(req.body.username||'').trim().toLowerCase();const password=req.body.password;const u=(await pool.query('SELECT * FROM cloud_users WHERE username=$1 AND active',[name])).rows[0];if(!u||!await auth.verifyPassword(password,u.password_hash))return res.status(401).send(login('<p>שם משתמש או סיסמה שגויים.</p>'));const t=crypto.randomBytes(32).toString('hex');await pool.query("DELETE FROM cloud_sessions WHERE expires_at<=now()");await pool.query("INSERT INTO cloud_sessions VALUES($1,$2,now()+interval '12 hours')",[auth.digest(t),name]);res.cookie('elia_session',t,{httpOnly:true,secure:true,sameSite:'strict',maxAge:43200000,path:'/'});res.redirect(303,'/');});
 app.post('/logout',async(req,res)=>{const t=token(req);if(t)await pool.query('DELETE FROM cloud_sessions WHERE token_hash=$1',[auth.digest(t)]);res.clearCookie('elia_session',{httpOnly:true,secure:true,sameSite:'strict',path:'/'});res.redirect(303,'/');});
@@ -34,5 +38,11 @@ async function changeAccount(req,res,disable){
 }
 app.post('/admin/users/password',adminOnly,(req,res)=>changeAccount(req,res,false));
 app.post('/admin/users/disable',adminOnly,(req,res)=>changeAccount(req,res,true));
+cloudEvents.register(app,pool,user);
+app.get('/events.html',async(req,res)=>{
+ if(!await user(req))return res.redirect('/');
+ res.set('Content-Security-Policy',"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+ res.sendFile(path.join(__dirname,'events.html'));
+});
 app.use((err,req,res,next)=>{console.error('Request failed');res.status(500).send('Service error');});
-auth.initialize(pool).then(()=>app.listen(Number(process.env.PORT||3000),'0.0.0.0')).catch(()=>{console.error('Database initialization failed');process.exit(1);});
+auth.initialize(pool).then(()=>cloudEvents.initialize(pool)).then(()=>app.listen(Number(process.env.PORT||3000),'0.0.0.0')).catch(()=>{console.error('Database initialization failed');process.exit(1);});
