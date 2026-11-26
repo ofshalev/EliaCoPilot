@@ -345,7 +345,7 @@ function dateFromPdfItems(items){
  candidates.sort((a,b)=>b.score-a.score||b.count-a.count);
  return candidates[0]?.value||'';
 }
-function timeFromText(text){const matches=[...clean(text).matchAll(/(?<!\d)([01]?\d|2[0-3]):([0-5]\d)(?!\d)/g)].map(m=>m[0]);return matches.length>=2?matches.slice(0,2):[]}
+function timeFromText(text){const matches=[...clean(text).matchAll(/(?<!\d)([01]?\d|2[0-3]):([0-5]\d)(?!\d)/g)].map(m=>m[1].padStart(2,'0')+':'+m[2]);if(matches.length<2)return [];const [a,b]=matches;const hour=t=>Number(t.split(':')[0]);if(hour(a)<6&&hour(b)>=20)return [b,a];return [a,b]}
 function parsePdfPages(pages){
  const all=pages.map(p=>linesFromPage(p).map(l=>l.text).join('\n'));
  const split=pages.map((p,i)=>({page:i+1,rows:parseSplitSummary(p)})).filter(p=>p.rows.length);
