@@ -78,14 +78,17 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .project-p .project-code{background:#7844aa}.project-b .project-code{background:#89552f}.project-g .project-code{background:#238455}
 .segment-label{font-weight:800;font-size:15px;direction:ltr;unicode-bidi:isolate}
 .event-title{display:block;margin-bottom:4px}
-.event-card{position:relative;padding-top:38px}
-.event-impact-toggle{position:absolute;top:10px;left:12px;display:flex;align-items:center;gap:6px;font-size:12px;color:#526378;cursor:pointer;direction:rtl}
+.event-card{position:relative}
+.event-impact-toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:#526378;cursor:pointer;direction:rtl}.event-editor-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .event-impact-toggle input,.impact-list-toggle input{width:auto;margin:0;accent-color:#64748b}
-.event-card.no-transit-impact{border-color:color-mix(in srgb,currentColor 20%,#dbe4ee);background:#f8fafc}
+.event-card.no-transit-impact.project-p{border-color:#c4a7df;background:#fbf7ff}
+.event-card.no-transit-impact.project-b{border-color:#cdb39f;background:#fdf8f3}
+.event-card.no-transit-impact.project-g{border-color:#9fcbb4;background:#f4fcf7}
+.event-card.no-transit-impact.project-other{border-color:#cbd5e1;background:#f8fafc}
 .event-card.no-transit-impact>.event-card-details,.event-card.no-transit-impact>.actions,.event-card.no-transit-impact>.presentation-side{opacity:.62}
 .event-list-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .impact-list-toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:#526378;cursor:pointer}
-@media(max-width:550px){.event-impact-toggle{top:8px;left:10px}.event-card{padding-top:38px}}
+
 .event-card-details{min-width:0}
 .event-card .presentation-side{position:absolute;right:31%;top:50%;transform:translateY(-50%);display:inline-flex;justify-content:center;align-items:center;gap:5px;min-width:75px;height:34px;padding:0 9px;font-size:13px;font-weight:700;line-height:1;border:1px solid #b9cce1;border-radius:7px;color:#295b9e;background:#e9f0fb}
 .event-card .presentation-side:hover,.event-card .presentation-side:focus-visible{background:#dce9fc;outline:2px solid #2864e2}
@@ -287,7 +290,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  <p id="siteImportStatus" role="status" class="note"></p>
 </section>
 <div id="newEventEditorHome"></div><section class="card" id="formPanel" hidden>
- <h2 id="formHeading">צור אירוע חדש</h2>
+ <div class="event-editor-heading"><h2 id="formHeading">צור אירוע חדש</h2><label class="event-impact-toggle"><input id="noTransitImpact" form="eventForm" type="checkbox"> ללא השפעה על תח״צ</label></div>
  <form id="eventForm">
  <div class="formgrid">
  
@@ -338,7 +341,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  </form>
 </section>
 <section class="card">
- <div class="event-list-heading"><h2>רשימת אירועים</h2><label class="impact-list-toggle"><input type="checkbox" id="showNoTransitImpact" checked> הצג אירועים ללא השפעה על תח״צ</label></div>
+ <div class="event-list-heading"><h2>רשימת אירועים</h2><label class="impact-list-toggle"><input type="checkbox" id="showNoTransitImpact"> הצג אירועים ללא השפעה על תח״צ</label></div>
  <div class="toolbar">
  <div><label for="projectFilter">פרויקט</label><select id="projectFilter"><option value="">כל הפרויקטים</option><option value="הקו הסגול">הקו הסגול</option><option value="הקו החום">הקו החום</option><option value="הקו הירוק">הקו הירוק</option></select></div>
  <div><label for="statusFilter">סטטוס</label><select id="statusFilter"><option value="">כל הסטטוסים</option><option>מתוכנן</option><option>בטיפול</option><option>ממתין לאישור</option><option>מאושר</option><option>בוטל</option><option>הושלם</option></select></div>
@@ -1187,7 +1190,7 @@ function generateEventTitle(record){
  const suffix=record.bothDirections?' — שני הכיוונים':'';
  return (base+scope+suffix).trim()||'אירוע ללא מיקום';
 }
-function getForm(){const result={};for(const f of fields)result[f]=$(f).value;
+function getForm(){const result={};for(const f of fields)result[f]=$(f).value;result.noTransitImpact=$('noTransitImpact').checked;
  const choices=baseStreetOptions();
  result.street=choices.length===1?choices[0]:$('streetChoice').value;
  result.crossStreets=result.locationType==='צומת'?crossStreetValues().filter(Boolean):[];
@@ -1209,6 +1212,7 @@ function getForm(){const result={};for(const f of fields)result[f]=$(f).value;
  result.workType=result.blockages.length===1?result.blockages[0].workType:'עבודות מרובות';
  for(const f of outputFields)result[f]=$(f).checked;return result}
 function putForm(record){
+ $('noTransitImpact').checked=record.noTransitImpact===true;
  for(const f of fields)if(f!=='segment'&&f!=='timeFrom'&&f!=='timeTo')$(f).value=record[f]??'';
  const restoredStart=Number.parseInt(record.timeFrom,10),restoredEnd=Number.parseInt(record.timeTo,10);
  if(Number.isInteger(restoredStart)&&Number.isInteger(restoredEnd))setClock(restoredStart,mod24(restoredEnd-restoredStart)||24);else applyWorkHours();
@@ -1419,7 +1423,7 @@ function render(){
  for(const e of filtered){
   const code=e.railLine==='הקו הסגול'?'P':e.railLine==='הקו החום'?'B':e.railLine==='הקו הירוק'?'G':'—';
   const cls=code==='P'?'project-p':code==='B'?'project-b':code==='G'?'project-g':'project-other';
-  const row=tag(items,'article','event-card '+cls),info=tag(row,'div','event-card-details');row.dataset.eventId=e.id;row.classList.toggle('no-transit-impact',e.noTransitImpact===true);const impactLabel=tag(row,'label','event-impact-toggle');const impactCheck=tag(impactLabel,'input','');impactCheck.type='checkbox';impactCheck.checked=e.noTransitImpact===true;impactLabel.append('ללא השפעה על תח״צ');impactCheck.onchange=async()=>{if(saving||revision===null){impactCheck.checked=e.noTransitImpact===true;return}const current=events.find(x=>x.id===e.id);if(!current)return;current.noTransitImpact=impactCheck.checked;impactCheck.disabled=true;if(await safeSave())render();};
+  const row=tag(items,'article','event-card '+cls),info=tag(row,'div','event-card-details');row.dataset.eventId=e.id;row.classList.toggle('no-transit-impact',e.noTransitImpact===true);
   const heading=tag(info,'div','event-heading');
   txt(tag(heading,'span','project-code'),code);
   txt(tag(heading,'span','segment-label'),e.segment||'מקטע לא הוגדר');
