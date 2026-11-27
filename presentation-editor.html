@@ -110,9 +110,11 @@ button.alt{background:#e9eff8;color:#294a6c}
 [hidden]{display:none!important}
 @media(max-width:850px){.workspace{grid-template-columns:1fr}.slide-title{font-size:clamp(14px,4vw,29px)}.slide-period{font-size:clamp(11px,2.5vw,18px)}.slide-subtitle{font-size:clamp(10px,2.5vw,17px)}}
 </style>
-</head>
+<style>
+.slide-switch{flex-wrap:wrap}.route-slide{height:100%;container-type:inline-size}.route-slide-head{padding:2.5% 5% 1.5%;border-top:10px solid var(--accent);font-size:clamp(14px,3cqw,30px);font-weight:800;color:#21464a}.route-slide-meta{font-size:clamp(10px,1.6cqw,17px);padding:0 5% 1%;color:#53677e}.route-slide-map{flex:1;min-height:0;margin:0 4%;direction:ltr;border:1px solid #dbe3ec;z-index:0}.route-slide-footer{padding:1.2% 5%;font-size:clamp(9px,1.2cqw,14px);color:#53677e}.route-nav{display:grid;gap:5px;max-height:300px;overflow:auto;margin-top:10px}.route-nav button{text-align:right}.route-nav button.active{background:#2864e2;color:white}.route-legend{display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;font-size:12px}.route-legend span:before{content:'';display:inline-block;width:20px;height:3px;margin-left:5px;vertical-align:middle;background:#2563eb}.route-legend span:last-child:before{background:#c62828}
+</style></head>
 <body>
-<header><div><h1>Elia CoPilot — עורך מצגת</h1><p>שקופיות 1–2 — יצירה אוטומטית מתוך האירוע</p></div><a href="events.html">חזרה לאירועים</a></header>
+<header><div><h1>Elia CoPilot — עורך מצגת</h1><p>יצירה אוטומטית של שקופיות מתוך האירוע</p></div><a href="events.html">חזרה לאירועים</a></header>
 <main>
 <div id="missing" class="panel missing" hidden>
 <h2>לא נמצא אירוע לעריכה</h2>
@@ -161,12 +163,12 @@ button.alt{background:#e9eff8;color:#294a6c}
 <div class="actions"><button type="button" id="finishPolygon" hidden>סיים מצולע</button><button type="button" id="cancelPolygon" class="alt" hidden>בטל ציור</button><button type="button" id="undoMap" class="alt">בטל סימון אחרון</button><button type="button" id="clearMap" class="alt">נקה סימונים</button></div>
 <p class="small" id="mapToolStatus" role="status">בחרו כלי, ואז לחצו במפה כדי לסמן.</p>
 </div>
-<p class="small">הנתונים נשמרים לפי אירוע. לשינוי פרטי האירוע הבסיסיים, חזרו לרשימת האירועים.</p>
+<div id="routeTools" hidden><h2>שקופיות קווים מושפעים</h2><p class="small">שקופית אחת לכל קו, כיוון וחלופה לפי מזהה הקו ברישוי. ניתוח פוטנציאלי בלבד, ללא סינון תאריכים ושעות.</p><div id="routeStatus" role="status" class="small"></div><button type="button" class="alt" id="refreshRoutes">עדכן קווים מושפעים</button><div id="routeNav" class="route-nav"></div><div class="route-legend"><span>מסלול GTFS</span><span>תנועה אסורה (קו בין תחנות)</span></div></div><p class="small">הנתונים נשמרים לפי אירוע. לשינוי פרטי האירוע הבסיסיים, חזרו לרשימת האירועים.</p>
 <a class="return-event" href="events.html" id="backToEvents">חזרה לעריכת האירוע</a>
 </section>
 <section class="panel">
-<h2>תצוגה מקדימה — שתי שקופיות</h2>
-<div class="slide-switch"><button type="button" class="alt active" data-slide="1" aria-pressed="true">1 · שער המצגת</button><button type="button" class="alt" data-slide="2" aria-pressed="false">2 · פרטי העבודות</button><button type="button" class="alt" data-slide="3" aria-pressed="false">3 · תיאור החסימה ומפה</button></div>
+<h2>תצוגה מקדימה — שקופיות האירוע</h2>
+<div class="slide-switch"><button type="button" class="alt active" data-slide="1" aria-pressed="true">1 · שער המצגת</button><button type="button" class="alt" data-slide="2" aria-pressed="false">2 · פרטי העבודות</button><button type="button" class="alt" data-slide="3" aria-pressed="false">3 · תיאור החסימה ומפה</button><button type="button" class="alt" data-slide="routes" aria-pressed="false">קווים מושפעים</button></div>
 <div class="preview-shell">
 <div class="slide" id="slide">
 <div id="coverSlide" class="slide-frame">
@@ -196,7 +198,7 @@ button.alt{background:#e9eff8;color:#294a6c}
 </div>
 </div>
 <div class="closure-slide-footer"><span>מפת עבודה · תצוגת עריכה</span><span id="closureBrand"></span></div>
-</div>
+</div><div id="routeSlide" class="slide-frame route-slide" hidden><div class="route-slide-head" id="routeSlideTitle">קווים מושפעים</div><div class="route-slide-meta" id="routeSlideMeta"></div><div id="routeSlideMap" class="route-slide-map" aria-label="מפת מסלול הקו"></div><div class="route-slide-footer" id="routeSlideFooter">ניתוח פוטנציאלי · ללא סינון זמנים</div></div>
 </div>
 </div>
 <p class="preview-note">הרקע נבחר אוטומטית לפי פרויקט, ללא אפשרות לבחור בטעות תבנית של פרויקט אחר. הטקסט מחושב מתוך האירוע וממוקם מעל הרקע ללא שינוי בעיצוב. זוהי תצוגה מקדימה בלבד, לא קובץ PPTX.</p>
@@ -576,10 +578,22 @@ if(!event){$('missing').hidden=false}else{
  };
  $('mapSearch').addEventListener('keydown',ev=>{if(ev.key==='Enter'){$('mapSearchButton').click();ev.preventDefault()}});
  chooseBlock(0);
+ let routeSlides=[],routeSelected=0,routeMap=null,routeLayer=null,routeLoadSeq=0,routeDrawSeq=0,routeLoaded=false,routeLoading=false;
+ const movementKey=m=>JSON.stringify([m.fromStopId,m.toStopId]);
+ const routePairs=new Map();
+ for(const b of blocks)for(const m of b.forbiddenMovements||[])if(m?.fromStopId&&m?.toStopId)routePairs.set(movementKey(m),m);
+ function routeIdentity(v){const parts=String(v.route_desc||'').match(/^(\d{5})-([123])-(.+)$/);return {direction:parts?.[2]||'לא ידוע',alternative:parts?.[3]||'לא ידועה'}}
+ function routeTitle(v){return (v.agency_name||v.agency_id||'מפעיל לא ידוע')+' · קו '+(v.route_short_name||v.route_id)+' · כיוון '+v.direction+' · חלופה '+v.alternative}
+ function ensureRouteMap(){if(routeMap)return true;if(!window.L)return false;routeMap=L.map('routeSlideMap',{zoomControl:true,attributionControl:true}).setView(fallbackCenter,14);const token=localStorage.getItem(MAPBOX_KEY)||'';const fallback=()=>L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors © CARTO'}).addTo(routeMap);if(token.startsWith('pk.')){const tiles=L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token='+encodeURIComponent(token),{maxZoom:19,attribution:'© Mapbox © OpenStreetMap'}).addTo(routeMap);let failed=false;tiles.on('tileerror',()=>{if(!failed){failed=true;routeMap.removeLayer(tiles);fallback()}})}else fallback();routeLayer=L.layerGroup().addTo(routeMap);return true}
+ function buildRouteNav(){const nav=$('routeNav');nav.replaceChildren();routeSlides.forEach((v,i)=>{const b=document.createElement('button');b.type='button';b.className='alt'+(i===routeSelected?' active':'');b.textContent=(i+4)+' · '+routeTitle(v);b.setAttribute('aria-pressed',String(i===routeSelected));b.onclick=()=>{routeSelected=i;buildRouteNav();drawRouteSlide()};nav.append(b)})}
+ async function loadRouteSlides(){if(routeLoading)return;const seq=++routeLoadSeq;routeLoading=true;routeDrawSeq++;$('refreshRoutes').disabled=true;$('routeStatus').textContent='מאתר קווים מושפעים לפי התנועות השמורות באירוע…';try{const pairs=[...routePairs.values()].map(m=>({fromStopId:m.fromStopId,toStopId:m.toStopId}));if(!pairs.length){routeSlides=[];routeLoaded=true;$('routeStatus').textContent='אין תנועות אסורות שמורות באירוע. יש לשמור את האירוע תחילה.';return}const response=await fetch('/api/gtfs/affected-routes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({movements:pairs})});if(!response.ok)throw Error('HTTP');const data=await response.json();if(seq!==routeLoadSeq)return;if(data.status!=='ready')throw Error('GTFS');const grouped=new Map();for(const v of data.variants||[]){if(!grouped.has(v.route_id))grouped.set(v.route_id,{...v,...routeIdentity(v),shapeIds:new Set(),matched:new Map()});const g=grouped.get(v.route_id);if(v.shape_id)g.shapeIds.add(v.shape_id);for(const m of v.movements||[]){const saved=routePairs.get(movementKey(m));if(saved)g.matched.set(movementKey(m),saved)}}routeSlides=[...grouped.values()].sort((a,b)=>String(a.agency_name||'').localeCompare(String(b.agency_name||''),'he')||String(a.route_short_name||'').localeCompare(String(b.route_short_name||''),'he',{numeric:true})||a.direction.localeCompare(b.direction)||a.alternative.localeCompare(b.alternative));routeSelected=0;routeLoaded=true;$('routeStatus').textContent=routeSlides.length?'נוצרו '+routeSlides.length+' שקופיות קו · ניתוח פוטנציאלי':'לא נמצאו קווים מושפעים.';}catch{$('routeStatus').textContent='טעינת הקווים נכשלה. נסו שוב.';routeSlides=[];routeLoaded=false}finally{if(seq===routeLoadSeq){routeLoading=false;$('refreshRoutes').disabled=false;buildRouteNav();if(!$('routeSlide').hidden)drawRouteSlide()}}}
+ async function drawRouteSlide(){const seq=++routeDrawSeq;const v=routeSlides[routeSelected];$('routeSlideTitle').textContent=v?routeTitle(v):'קווים מושפעים';$('routeSlideMeta').textContent=v?'מזהה קו: '+v.route_id:'';$('routeSlideFooter').textContent='ניתוח פוטנציאלי · ללא סינון זמנים';if(!ensureRouteMap())return;routeMap.invalidateSize();routeLayer.clearLayers();if(!v)return;const points=[];const valid=s=>s&&s.stop_lat!==null&&s.stop_lon!==null&&Number.isFinite(Number(s.stop_lat))&&Number.isFinite(Number(s.stop_lon));for(const m of v.matched.values()){if(!valid(m.fromStop)||!valid(m.toStop))continue;const pair=[m.fromStop,m.toStop].map(s=>[Number(s.stop_lat),Number(s.stop_lon)]);points.push(...pair);L.polyline(pair,{color:'#c62828',weight:4,dashArray:'7 5',interactive:false}).addTo(routeLayer);for(const [i,p] of pair.entries()){const stop=i?m.toStop:m.fromStop;const label=document.createElement('span');label.textContent=stop.stop_code||stop.stop_id;L.circleMarker(p,{radius:5,color:'#fff',weight:2,fillColor:'#c62828',fillOpacity:1}).bindTooltip(label,{permanent:true,direction:'top'}).addTo(routeLayer)}}if(points.length)routeMap.fitBounds(points,{padding:[65,65],maxZoom:16});try{if(!v.shapeIds.size){$('routeSlideFooter').textContent+=' · אין נתוני מסלול';return}const r=await fetch('/api/gtfs/route-shapes?route_id='+encodeURIComponent(v.route_id)+'&shape_ids='+encodeURIComponent([...v.shapeIds].join(',')));if(!r.ok)throw Error('shape');const d=await r.json();if(seq!==routeDrawSeq)return;const all=[];for(const shape of d.shapes||[]){if(shape.points?.length>1){L.polyline(shape.points,{color:'#2563eb',weight:4,opacity:.85,interactive:false}).addTo(routeLayer).bringToBack();all.push(...shape.points)}}if(!points.length&&all.length)routeMap.fitBounds(all,{padding:[35,35]});if(!all.length)$('routeSlideFooter').textContent+=' · לא נמצאו נתוני מסלול'}catch{if(seq===routeDrawSeq)$('routeSlideFooter').textContent+=' · טעינת המסלול נכשלה'}}
+ $('refreshRoutes').onclick=loadRouteSlides;
  function displaySlide(n){
   $('coverSlide').hidden=n!=='1';
   $('detailsSlide').hidden=n!=='2';
   $('closureSlide').hidden=n!=='3';
+  $('routeSlide').hidden=n!=='routes';$('routeTools').hidden=n!=='routes';if(n==='routes'){if(!routeLoaded)loadRouteSlides();else requestAnimationFrame(drawRouteSlide)}else routeDrawSeq++;
   $('coverInputs').hidden=n!=='1';
   $('detailsInputs').hidden=n!=='2';
   $('closureTools').hidden=n!=='3';
