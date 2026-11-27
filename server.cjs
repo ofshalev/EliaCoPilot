@@ -41,6 +41,13 @@ app.post('/admin/users/password',adminOnly,(req,res)=>changeAccount(req,res,fals
 app.post('/admin/users/disable',adminOnly,(req,res)=>changeAccount(req,res,true));
 cloudEvents.register(app,pool,user);
 cloudContacts.register(app,pool,user);
+app.get('/api/gtfs/status',async(req,res)=>{
+ if(!await user(req))return res.sendStatus(401);
+ const found=await pool.query("SELECT to_regclass('elia_gtfs.snapshot') AS name");
+ if(!found.rows[0].name)return res.json({status:'not_imported'});
+ const result=await pool.query("SELECT imported_at,source,sha256,counts,project_counts FROM elia_gtfs.snapshot WHERE singleton=true");
+ return res.json(result.rows.length?{status:'ready',...result.rows[0]}:{status:'not_imported'});
+});
 app.get('/data/geography/:filename',async(req,res)=>{
  if(!await user(req))return res.sendStatus(401);
  const allowed=new Set(["purple_line.geojson","purple_line_buffer_1km.geojson","brown_line.geojson","brown_line_buffer_1km.geojson","green_line.geojson","green_line_buffer_1km.geojson","rishon_metro.geojson","rishon_metro_buffer_1km.geojson","holon_metro.geojson","holon_metro_buffer_1km.geojson"]);
