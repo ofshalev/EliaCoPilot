@@ -255,6 +255,8 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><style>
 .movement-panel{border-top:1px solid #dce5f1;margin-top:14px;padding-top:12px}.movement-map{height:340px;direction:ltr;background:#e6edf4;border:1px solid #cbd8e8;border-radius:9px;z-index:0}.movement-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0}.movement-list{display:grid;gap:5px;margin-top:9px}.movement-row{display:flex;align-items:center;justify-content:space-between;gap:8px;background:white;border:1px solid #e1e8f2;padding:6px 9px;border-radius:6px;font-size:13px}.movement-status{font-size:12px;color:#52677d;margin:7px 0}.movement-gray{filter:grayscale(100%) brightness(1.06) contrast(.78)}.movement-map .leaflet-tooltip{direction:rtl;font-family:Arial,sans-serif}
+</style><style>
+.event-card.is-editing{align-items:start}.event-card.is-editing .presentation-side{position:static;transform:none;grid-column:1/-1;justify-self:start;margin-top:0}.event-card #formPanel{grid-column:1/-1;min-width:0;width:100%;margin:0;padding:16px 12px;border-top:1px solid #cbd8e8;box-shadow:none}.event-card #formPanel .actions{margin-top:15px}.event-card #formPanel[hidden]{display:none!important}.event-card.is-editing>.actions{align-self:start}.event-card.is-editing>.event-card-details{padding-bottom:0}
 </style></head>
 <body>
 <header><div><strong>Elia CoPilot</strong><p>ניהול אירועי עבודות תחבורה ציבורית</p></div><div class="elia-weeks" aria-label="שבוע הבא והשבוע הנוכחי"><button type="button" class="elia-week-block" id="selectNextWeek" aria-pressed="true" title="הצג אירועי השבוע הבא"><span class="elia-week-label">שבוע הבא</span><span class="elia-week-next" id="eliaNextWeek">–</span></button><button type="button" class="elia-week-block elia-week-block-current" id="selectCurrentWeek" aria-pressed="false" title="הצג אירועי השבוע הנוכחי"><span class="elia-week-label">שבוע נוכחי</span><span class="elia-week-current" id="eliaCurrentWeek">–</span></button></div></header>
@@ -277,7 +279,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  </div>
  <p id="siteImportStatus" role="status" class="note"></p>
 </section>
-<section class="card" id="formPanel" hidden>
+<div id="newEventEditorHome"></div><section class="card" id="formPanel" hidden>
  <h2 id="formHeading">צור אירוע חדש</h2>
  <form id="eventForm">
  <div class="formgrid">
@@ -1074,9 +1076,12 @@ function applyWorkHours(){
  toggleWorkTypeFields();
 }
 $('workType').addEventListener('change',()=>{applyWorkHours();if(isContinuous()){$('continuousStartHour').value='05:00';$('continuousEndHour').value='05:00';}});
-function openNew(){editing=null;clearExtraBlockages();continuousStart='';continuousEnd='';calendarMonthOffset=0;$('eventForm').reset();applyWorkHours();$('formHeading').textContent='צור אירוע חדש';$('saveEvent').textContent='שמור אירוע';updateSegments();updateLocationType();updateStreetChoices();showCity('');resetCrossStreets();$('fromStreet').value='';$('toStreet').value='';$('bothDirections').checked=false;renderDates();initializeBlockageSchedules();$('formPanel').hidden=false;$('formStatus').textContent='';$('formPanel').scrollIntoView({block:'start',behavior:'smooth'})}
-$('toggleForm').onclick=()=>{$('formPanel').hidden?openNew():$('formPanel').hidden=true};
-$('cancelForm').onclick=()=>{$('formPanel').hidden=true;editing=null};
+function moveEditorHome(){const panel=$('formPanel');const old=panel.closest('.event-card');if(old)old.classList.remove('is-editing');$('newEventEditorHome').after(panel)}
+function closeEventEditor(){ $('formPanel').hidden=true;moveEditorHome();editing=null;clearExtraBlockages();}
+function mountEditor(row){if(!row)return;row.append($('formPanel'));row.classList.add('is-editing');requestAnimationFrame(()=>{for(const el of row.querySelectorAll('.movement-map'))el.dispatchEvent(new Event('resize'));});}
+function openNew(){moveEditorHome();editing=null;clearExtraBlockages();continuousStart='';continuousEnd='';calendarMonthOffset=0;$('eventForm').reset();applyWorkHours();$('formHeading').textContent='צור אירוע חדש';$('saveEvent').textContent='שמור אירוע';updateSegments();updateLocationType();updateStreetChoices();showCity('');resetCrossStreets();$('fromStreet').value='';$('toStreet').value='';$('bothDirections').checked=false;renderDates();initializeBlockageSchedules();$('formPanel').hidden=false;$('formStatus').textContent='';$('formPanel').scrollIntoView({block:'start',behavior:'smooth'})}
+$('toggleForm').onclick=()=>{if(editing!==null||$('formPanel').hidden)openNew();else closeEventEditor()};
+$('cancelForm').onclick=closeEventEditor;
 function generateEventTitle(record){
  const location=(record.street||'').trim();
  const junction=record.locationType==='צומת';
@@ -1156,10 +1161,10 @@ $('eventForm').onsubmit=async e=>{
  const stamp=new Date().toISOString();
  if(editing){const idx=events.findIndex(x=>x.id===editing);if(idx>=0)events[idx]={...events[idx],...record,updatedAt:stamp}}
  else events.push({id:crypto.randomUUID?crypto.randomUUID():'event-'+Date.now(),eventStatus:'מתוכנן',...record,createdAt:stamp,updatedAt:stamp});
- if(!await safeSave())return;$('formPanel').hidden=true;editing=null;$('statusFilter').value='';$('projectFilter').value='';render();$('eventsList').scrollIntoView({behavior:'smooth'});
+ if(!await safeSave())return;const savedId=editing;closeEventEditor();$('statusFilter').value='';$('projectFilter').value='';render();const savedCard=[...$('eventsList').children].find(el=>el.dataset.eventId===savedId);(savedCard||$('eventsList')).scrollIntoView({block:'nearest',behavior:'smooth'});
 };
-function editEvent(id){const ev=events.find(x=>x.id===id);if(!ev)return;editing=id;$('eventForm').reset();$('formHeading').textContent='עריכת אירוע';$('saveEvent').textContent='שמור שינויים';$('formPanel').hidden=false;$('formStatus').textContent='';putForm(ev);$('formPanel').scrollIntoView({behavior:'smooth'})}
-async function deleteEvent(id){if(saving||revision===null)return;const ev=events.find(x=>x.id===id);if(!ev||!confirm('למחוק את האירוע '+ev.eventTitle+'?'))return;events=events.filter(x=>x.id!==id);if(await safeSave())render()}
+function editEvent(id){const ev=events.find(x=>x.id===id);if(!ev)return;const row=[...$('eventsList').children].find(el=>el.dataset.eventId===id);if(!row)return;if(editing===id&&!$('formPanel').hidden){closeEventEditor();return}if(editing!==null||!$('formPanel').hidden){if(!confirm('לעבור לאירוע אחר? שינויים שלא נשמרו יאבדו.'))return;closeEventEditor()}editing=id;mountEditor(row);$('eventForm').reset();$('formHeading').textContent='עריכת אירוע';$('saveEvent').textContent='שמור שינויים';$('formPanel').hidden=false;$('formStatus').textContent='';putForm(ev);$('formPanel').scrollIntoView({behavior:'smooth'})}
+async function deleteEvent(id){if(saving||revision===null)return;const ev=events.find(x=>x.id===id);if(!ev||!confirm('למחוק את האירוע '+ev.eventTitle+'?'))return;events=events.filter(x=>x.id!==id);if(await safeSave()){if(editing===id)closeEventEditor();render()}}
 function txt(el,str){el.textContent=String(str??'');return el}
 function tag(el,kind,cls){const n=document.createElement(kind);if(cls)n.className=cls;el.append(n);return n}
 function formatDate(s){return s?s.split('-').reverse().join('/'):'—'}
@@ -1301,7 +1306,7 @@ function render(){
 
  const term=$('search').value.trim().toLowerCase();
  const project=$('projectFilter').value,status=$('statusFilter').value;
- const items=$('eventsList');items.replaceChildren();
+ const items=$('eventsList');const activeInline=editing!==null&&!$('formPanel').hidden;if(activeInline)moveEditorHome();items.replaceChildren();
  const projectOrder={'הקו הסגול':0,'הקו החום':1,'הקו הירוק':2};
  const compare=(a,b)=>(projectOrder[a.railLine]??3)-(projectOrder[b.railLine]??3)||
   String(a.segment||'').localeCompare(String(b.segment||''),'en',{numeric:true})||
@@ -1313,11 +1318,11 @@ function render(){
   return !term||[e.eventTitle,e.street,e.segment,e.workId,e.description,e.city,...eventBlockages(e).map(blockageTitle)].join(' ').toLowerCase().includes(term);
  });
  $('totalEvents').textContent=filtered.length+' אירועים · שבוע '+targetWeek;
- if(!filtered.length){txt(tag(items,'div','empty'),'אין אירועים לשבוע '+targetWeek+' בהתאם לסינון הנוכחי. ניתן ללחוץ על השבוע האחר בכותרת.');return}
+ if(!filtered.length){if(activeInline)closeEventEditor();txt(tag(items,'div','empty'),'אין אירועים לשבוע '+targetWeek+' בהתאם לסינון הנוכחי. ניתן ללחוץ על השבוע האחר בכותרת.');return}
  for(const e of filtered){
   const code=e.railLine==='הקו הסגול'?'P':e.railLine==='הקו החום'?'B':e.railLine==='הקו הירוק'?'G':'—';
   const cls=code==='P'?'project-p':code==='B'?'project-b':code==='G'?'project-g':'project-other';
-  const row=tag(items,'article','event-card '+cls),info=tag(row,'div','event-card-details');
+  const row=tag(items,'article','event-card '+cls),info=tag(row,'div','event-card-details');row.dataset.eventId=e.id;
   const heading=tag(info,'div','event-heading');
   txt(tag(heading,'span','project-code'),code);
   txt(tag(heading,'span','segment-label'),e.segment||'מקטע לא הוגדר');
@@ -1342,8 +1347,9 @@ function render(){
   const done=outputFields.filter(f=>e[f]).length;
   txt(tag(info,'div','event-meta'),(e.workId?'מספר עבודה / בקשה: '+e.workId+' · ':'')+'תוצרים: '+done+' מתוך '+outputFields.length);
   if(e.importSource){txt(tag(info,'div','event-meta'),'מקור: '+e.importSource+(e.sourceWarnings?.length?' · יש לבדוק: '+e.sourceWarnings.join(' · '):''))}
-  const ppt=tag(row,'button','alt presentation-icon presentation-side');ppt.type='button';ppt.textContent='▣ מצגת';ppt.title='ערוך מצגת';ppt.setAttribute('aria-label','ערוך מצגת: '+name);ppt.onclick=()=>location.href='/presentation-editor.html?event='+encodeURIComponent(e.id);const actions=tag(row,'div','actions');const edit=tag(actions,'button','alt');edit.textContent='ערוך';edit.onclick=()=>editEvent(e.id);const del=tag(actions,'button','danger');del.textContent='מחק';del.onclick=()=>deleteEvent(e.id);
+  const ppt=tag(row,'button','alt presentation-icon presentation-side');ppt.type='button';ppt.textContent='▣ מצגת';ppt.title='ערוך מצגת';ppt.setAttribute('aria-label','ערוך מצגת: '+name);ppt.onclick=()=>location.href='/presentation-editor.html?event='+encodeURIComponent(e.id);const actions=tag(row,'div','actions');const edit=tag(actions,'button','alt');edit.textContent='ערוך';edit.onclick=()=>editEvent(e.id);const del=tag(actions,'button','danger');del.textContent='מחק';del.onclick=()=>deleteEvent(e.id);if(activeInline&&e.id===editing)mountEditor(row);
  }
+ if(activeInline&&!$('formPanel').closest('.event-card')){ $('formPanel').hidden=true;editing=null;clearExtraBlockages(); }
 }
 for(const el of ['projectFilter','statusFilter'])$(el).onchange=render;
 $('search').oninput=render;
