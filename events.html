@@ -85,7 +85,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .event-card.no-transit-impact.project-b{border-color:#cdb39f;background:#fff}
 .event-card.no-transit-impact.project-g{border-color:#9fcbb4;background:#fff}
 .event-card.no-transit-impact.project-other{border-color:#cbd5e1;background:#fff}
-.event-card.no-transit-impact>.event-card-details,.event-card.no-transit-impact>.actions,.event-card.no-transit-impact>.presentation-side{opacity:.62}
+
 .event-list-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .impact-list-toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:#526378;cursor:pointer}
 
@@ -334,7 +334,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  </div>
  </div>
  <div class="full"><label for="description">הערות / תיאור העבודות</label><textarea id="description" placeholder="פרטי הסדר התנועה, הנחיות, הערות לצוות..."></textarea></div>
- <div class="full"><label>תוצרים שהוכנו</label><div class="tasks"><label><input id="hasPpt" type="checkbox"> מצגת</label><label><input id="hasTable" type="checkbox"> טבלה מסכמת</label><label><input id="hasWord" type="checkbox"> מסמך Word</label><label><input id="hasSigns" type="checkbox"> שילוט</label><label><input id="hasEmail" type="checkbox"> מייל</label></div><p class="hint">אלה סימוני מעקב בלבד; העלאת מסמכים וקישור לקבצים יתווספו בהמשך.</p></div>
+ <div class="full" id="eventDeliverables"><label>תוצרים שהוכנו</label><div class="tasks"><label><input id="hasPpt" type="checkbox"> מצגת</label><label><input id="hasTable" type="checkbox"> טבלה מסכמת</label><label><input id="hasWord" type="checkbox"> מסמך Word</label><label><input id="hasSigns" type="checkbox"> שילוט</label><label><input id="hasEmail" type="checkbox"> מייל</label></div><p class="hint">אלה סימוני מעקב בלבד; העלאת מסמכים וקישור לקבצים יתווספו בהמשך.</p></div>
  </div>
  <div class="actions"><button type="submit" id="saveEvent">שמור אירוע</button><button type="button" class="alt" id="cancelForm">ביטול</button></div>
  <div class="status-message" id="formStatus" role="status"></div>
@@ -1178,7 +1178,7 @@ $('workType').addEventListener('change',()=>{applyWorkHours();if(isContinuous())
 function moveEditorHome(){const panel=$('formPanel');const old=panel.closest('.event-card');if(old)old.classList.remove('is-editing');$('newEventEditorHome').after(panel)}
 function closeEventEditor(){ $('formPanel').hidden=true;moveEditorHome();editing=null;clearExtraBlockages();}
 function mountEditor(row){if(!row)return;row.append($('formPanel'));row.classList.add('is-editing');requestAnimationFrame(()=>{for(const el of row.querySelectorAll('.movement-map'))el.dispatchEvent(new Event('resize'));});}
-function openNew(){moveEditorHome();editing=null;clearExtraBlockages();continuousStart='';continuousEnd='';calendarMonthOffset=0;$('eventForm').reset();applyWorkHours();$('formHeading').textContent='צור אירוע חדש';$('saveEvent').textContent='שמור אירוע';updateSegments();updateLocationType();updateStreetChoices();showCity('');resetCrossStreets();$('fromStreet').value='';$('toStreet').value='';$('bothDirections').checked=false;renderDates();initializeBlockageSchedules();$('formPanel').hidden=false;$('formStatus').textContent='';$('formPanel').scrollIntoView({block:'start',behavior:'smooth'})}
+function openNew(){moveEditorHome();editing=null;clearExtraBlockages();continuousStart='';continuousEnd='';calendarMonthOffset=0;$('eventForm').reset();refreshImpactDeliverables();applyWorkHours();$('formHeading').textContent='צור אירוע חדש';$('saveEvent').textContent='שמור אירוע';updateSegments();updateLocationType();updateStreetChoices();showCity('');resetCrossStreets();$('fromStreet').value='';$('toStreet').value='';$('bothDirections').checked=false;renderDates();initializeBlockageSchedules();$('formPanel').hidden=false;$('formStatus').textContent='';$('formPanel').scrollIntoView({block:'start',behavior:'smooth'})}
 $('toggleForm').onclick=()=>{if(editing!==null||$('formPanel').hidden)openNew();else closeEventEditor()};
 $('cancelForm').onclick=closeEventEditor;
 function generateEventTitle(record){
@@ -1190,6 +1190,8 @@ function generateEventTitle(record){
  const suffix=record.bothDirections?' — שני הכיוונים':'';
  return (base+scope+suffix).trim()||'אירוע ללא מיקום';
 }
+function refreshImpactDeliverables(){$('eventDeliverables').hidden=$('noTransitImpact').checked;}
+$('noTransitImpact').addEventListener('change',refreshImpactDeliverables);
 function getForm(){const result={};for(const f of fields)result[f]=$(f).value;result.noTransitImpact=$('noTransitImpact').checked;
  const choices=baseStreetOptions();
  result.street=choices.length===1?choices[0]:$('streetChoice').value;
@@ -1212,7 +1214,7 @@ function getForm(){const result={};for(const f of fields)result[f]=$(f).value;re
  result.workType=result.blockages.length===1?result.blockages[0].workType:'עבודות מרובות';
  for(const f of outputFields)result[f]=$(f).checked;return result}
 function putForm(record){
- $('noTransitImpact').checked=record.noTransitImpact===true;
+ $('noTransitImpact').checked=record.noTransitImpact===true;refreshImpactDeliverables();
  for(const f of fields)if(f!=='segment'&&f!=='timeFrom'&&f!=='timeTo')$(f).value=record[f]??'';
  const restoredStart=Number.parseInt(record.timeFrom,10),restoredEnd=Number.parseInt(record.timeTo,10);
  if(Number.isInteger(restoredStart)&&Number.isInteger(restoredEnd))setClock(restoredStart,mod24(restoredEnd-restoredStart)||24);else applyWorkHours();
@@ -1446,9 +1448,9 @@ function render(){
    addWhen(span.end,span.hasDay);
   }
   const done=outputFields.filter(f=>e[f]).length;const savedDeviations=eventBlockages(e).flatMap(b=>b.routeDeviations||[]).filter(d=>d.exitStop&&d.reentryStop||d.path?.length>1);if(savedDeviations.length)txt(tag(info,'div','event-meta'),'הסטות שמורות: '+savedDeviations.length);
-  txt(tag(info,'div','event-meta'),(e.workId?'מספר עבודה / בקשה: '+e.workId+' · ':'')+'תוצרים: '+done+' מתוך '+outputFields.length);
+  if(e.noTransitImpact===true){if(e.workId)txt(tag(info,'div','event-meta'),'מספר עבודה / בקשה: '+e.workId);txt(tag(info,'div','event-meta'),'ללא השפעה על תח״צ');}else txt(tag(info,'div','event-meta'),(e.workId?'מספר עבודה / בקשה: '+e.workId+' · ':'')+'תוצרים: '+done+' מתוך '+outputFields.length);
   if(e.importSource){txt(tag(info,'div','event-meta'),'מקור: '+e.importSource+(e.sourceWarnings?.length?' · יש לבדוק: '+e.sourceWarnings.join(' · '):''))}
-  const ppt=tag(row,'button','alt presentation-icon presentation-side');ppt.type='button';ppt.textContent='▣ מצגת';ppt.title='ערוך מצגת';ppt.setAttribute('aria-label','ערוך מצגת: '+name);ppt.onclick=()=>location.href='/presentation-editor.html?event='+encodeURIComponent(e.id);const actions=tag(row,'div','actions');const edit=tag(actions,'button','alt');edit.textContent='ערוך';edit.onclick=()=>editEvent(e.id);const del=tag(actions,'button','danger');del.textContent='מחק';del.onclick=()=>deleteEvent(e.id);if(activeInline&&e.id===editing)mountEditor(row);
+  if(e.noTransitImpact!==true){const ppt=tag(row,'button','alt presentation-icon presentation-side');ppt.type='button';ppt.textContent='▣ מצגת';ppt.title='ערוך מצגת';ppt.setAttribute('aria-label','ערוך מצגת: '+name);ppt.onclick=()=>location.href='/presentation-editor.html?event='+encodeURIComponent(e.id);}const actions=tag(row,'div','actions');const edit=tag(actions,'button','alt');edit.textContent='ערוך';edit.onclick=()=>editEvent(e.id);const del=tag(actions,'button','danger');del.textContent='מחק';del.onclick=()=>deleteEvent(e.id);if(activeInline&&e.id===editing)mountEditor(row);
  }
  if(activeInline&&!$('formPanel').closest('.event-card')){ $('formPanel').hidden=true;editing=null;clearExtraBlockages(); }
 }
