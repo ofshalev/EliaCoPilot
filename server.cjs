@@ -94,6 +94,19 @@ app.post('/api/gtfs/affected-routes',async(req,res)=>{
   return res.json({status:'ready',snapshot:snap.rows[0],tripCount:result.rows[0]?.total_trip_count||0,variants:result.rows.map(({total_trip_count,...row})=>row)});
  }catch(e){await client.query('ROLLBACK').catch(()=>{});console.error('GTFS affected routes',e.code||e.message);return res.status(503).json({status:'error'})}finally{client.release()}
 });
+app.get('/api/gtfs/route-shapes',async(req,res)=>{
+ if(!await user(req))return res.sendStatus(401);
+ const routeId=String(req.query.route_id||'');const ids=String(req.query.shape_ids||'').split(',').filter(Boolean);
+ if(!routeId||routeId.length>200||ids.length>50||ids.some(x=>x.length>200))return res.sendStatus(400);
+ try{
+  const result=await pool.query(`SELECT s.shape_id,s.shape_pt_lat,s.shape_pt_lon FROM elia_gtfs.shapes s
+   WHERE s.shape_id=ANY($2::text[]) AND EXISTS(SELECT 1 FROM elia_gtfs.trips t WHERE t.route_id=$1 AND t.shape_id=s.shape_id)
+   ORDER BY s.shape_id,s.shape_pt_sequence LIMIT 100001`,[routeId,ids]);
+  if(result.rows.length>100000)return res.status(413).json({status:'too_large'});
+  const shapes=new Map();for(const r of result.rows){if(!shapes.has(r.shape_id))shapes.set(r.shape_id,[]);if(r.shape_pt_lat!==null&&r.shape_pt_lon!==null)shapes.get(r.shape_id).push([r.shape_pt_lat,r.shape_pt_lon])}
+  return res.json({shapes:[...shapes].map(([id,points])=>({id,points}))});
+ }catch(e){console.error('GTFS route shapes',e.code||e.message);return res.status(503).json({status:'error'})}
+});
 app.get('/api/gtfs/status',async(req,res)=>{
  if(!await user(req))return res.sendStatus(401);
  const found=await pool.query("SELECT to_regclass('elia_gtfs.snapshot') AS name");
