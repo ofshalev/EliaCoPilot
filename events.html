@@ -573,7 +573,7 @@ function mountDeviationEditor(block,v,host){
  async function loadNearby(){if(!map||mode!=='alternative')return;const n=++seq,b=map.getBounds();if(!draft?.path||draft.path.length<2){nearby=[];status.textContent='טרם שורטטה הסטה — ניתן לבחור תחנה פעילה במסלול המקורי בלבד.';return;}if(b.getEast()-b.getWest()>.15||b.getNorth()-b.getSouth()>.15){status.textContent='התקרבו במפה לבחירת תחנה חלופית.';return}try{const r=await fetch('/api/gtfs/stops?bounds='+[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].join(','));if(!r.ok)throw Error();const data=await r.json();if(!dead&&n===seq&&mode==='alternative'){nearby=(data.stops||[]).filter(eligibleAlternative);const count=nearby.filter(s=>!stops().some(t=>t.stop_id===s.stop_id)).length;status.textContent='בחרו תחנה פעילה במסלול המקורי או תחנה עד 35 מטר מההסטה · '+count+' תחנות נוספות בתחום המפה'+(data.truncated?' · התקרבו לקבלת רשימה מלאה':'')+(!draft?.path?.length?' · טרם שורטטה הסטה':'');paint()}}catch{if(!dead)status.textContent='טעינת תחנות חלופיות נכשלה.'}}
  select.onchange=()=>{index=Number(select.value);choosePattern()};const observer=new ResizeObserver(()=>{if(map&&mapEl.clientWidth)map.invalidateSize({pan:false})});observer.observe(mapEl);
  async function start(){try{const query='route_id='+encodeURIComponent(v.route_id)+'&shape_ids='+encodeURIComponent(v.shapeIds.join(','));const [a,b]=await Promise.all([fetch('/api/gtfs/route-patterns?'+query),fetch('/api/gtfs/route-shapes?'+query)]);if(!a.ok||!b.ok)throw Error();const [pd,sd]=await Promise.all([a.json(),b.json()]);if(dead)return;patterns=(pd.patterns||[]).filter(p=>p.stops.some((s,i)=>(v.movements||[]).some(m=>m.fromStopId===s.stop_id&&m.toStopId===p.stops[i+1]?.stop_id)));shapes=sd.shapes||[];if(!patterns.length){status.textContent='לא נמצא רצף מתאים.';return}patterns.forEach((p,i)=>{const o=mk('option','רצף '+(i+1)+' · '+p.stops.length+' תחנות');o.value=String(i);select.append(o)});map=L.map(mapEl).setView([32.065,34.79],14);const token=localStorage.getItem('elia_copilot_mapbox_access_token')||'';const fallback=()=>L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);if(token.startsWith('pk.')){const tiles=L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token='+encodeURIComponent(token),{maxZoom:19,attribution:'© Mapbox © OpenStreetMap'}).addTo(map);tiles.once('tileerror',()=>{if(!dead){map.removeLayer(tiles);fallback()}})}else fallback();layer=L.layerGroup().addTo(map);const savedIndex=patterns.findIndex(p=>(deviationDrafts.get(block)||[]).some(d=>(d.patternKey||d.key)===JSON.stringify([v.route_id,p.shape_id,p.stops.map(s=>s.stop_id)])&&(d.exitStop&&d.reentryStop||d.path?.length>1)));if(savedIndex>=0){index=savedIndex;select.value=String(index)}map.on('click',drawingClick);map.on('mousemove',trackSnapHover);map.on('mouseout zoomstart dragstart',clearSnapHover);map.on('moveend',loadNearby);map.on('zoomend',()=>paint());choosePattern();if(pd.truncated)status.textContent+=' רשימת הרצפים חלקית.'}catch{if(!dead)status.textContent='טעינת נתוני הקו נכשלה.'}}
- paint();start();return {host,dispose(){dead=true;clearSnapHover();observer.disconnect();if(map)map.remove();host.replaceChildren()}};
+ const refreshSchedule=()=>{if(!dead)renderPlans()};block.addEventListener('elia-schedule-changed',refreshSchedule);paint();start();return {host,dispose(){dead=true;block.removeEventListener('elia-schedule-changed',refreshSchedule);clearSnapHover();observer.disconnect();if(map)map.remove();host.replaceChildren()}};
 }
 let activeScheduleBlock=null;
 function workScheduleFromLegacy(record={}){
@@ -647,6 +647,7 @@ function buildCompactSchedule(block){
   return true;
  }
  function renderTimes(){
+  block.dispatchEvent(new Event('elia-schedule-changed'));
   timeArea.replaceChildren();
   const continuous=schedule.workType==='עבודות רצופות';
   timeArea.classList.toggle('continuous-clock-fields',continuous);
@@ -657,7 +658,7 @@ function buildCompactSchedule(block){
     for(let h=0;h<24;h++){
      const option=document.createElement('option');option.value=hourText(h);option.textContent=hourText(h);select.append(option);
     }
-    select.value=schedule[key];select.onchange=()=>{schedule[key]=select.value};
+    select.value=schedule[key];select.onchange=()=>{schedule[key]=select.value;block.dispatchEvent(new Event('elia-schedule-changed'))};
     wrap.append(select);timeArea.append(wrap);
    }
    return;
