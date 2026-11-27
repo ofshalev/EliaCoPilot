@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const auth = require('./cloud-auth.cjs');
 const cloudContacts=require('./cloud-contacts.cjs');
 const cloudEvents=require('./cloud-events.cjs');
+const cloudTasks=require('./cloud-tasks.cjs');
 const path=require('node:path');
 const app = express();
 app.disable('x-powered-by');
@@ -41,6 +42,7 @@ app.post('/admin/users/password',adminOnly,(req,res)=>changeAccount(req,res,fals
 app.post('/admin/users/disable',adminOnly,(req,res)=>changeAccount(req,res,true));
 cloudEvents.register(app,pool,user);
 cloudContacts.register(app,pool,user);
+cloudTasks.register(app,pool,user);
 app.get('/api/gtfs/stops',async(req,res)=>{
  if(!await user(req))return res.sendStatus(401);
  const found=await pool.query("SELECT to_regclass('elia_gtfs.snapshot') AS name");
@@ -143,7 +145,7 @@ app.get('/data/geography/:filename',async(req,res)=>{
  if(!allowed.has(req.params.filename))return res.sendStatus(404);
  res.type('application/geo+json');res.sendFile(path.join(__dirname,'data','geography',req.params.filename));
 });
-app.get(['/events.html','/segments.html','/contacts.html','/mail-generator.html','/word-generator.html','/work-importer.html','/sign-generator.html','/notice-template.html','/presentation-editor.html','/data-status.html'],async(req,res)=>{
+app.get(['/events.html','/segments.html','/contacts.html','/mail-generator.html','/word-generator.html','/work-importer.html','/sign-generator.html','/notice-template.html','/presentation-editor.html','/data-status.html','/tasks.html'],async(req,res)=>{
  if(!await user(req))return res.redirect('/');
  res.set('Content-Security-Policy',"default-src 'none'; script-src 'unsafe-inline'"+(req.path==='/work-importer.html'?' https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js':'')+"; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
  if(['/sign-generator.html','/notice-template.html'].includes(req.path))res.set('Content-Security-Policy',"default-src 'none'; script-src 'unsafe-inline' https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/ https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/ https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/ https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/ https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/ https://cdn.jsdelivr.net/npm/jspdf@2.5.2/ https://cdn.jsdelivr.net/npm/jszip@3.10.1/ https://unpkg.com/html2canvas@1.4.1/ https://unpkg.com/jspdf@2.5.2/ https://unpkg.com/jszip@3.10.1/; worker-src blob: https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://open-bus-stride-api.hasadna.org.il https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/ blob: data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
@@ -154,4 +156,4 @@ app.get(['/events.html','/segments.html','/contacts.html','/mail-generator.html'
  res.sendFile(path.join(__dirname,req.path.slice(1)));
 });
 app.use((err,req,res,next)=>{console.error('Request failed');res.status(500).send('Service error');});
-auth.initialize(pool).then(()=>cloudEvents.initialize(pool)).then(()=>cloudContacts.initialize(pool)).then(()=>app.listen(Number(process.env.PORT||3000),'0.0.0.0')).catch(()=>{console.error('Database initialization failed');process.exit(1);});
+auth.initialize(pool).then(()=>cloudEvents.initialize(pool)).then(()=>cloudContacts.initialize(pool)).then(()=>cloudTasks.initialize(pool)).then(()=>app.listen(Number(process.env.PORT||3000),'0.0.0.0')).catch(()=>{console.error('Database initialization failed');process.exit(1);});
