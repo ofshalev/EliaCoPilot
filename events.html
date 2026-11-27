@@ -253,7 +253,9 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 @media(max-width:850px){.schedule-layout{flex-wrap:wrap}.schedule-dates{flex:1 1 100%}.schedule-hours{flex:0 1 295px;max-width:100%}}
 
 </style>
-</head>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><style>
+.movement-panel{border-top:1px solid #dce5f1;margin-top:14px;padding-top:12px}.movement-map{height:340px;direction:ltr;background:#e6edf4;border:1px solid #cbd8e8;border-radius:9px;z-index:0}.movement-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0}.movement-list{display:grid;gap:5px;margin-top:9px}.movement-row{display:flex;align-items:center;justify-content:space-between;gap:8px;background:white;border:1px solid #e1e8f2;padding:6px 9px;border-radius:6px;font-size:13px}.movement-status{font-size:12px;color:#52677d;margin:7px 0}.movement-gray{filter:grayscale(100%) brightness(1.06) contrast(.78)}.movement-map .leaflet-tooltip{direction:rtl;font-family:Arial,sans-serif}
+</style></head>
 <body>
 <header><div><strong>Elia CoPilot</strong><p>ניהול אירועי עבודות תחבורה ציבורית</p></div><div class="elia-weeks" aria-label="שבוע הבא והשבוע הנוכחי"><button type="button" class="elia-week-block" id="selectNextWeek" aria-pressed="true" title="הצג אירועי השבוע הבא"><span class="elia-week-label">שבוע הבא</span><span class="elia-week-next" id="eliaNextWeek">–</span></button><button type="button" class="elia-week-block elia-week-block-current" id="selectCurrentWeek" aria-pressed="false" title="הצג אירועי השבוע הנוכחי"><span class="elia-week-label">שבוע נוכחי</span><span class="elia-week-current" id="eliaCurrentWeek">–</span></button></div></header>
 <nav aria-label="כלי Elia CoPilot"><a href="/events.html" aria-current="page">📅 אירועים</a><a href="/segments.html">🛣️ מקטעים</a><a href="/contacts.html">👥 קבוצות נמענים</a><a href="/mail-generator.html">✉️ מחולל מייל</a><a href="/word-generator.html">📄 מחולל Word</a><a href="/sign-generator.html">🪧 מחולל שלטים</a><a href="/notice-template.html">📢 הודעה על רקע קבוע</a><a href="/data-status.html">🗂️ מצב הנתונים</a><a href="/account">חשבון / יציאה</a></nav>
@@ -451,6 +453,38 @@ function updateSegments(){
 }
 // The calendar/clock is a single editor moved into the blockage being adjusted.
 const scheduleDrafts=new Map();
+const movementDrafts=new Map(), movementViews=new Map();
+function cleanMovements(values){const out=[],seen=new Set();for(const item of Array.isArray(values)?values:[]){if(!item||typeof item.fromStopId!=='string'||typeof item.toStopId!=='string'||!item.fromStopId||!item.toStopId||item.fromStopId===item.toStopId)continue;const key=JSON.stringify([item.fromStopId,item.toStopId]);if(seen.has(key))continue;seen.add(key);out.push(structuredClone(item))}return out}
+function disposeMovement(block){const view=movementViews.get(block);if(view){view.dispose();movementViews.delete(block)}}
+function initMovement(block,initial){disposeMovement(block);movementDrafts.set(block,cleanMovements(initial?.forbiddenMovements));buildMovementPanel(block)}
+function buildMovementPanel(block){
+ const existing=movementViews.get(block);if(existing){block.append(existing.panel);return}
+ const panel=document.createElement('section');panel.className='movement-panel';const title=document.createElement('strong');title.textContent='תנועות אסורות בין תחנות';panel.append(title);
+ const tools=document.createElement('div');tools.className='movement-tools';const status=document.createElement('div');status.className='movement-status';status.setAttribute('role','status');const instructions=document.createElement('div');instructions.className='movement-status';instructions.textContent='בחרו תחנת מוצא במפה, ולאחר מכן את תחנות היעד שאליהן התנועה אסורה.';
+ const btn=(label,fn)=>{const b=document.createElement('button');b.type='button';b.className='alt';b.textContent=label;b.onclick=fn;return b};
+ const mapEl=document.createElement('div');mapEl.className='movement-map';const list=document.createElement('div');list.className='movement-list';
+ let map=null,stopsLayer=null,linesLayer=null,visible=new Map(),successors=new Map(),origin=null,dead=false,requestNo=0,successorNo=0,timer=null,observer=null,loaded=false,available=false,loadingSuccessors=false;
+ const nextOrigin=btn('בחירת תחנת מוצא נוספת',()=>{origin=null;successors.clear();successorNo++;loadingSuccessors=false;paint();status.textContent=available?'בחרו תחנת מוצא במפה.':'טרם נטענה תמונת מצב GTFS';});
+ const clear=btn('ניקוי תנועות',()=>{if(confirm('להסיר את כל התנועות האסורות מחסימה זו?')){movementDrafts.set(block,[]);paint();renderList()}});
+ tools.append(nextOrigin,clear);panel.append(instructions,tools,mapEl,status,list);block.append(panel);
+ function label(s){return [s?.stop_code||s?.stop_id||'',s?.stop_name||''].filter(Boolean).join(' · ')}
+ function endpoint(s){return {stop_id:String(s.stop_id),stop_code:String(s.stop_code||''),stop_name:String(s.stop_name||''),stop_lat:Number(s.stop_lat),stop_lon:Number(s.stop_lon)}}
+ function valid(s){return s&&Number.isFinite(Number(s.stop_lat))&&Number.isFinite(Number(s.stop_lon))&&s.stop_lat!==null&&s.stop_lon!==null}
+ function movementLabel(m){return label(m.fromStop||{stop_id:m.fromStopId})+' ← '+label(m.toStop||{stop_id:m.toStopId})}
+ function renderList(){list.replaceChildren();const entries=movementDrafts.get(block)||[];clear.disabled=!entries.length;const head=document.createElement('strong');head.textContent='תנועות אסורות ('+entries.length+')';list.append(head);for(const m of entries){const row=document.createElement('div');row.className='movement-row';const text=document.createElement('span');text.dir='rtl';text.textContent=movementLabel(m);row.append(text,btn('הסר',()=>{movementDrafts.set(block,(movementDrafts.get(block)||[]).filter(x=>!(x.fromStopId===m.fromStopId&&x.toStopId===m.toStopId)));paint();renderList()}));list.append(row)}}
+ function paint(){nextOrigin.disabled=!origin;if(!map)return;stopsLayer.clearLayers();linesLayer.clearLayers();const entries=movementDrafts.get(block)||[];for(const m of entries){if(valid(m.fromStop)&&valid(m.toStop))L.polyline([[m.fromStop.stop_lat,m.fromStop.stop_lon],[m.toStop.stop_lat,m.toStop.stop_lon]],{color:'#c62828',weight:3,dashArray:'7 5',interactive:false}).addTo(linesLayer)}
+ const all=new Map(visible);for(const m of entries){if(valid(m.fromStop))all.set(m.fromStopId,m.fromStop);if(valid(m.toStop))all.set(m.toStopId,m.toStop)}for(const [id,s] of successors)all.set(id,s);if(origin)all.set(origin.stop_id,origin);
+ for(const [id,s] of all){if(!valid(s))continue;const selected=entries.some(m=>m.fromStopId===origin?.stop_id&&m.toStopId===id);const isOrigin=origin?.stop_id===id;const allowed=successors.has(id);const previouslyBlocked=entries.some(m=>m.fromStopId===id||m.toStopId===id);const color=isOrigin?'#2864e2':selected?'#c62828':origin?(allowed?'#238455':'#9ca3af'):(previouslyBlocked?'#c62828':'#238455');const marker=L.circleMarker([Number(s.stop_lat),Number(s.stop_lon)],{radius:isOrigin?9:6,color:'#fff',weight:2,fillColor:color,fillOpacity:1}).addTo(stopsLayer);const tip=document.createElement('span');tip.textContent=label(s);marker.bindTooltip(tip);marker.on('click',()=>selectStop(s))}
+ }
+ async function selectStop(s){if(!available)return;const id=String(s.stop_id);if(!origin){origin=endpoint(s);successors.clear();loadingSuccessors=true;const seq=++successorNo;paint();status.textContent='טוען תחנות יעד אפשריות…';try{const r=await fetch('/api/gtfs/successors?stop_id='+encodeURIComponent(id));if(!r.ok)throw Error('HTTP');const data=await r.json();if(dead||seq!==successorNo)return;if(data.status!=='ready')throw Error('not ready');for(const x of data.stops||[])if(valid(x))successors.set(String(x.stop_id),endpoint(x));status.textContent=successors.size?'מוצא: '+label(origin)+' — בחרו תחנות יעד בירוק.':'לא נמצאו תחנות המשך ב-GTFS לתחנה זו.';if(data.truncated)status.textContent+=' (רשימה חלקית)';}catch{if(!dead&&seq===successorNo){status.textContent='טעינת תחנות היעד נכשלה. בחרו מוצא מחדש.';origin=null}}finally{if(!dead&&seq===successorNo){loadingSuccessors=false;paint()}}return}
+ if(id===origin.stop_id||loadingSuccessors||!successors.has(id))return;const entries=movementDrafts.get(block)||[];const exists=entries.some(m=>m.fromStopId===origin.stop_id&&m.toStopId===id);movementDrafts.set(block,exists?entries.filter(m=>!(m.fromStopId===origin.stop_id&&m.toStopId===id)):[...entries,{fromStopId:origin.stop_id,toStopId:id,fromStop:endpoint(origin),toStop:endpoint(s)}]);paint();renderList();
+ }
+ async function loadStops(){if(dead||!map)return;const seq=++requestNo;const b=map.getBounds();if(b.getEast()-b.getWest()>.15||b.getNorth()-b.getSouth()>.15){visible.clear();paint();status.textContent='התקרבו במפה כדי להציג תחנות.';return}try{const r=await fetch('/api/gtfs/stops?bounds='+[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].join(','));if(!r.ok)throw Error('HTTP');const data=await r.json();if(dead||seq!==requestNo)return;available=data.status==='ready';visible=new Map((data.stops||[]).filter(valid).map(x=>[String(x.stop_id),endpoint(x)]));paint();if(!available)status.textContent='טרם נטענה תמונת מצב GTFS — ניתן לעיין במפה, אך לא לבחור תחנות חדשות.';else if(!origin)status.textContent=visible.size?'בחרו תחנת מוצא במפה.'+(data.truncated?' התקרבו להצגת כל התחנות.':''):'לא נמצאו תחנות בתצוגה הנוכחית.'}catch{if(!dead&&seq===requestNo){available=false;status.textContent='טעינת התחנות נכשלה. הזיזו את המפה לניסיון נוסף.'}}}
+ function start(){if(dead||loaded||!mapEl.offsetWidth||!mapEl.offsetHeight)return;loaded=true;if(!window.L){status.textContent='לא ניתן לטעון את רכיב המפה.';return}map=L.map(mapEl).setView([32.065,34.79],14);let token='';try{token=localStorage.getItem('elia_copilot_mapbox_access_token')||''}catch{};const fallback=()=>L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,className:'movement-gray',attribution:'© OpenStreetMap contributors'}).addTo(map);if(token.startsWith('pk.')){const tiles=L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token='+encodeURIComponent(token),{maxZoom:19,attribution:'© Mapbox © OpenStreetMap'}).addTo(map);let failed=false;tiles.on('tileerror',()=>{if(!dead&&!failed){failed=true;map.removeLayer(tiles);fallback()}})}else fallback();linesLayer=L.layerGroup().addTo(map);stopsLayer=L.layerGroup().addTo(map);const saved=(movementDrafts.get(block)||[]).flatMap(m=>[m.fromStop,m.toStop]).filter(valid);if(saved.length)map.fitBounds(saved.map(s=>[s.stop_lat,s.stop_lon]),{padding:[30,30],maxZoom:16});map.on('moveend',()=>{clearTimeout(timer);timer=setTimeout(loadStops,250)});map.invalidateSize();paint();loadStops()}
+ observer=new ResizeObserver(()=>{if(!loaded)start();else if(map&&mapEl.offsetWidth)map.invalidateSize()});observer.observe(mapEl);requestAnimationFrame(start);renderList();status.textContent='טוען מפה…';
+ movementViews.set(block,{panel,dispose(){dead=true;clearTimeout(timer);observer?.disconnect();if(map)map.remove();panel.remove()}});
+}
+
 let activeScheduleBlock=null;
 function workScheduleFromLegacy(record={}){
  return {workType:record.workType==='עבודות מרובות'?'עבודות לילה':record.workType||'עבודות לילה',
@@ -712,6 +746,8 @@ function buildCompactSchedule(block){
 function attachBlockageScheduleControl(block){
  const old=block.querySelector('.blockage-schedule-head');if(old)old.hidden=true;
  buildCompactSchedule(block);
+ if(!movementDrafts.has(block))movementDrafts.set(block,[]);
+ buildMovementPanel(block);
 }
 function refreshScheduleHeads(){} // All schedules remain open and update in place.
 function initializeBlockageSchedules(record){
@@ -720,6 +756,7 @@ function initializeBlockageSchedules(record){
  const stored=record?eventBlockages(record):[];
  blocks.forEach((block,i)=>{
   scheduleDrafts.set(block,scheduleForBlockage(stored[i],record||{}));
+  initMovement(block,stored[i]);
   attachBlockageScheduleControl(block);
  });
 }
@@ -754,7 +791,9 @@ function promoteNextBlockage(){
  $('bothDirections').checked=next.bothDirections;
  resetCrossStreets(next.crossStreets);
  scheduleDrafts.set(primary,schedule);
+ initMovement(primary,{forbiddenMovements:movementDrafts.get(section)});
  attachBlockageScheduleControl(primary);
+ disposeMovement(section);movementDrafts.delete(section);
  scheduleDrafts.delete(section);
  section.remove();
  renumberBlockages();
@@ -763,6 +802,7 @@ function promoteNextBlockage(){
 $('removePrimaryBlockage').onclick=promoteNextBlockage;
 function clearExtraBlockages(){
  activeScheduleBlock=null;
+ for(const block of [...movementViews.keys()])disposeMovement(block);movementDrafts.clear();
  $('additionalBlockages').replaceChildren();scheduleDrafts.clear();
  const old=document.querySelector('.primary-blockage .compact-blockage-schedule');if(old)old.remove();
  refreshPrimaryRemoval();
@@ -773,7 +813,7 @@ function makeExtraBlockage(initial={}){
  const heading=document.createElement('div');heading.className='extra-heading';const name=document.createElement('strong');
  const remove=document.createElement('button');remove.type='button';remove.className='danger';remove.textContent='הסר חסימה';remove.onclick=()=>{
   
-  scheduleDrafts.delete(section);section.remove();renumberBlockages();refreshScheduleHeads();refreshPrimaryRemoval();
+  disposeMovement(section);movementDrafts.delete(section);scheduleDrafts.delete(section);section.remove();renumberBlockages();refreshScheduleHeads();refreshPrimaryRemoval();
  };heading.append(name,remove);section.append(heading);
  const scheduleHead=document.createElement('div');scheduleHead.className='blockage-schedule-head';section.append(scheduleHead);
  const row=document.createElement('div');row.className='extra-row';section.append(row);
@@ -809,6 +849,7 @@ function makeExtraBlockage(initial={}){
  const primary=document.querySelector('.primary-blockage');
  const inherited=scheduleDrafts.get(primary)||workScheduleFromLegacy();
  scheduleDrafts.set(section,scheduleForBlockage(initial,inherited));
+ initMovement(section,initial);
  attachBlockageScheduleControl(section);refreshScheduleHeads();
 }
 $('addBlockage').onclick=()=>{recordActiveSchedule();makeExtraBlockage()};
@@ -1056,7 +1097,7 @@ function getForm(){const result={};for(const f of fields)result[f]=$(f).value;
  recordActiveSchedule();
  result.blockages=[primaryBlockage(),...[...$('additionalBlockages').children].map(extraBlockageData)];
  const blocks=[document.querySelector('.primary-blockage'),...$('additionalBlockages').children];
- result.blockages.forEach((b,i)=>Object.assign(b,scheduleDrafts.get(blocks[i])||workScheduleFromLegacy()));
+ result.blockages.forEach((b,i)=>{Object.assign(b,scheduleDrafts.get(blocks[i])||workScheduleFromLegacy());b.forbiddenMovements=cleanMovements(movementDrafts.get(blocks[i]));});
  result.eventTitle=result.blockages.length>1?multiBlockageTitle(result.blockages):generateEventTitle(result);
  const ranges=result.blockages.map(scheduleDatesOf).filter(r=>r.from&&r.to);
  result.dateFrom=ranges.length?ranges.map(r=>r.from).sort()[0]:'';
