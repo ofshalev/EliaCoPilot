@@ -78,7 +78,14 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
 .project-p .project-code{background:#7844aa}.project-b .project-code{background:#89552f}.project-g .project-code{background:#238455}
 .segment-label{font-weight:800;font-size:15px;direction:ltr;unicode-bidi:isolate}
 .event-title{display:block;margin-bottom:4px}
-.event-card{position:relative}
+.event-card{position:relative;padding-top:38px}
+.event-impact-toggle{position:absolute;top:10px;left:12px;display:flex;align-items:center;gap:6px;font-size:12px;color:#526378;cursor:pointer;direction:rtl}
+.event-impact-toggle input,.impact-list-toggle input{width:auto;margin:0;accent-color:#64748b}
+.event-card.no-transit-impact{border-color:color-mix(in srgb,currentColor 20%,#dbe4ee);background:#f8fafc}
+.event-card.no-transit-impact>.event-card-details,.event-card.no-transit-impact>.actions,.event-card.no-transit-impact>.presentation-side{opacity:.62}
+.event-list-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.impact-list-toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:#526378;cursor:pointer}
+@media(max-width:550px){.event-impact-toggle{top:8px;left:10px}.event-card{padding-top:38px}}
 .event-card-details{min-width:0}
 .event-card .presentation-side{position:absolute;right:31%;top:50%;transform:translateY(-50%);display:inline-flex;justify-content:center;align-items:center;gap:5px;min-width:75px;height:34px;padding:0 9px;font-size:13px;font-weight:700;line-height:1;border:1px solid #b9cce1;border-radius:7px;color:#295b9e;background:#e9f0fb}
 .event-card .presentation-side:hover,.event-card .presentation-side:focus-visible{background:#dce9fc;outline:2px solid #2864e2}
@@ -331,7 +338,7 @@ button.alt{background:#eaf0fa;color:#294968}button.danger{background:#fff1f1;col
  </form>
 </section>
 <section class="card">
- <h2>רשימת אירועים</h2>
+ <div class="event-list-heading"><h2>רשימת אירועים</h2><label class="impact-list-toggle"><input type="checkbox" id="showNoTransitImpact" checked> הצג אירועים ללא השפעה על תח״צ</label></div>
  <div class="toolbar">
  <div><label for="projectFilter">פרויקט</label><select id="projectFilter"><option value="">כל הפרויקטים</option><option value="הקו הסגול">הקו הסגול</option><option value="הקו החום">הקו החום</option><option value="הקו הירוק">הקו הירוק</option></select></div>
  <div><label for="statusFilter">סטטוס</label><select id="statusFilter"><option value="">כל הסטטוסים</option><option>מתוכנן</option><option>בטיפול</option><option>ממתין לאישור</option><option>מאושר</option><option>בוטל</option><option>הושלם</option></select></div>
@@ -1402,6 +1409,7 @@ function render(){
   String(a.dateFrom||'').localeCompare(String(b.dateFrom||''));
  const filtered=[...events].sort(compare).filter(e=>{
   if(!isEventInWeek(e,firstDay))return false;
+  if(e.noTransitImpact===true&&!$('showNoTransitImpact').checked&&e.id!==editing)return false;
   if(project&&e.railLine!==project)return false;
   if(status&&e.eventStatus!==status)return false;
   return !term||[e.eventTitle,e.street,e.segment,e.workId,e.description,e.city,...eventBlockages(e).map(blockageTitle)].join(' ').toLowerCase().includes(term);
@@ -1411,7 +1419,7 @@ function render(){
  for(const e of filtered){
   const code=e.railLine==='הקו הסגול'?'P':e.railLine==='הקו החום'?'B':e.railLine==='הקו הירוק'?'G':'—';
   const cls=code==='P'?'project-p':code==='B'?'project-b':code==='G'?'project-g':'project-other';
-  const row=tag(items,'article','event-card '+cls),info=tag(row,'div','event-card-details');row.dataset.eventId=e.id;
+  const row=tag(items,'article','event-card '+cls),info=tag(row,'div','event-card-details');row.dataset.eventId=e.id;row.classList.toggle('no-transit-impact',e.noTransitImpact===true);const impactLabel=tag(row,'label','event-impact-toggle');const impactCheck=tag(impactLabel,'input','');impactCheck.type='checkbox';impactCheck.checked=e.noTransitImpact===true;impactLabel.append('ללא השפעה על תח״צ');impactCheck.onchange=async()=>{if(saving||revision===null){impactCheck.checked=e.noTransitImpact===true;return}const current=events.find(x=>x.id===e.id);if(!current)return;current.noTransitImpact=impactCheck.checked;impactCheck.disabled=true;if(await safeSave())render();};
   const heading=tag(info,'div','event-heading');
   txt(tag(heading,'span','project-code'),code);
   txt(tag(heading,'span','segment-label'),e.segment||'מקטע לא הוגדר');
@@ -1440,7 +1448,7 @@ function render(){
  }
  if(activeInline&&!$('formPanel').closest('.event-card')){ $('formPanel').hidden=true;editing=null;clearExtraBlockages(); }
 }
-for(const el of ['projectFilter','statusFilter'])$(el).onchange=render;
+for(const el of ['projectFilter','statusFilter','showNoTransitImpact'])$(el).onchange=render;
 $('search').oninput=render;
 $('exportEvents').onclick=()=>{const blob=new Blob([JSON.stringify({version:1,events},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='EliaCoPilot_Events.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2500)};
 $('importEvents').onchange=async e=>{const file=e.target.files?.[0];if(!file||saving||revision===null)return;try{const obj=JSON.parse(await file.text());const incoming=Array.isArray(obj)?obj:obj.events;if(!Array.isArray(incoming))throw Error('קובץ לא תקין');if(!confirm('למזג את האירועים מהקובץ למאגר המשותף?'))return;const map=new Map(events.map(x=>[x.id,x]));for(const ev of incoming)if(ev&&typeof ev.id==='string'&&ev.eventTitle)map.set(ev.id,ev);events=[...map.values()];save();render()}catch(err){alert('שגיאה בייבוא: '+err.message)}e.target.value=''};
