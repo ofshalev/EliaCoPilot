@@ -180,7 +180,10 @@ def main():
     parser.add_argument("--dry-run",action="store_true",help="Extract and count without touching Postgres")
     args = parser.parse_args()
     with args.archive.open("rb") as stream:
-        digest = hashlib.file_digest(stream,"sha256").hexdigest()
+        hasher = hashlib.sha256()
+        for chunk in iter(lambda: stream.read(1024*1024), b""):
+            hasher.update(chunk)
+        digest = hasher.hexdigest()
     with tempfile.TemporaryDirectory(prefix="elia-gtfs-") as directory, zipfile.ZipFile(args.archive) as archive:
         db = sqlite3.connect(str(Path(directory)/"snapshot.sqlite"))
         try:
