@@ -41,6 +41,23 @@ app.post('/admin/users/password',adminOnly,(req,res)=>changeAccount(req,res,fals
 app.post('/admin/users/disable',adminOnly,(req,res)=>changeAccount(req,res,true));
 cloudEvents.register(app,pool,user);
 cloudContacts.register(app,pool,user);
+app.get('/api/gtfs/stops',async(req,res)=>{
+ if(!await user(req))return res.sendStatus(401);
+ const found=await pool.query("SELECT to_regclass('elia_gtfs.snapshot') AS name");
+ if(!found.rows[0].name)return res.json({status:'not_imported',stops:[]});
+ const bounds=String(req.query.bounds||'').split(',').map(Number);
+ if(bounds.length!==4||!bounds.every(Number.isFinite)||bounds[0]>=bounds[2]||bounds[1]>=bounds[3]||bounds[0]<-180||bounds[2]>180||bounds[1]<-90||bounds[3]>90||bounds[2]-bounds[0]>.15||bounds[3]-bounds[1]>.15)return res.sendStatus(400);
+ const result=await pool.query("SELECT stop_id,stop_code,stop_name,stop_lat,stop_lon FROM elia_gtfs.stops WHERE stop_lon BETWEEN $1 AND $3 AND stop_lat BETWEEN $2 AND $4 AND (location_type IS NULL OR location_type=0) ORDER BY stop_id LIMIT 2001",bounds);
+ return res.json({status:'ready',truncated:result.rows.length>2000,stops:result.rows.slice(0,2000)});
+});
+app.get('/api/gtfs/successors',async(req,res)=>{
+ if(!await user(req))return res.sendStatus(401);
+ const found=await pool.query("SELECT to_regclass('elia_gtfs.snapshot') AS name");
+ if(!found.rows[0].name)return res.json({status:'not_imported',stops:[]});
+ const id=String(req.query.stop_id||'');if(!id||id.length>200)return res.sendStatus(400);
+ const result=await pool.query("SELECT DISTINCT s.stop_id,s.stop_code,s.stop_name,s.stop_lat,s.stop_lon FROM elia_gtfs.stop_times a JOIN LATERAL (SELECT b.stop_id FROM elia_gtfs.stop_times b WHERE b.trip_id=a.trip_id AND b.stop_sequence>a.stop_sequence ORDER BY b.stop_sequence LIMIT 1) n ON true JOIN elia_gtfs.stops s ON s.stop_id=n.stop_id WHERE a.stop_id=$1 AND s.stop_id<>$1 LIMIT 2001",[id]);
+ return res.json({status:'ready',truncated:result.rows.length>2000,stops:result.rows.slice(0,2000)});
+});
 app.get('/api/gtfs/status',async(req,res)=>{
  if(!await user(req))return res.sendStatus(401);
  const found=await pool.query("SELECT to_regclass('elia_gtfs.snapshot') AS name");
@@ -60,7 +77,7 @@ app.get(['/events.html','/segments.html','/contacts.html','/mail-generator.html'
  if(['/sign-generator.html','/notice-template.html'].includes(req.path))res.set('Content-Security-Policy',"default-src 'none'; script-src 'unsafe-inline' https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/ https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/ https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/ https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/ https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/ https://cdn.jsdelivr.net/npm/jspdf@2.5.2/ https://cdn.jsdelivr.net/npm/jszip@3.10.1/ https://unpkg.com/html2canvas@1.4.1/ https://unpkg.com/jspdf@2.5.2/ https://unpkg.com/jszip@3.10.1/; worker-src blob: https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://open-bus-stride-api.hasadna.org.il https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/ blob: data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
  if(req.path==='/presentation-editor.html')res.set('Content-Security-Policy',"default-src 'none'; script-src 'unsafe-inline' https://unpkg.com/leaflet@1.9.4/dist/leaflet.js; style-src 'unsafe-inline' https://unpkg.com/leaflet@1.9.4/dist/leaflet.css; img-src 'self' data: blob: https://api.mapbox.com https://*.basemaps.cartocdn.com https://unpkg.com/leaflet@1.9.4/dist/images/; connect-src 'self' https://nominatim.openstreetmap.org; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
  if(req.path==='/data-status.html')res.set('Content-Security-Policy',"default-src 'none'; script-src 'unsafe-inline' https://unpkg.com/leaflet@1.9.4/dist/leaflet.js; style-src 'unsafe-inline' https://unpkg.com/leaflet@1.9.4/dist/leaflet.css; img-src 'self' data: blob: https://tile.openstreetmap.org https://api.mapbox.com https://unpkg.com/leaflet@1.9.4/dist/images/; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
- if(req.path==='/events.html')res.set('Content-Security-Policy',res.get('Content-Security-Policy')+"; frame-src 'self'");
+ if(req.path==='/events.html')res.set('Content-Security-Policy',res.get('Content-Security-Policy').replace("script-src 'unsafe-inline'","script-src 'unsafe-inline' https://unpkg.com/leaflet@1.9.4/dist/leaflet.js").replace("style-src 'unsafe-inline'","style-src 'unsafe-inline' https://unpkg.com/leaflet@1.9.4/dist/leaflet.css").replace("img-src 'self' data: blob:","img-src 'self' data: blob: https://tile.openstreetmap.org https://api.mapbox.com https://unpkg.com/leaflet@1.9.4/dist/images/")+"; frame-src 'self'");
  if(req.path==='/work-importer.html'){res.set('Content-Security-Policy',res.get('Content-Security-Policy').replace("frame-ancestors 'none'","frame-ancestors 'self'"));res.set('X-Frame-Options','SAMEORIGIN');}
  res.sendFile(path.join(__dirname,req.path.slice(1)));
 });
