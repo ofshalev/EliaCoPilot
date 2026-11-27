@@ -94,6 +94,29 @@ app.post('/api/gtfs/affected-routes',async(req,res)=>{
   return res.json({status:'ready',snapshot:snap.rows[0],tripCount:result.rows[0]?.total_trip_count||0,variants:result.rows.map(({total_trip_count,...row})=>row)});
  }catch(e){await client.query('ROLLBACK').catch(()=>{});console.error('GTFS affected routes',e.code||e.message);return res.status(503).json({status:'error'})}finally{client.release()}
 });
+app.get('/api/gtfs/route-patterns',async(req,res)=>{
+ if(!await user(req))return res.sendStatus(401);
+ const id=String(req.query.route_id||'');const shapes=String(req.query.shape_ids||'').split(',').filter(Boolean);
+ if(!id||id.length>200||shapes.length>50||shapes.some(x=>x.length>200))return res.sendStatus(400);
+ try{
+ const result=await pool.query(`
+ WITH sequences AS (
+ SELECT t.trip_id,t.shape_id,array_agg(st.stop_id ORDER BY st.stop_sequence) AS stop_ids
+ FROM elia_gtfs.trips t JOIN elia_gtfs.stop_times st USING(trip_id)
+ WHERE t.route_id=$1 AND (cardinality($2::text[])=0 OR t.shape_id=ANY($2::text[]))
+ GROUP BY t.trip_id,t.shape_id
+ ), patterns AS (
+ SELECT shape_id,stop_ids,count(*)::integer AS trip_count,min(trip_id) AS sample_trip
+ FROM sequences GROUP BY shape_id,stop_ids
+ )
+ SELECT p.shape_id,p.sample_trip,p.trip_count,
+ (SELECT jsonb_agg(jsonb_build_object('stop_id',s.stop_id,'stop_code',s.stop_code,'stop_name',s.stop_name,'stop_lat',s.stop_lat,'stop_lon',s.stop_lon,'position',u.pos) ORDER BY u.pos)
+ FROM unnest(p.stop_ids) WITH ORDINALITY u(id,pos) JOIN elia_gtfs.stops s ON s.stop_id=u.id) AS stops
+ FROM patterns p ORDER BY trip_count DESC,sample_trip LIMIT 101
+ `,[id,shapes]);
+ return res.json({patterns:result.rows.slice(0,100),truncated:result.rows.length>100});
+ }catch(e){console.error('GTFS route patterns',e.code||e.message);return res.status(503).json({status:'error'})}
+});
 app.get('/api/gtfs/route-shapes',async(req,res)=>{
  if(!await user(req))return res.sendStatus(401);
  const routeId=String(req.query.route_id||'');const ids=String(req.query.shape_ids||'').split(',').filter(Boolean);
