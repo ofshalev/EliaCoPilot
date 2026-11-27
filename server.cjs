@@ -58,6 +58,42 @@ app.get('/api/gtfs/successors',async(req,res)=>{
  const result=await pool.query("SELECT DISTINCT s.stop_id,s.stop_code,s.stop_name,s.stop_lat,s.stop_lon FROM elia_gtfs.stop_times a JOIN LATERAL (SELECT b.stop_id FROM elia_gtfs.stop_times b WHERE b.trip_id=a.trip_id AND b.stop_sequence>a.stop_sequence ORDER BY b.stop_sequence LIMIT 1) n ON true JOIN elia_gtfs.stops s ON s.stop_id=n.stop_id WHERE a.stop_id=$1 AND s.stop_id<>$1 LIMIT 2001",[id]);
  return res.json({status:'ready',truncated:result.rows.length>2000,stops:result.rows.slice(0,2000)});
 });
+app.post('/api/gtfs/affected-routes',async(req,res)=>{
+ if(!await user(req))return res.sendStatus(401);
+ if(req.get('origin')!=='https://elia-copilot.onrender.com')return res.sendStatus(403);
+ const pairs=req.body?.movements;
+ if(!Array.isArray(pairs)||pairs.length>200||pairs.some(p=>!p||typeof p.fromStopId!=='string'||typeof p.toStopId!=='string'||!p.fromStopId||!p.toStopId||p.fromStopId.length>200||p.toStopId.length>200||p.fromStopId===p.toStopId))return res.sendStatus(400);
+ if(!pairs.length)return res.json({status:'ready',variants:[],tripCount:0});
+ const client=await pool.connect();
+ try{
+  await client.query('BEGIN READ ONLY');
+  await client.query("SET LOCAL statement_timeout='30s'");
+  const found=await client.query("SELECT to_regclass('elia_gtfs.snapshot') AS name");
+  if(!found.rows[0].name){await client.query('COMMIT');return res.json({status:'not_imported',variants:[]})}
+  const snap=await client.query("SELECT imported_at,sha256 FROM elia_gtfs.snapshot WHERE singleton=true");
+  if(!snap.rows.length){await client.query('COMMIT');return res.json({status:'not_imported',variants:[]})}
+  const result=await client.query(`
+   WITH pairs AS (SELECT DISTINCT x.from_id,x.to_id FROM jsonb_to_recordset($1::jsonb) AS x(from_id text,to_id text)),
+   hits AS MATERIALIZED (
+    SELECT DISTINCT a.trip_id,p.from_id,p.to_id
+    FROM pairs p JOIN elia_gtfs.stop_times a ON a.stop_id=p.from_id
+    JOIN LATERAL (SELECT b.stop_id FROM elia_gtfs.stop_times b WHERE b.trip_id=a.trip_id AND b.stop_sequence>a.stop_sequence ORDER BY b.stop_sequence LIMIT 1) n ON n.stop_id=p.to_id
+   ), grouped AS (
+    SELECT t.route_id,t.direction_id,t.shape_id,
+     count(DISTINCT h.trip_id)::integer AS trip_count,
+     jsonb_agg(DISTINCT jsonb_build_object('fromStopId',h.from_id,'toStopId',h.to_id)) AS movements
+    FROM hits h JOIN elia_gtfs.trips t USING(trip_id)
+    GROUP BY t.route_id,t.direction_id,t.shape_id
+   )
+   SELECT g.*,r.route_short_name,r.route_long_name,r.route_desc,r.route_type,r.agency_id,a.agency_name,
+    (SELECT count(DISTINCT trip_id)::integer FROM hits) AS total_trip_count
+   FROM grouped g JOIN elia_gtfs.routes r USING(route_id) LEFT JOIN elia_gtfs.agency a USING(agency_id)
+   ORDER BY a.agency_name,r.route_short_name,g.route_id,g.direction_id,g.shape_id
+  `,[JSON.stringify(pairs.map(p=>({from_id:p.fromStopId,to_id:p.toStopId})))]);
+  await client.query('COMMIT');
+  return res.json({status:'ready',snapshot:snap.rows[0],tripCount:result.rows[0]?.total_trip_count||0,variants:result.rows.map(({total_trip_count,...row})=>row)});
+ }catch(e){await client.query('ROLLBACK').catch(()=>{});console.error('GTFS affected routes',e.code||e.message);return res.status(503).json({status:'error'})}finally{client.release()}
+});
 app.get('/api/gtfs/status',async(req,res)=>{
  if(!await user(req))return res.sendStatus(401);
  const found=await pool.query("SELECT to_regclass('elia_gtfs.snapshot') AS name");
