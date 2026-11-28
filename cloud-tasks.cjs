@@ -5,6 +5,16 @@ function valid(data){
  const str=(x,n=2000)=>typeof x==='string'&&x.length<=n;
  const date=x=>str(x,40)&&Number.isFinite(Date.parse(x));
  const week=x=>str(x,10)&&/^\d{4}-\d{2}-\d{2}$/.test(x);
+ const workflows=data?.workflows;
+ if(workflows!==undefined){
+  if(!workflows||typeof workflows!=='object'||Array.isArray(workflows)||Object.keys(workflows).length>520)return false;
+  for(const [key,state] of Object.entries(workflows)){
+   if(!/^purple:\d{4}-\d{2}-\d{2}$/.test(key)||new Date(key.slice(7)+'T12:00:00Z').getUTCDay()!==0||!state||!Array.isArray(state.completed)||state.completed.length!==5||!state.completed.every(x=>x===null||date(x))||!(state.approvedAt===null||date(state.approvedAt)))return false;
+   if(state.approvedAt&&!state.completed[1])return false;
+   if(state.completed[2]&&!state.approvedAt)return false;
+   if(state.completed.some((x,i)=>x&&i>0&&!state.completed[i-1]))return false;
+  }
+ }
  return data&&Array.isArray(data.definitions)&&Array.isArray(data.tasks)&&data.definitions.length<=500&&data.tasks.length<=5000&&new Set(data.definitions.map(x=>x?.id)).size===data.definitions.length&&new Set(data.tasks.map(x=>x?.id)).size===data.tasks.length&&data.definitions.every(d=>d&&str(d.id,100)&&str(d.name,200)&&str(d.project,100)&&str(d.groupId,200)&&str(d.instructions,10000)&&str(d.body,10000)&&str(d.subject,500)&&Number.isInteger(d.durationHours)&&d.durationHours>=1&&d.durationHours<=8760&&(d.deadlineDay==null||(Number.isInteger(d.deadlineDay)&&d.deadlineDay>=0&&d.deadlineDay<=6&&/^([01]\d|2[0-3]):[0-5]\d$/.test(d.deadlineTime)))&&(d.weekly!==true||(Number.isInteger(d.deadlineDay)&&week(d.repeatFrom)&&new Date(d.repeatFrom+'T12:00:00Z').getUTCDay()===0)))&&data.tasks.every(t=>t&&str(t.id,100)&&str(t.definitionId,100)&&str(t.name,200)&&str(t.project,100)&&str(t.groupId,200)&&str(t.instructions,10000)&&str(t.body,10000)&&str(t.subject,500)&&week(t.weekStart)&&date(t.receivedAt)&&date(t.dueAt)&&Date.parse(t.dueAt)>Date.parse(t.receivedAt)&&(!t.completedAt||date(t.completedAt)));
 }
 
