@@ -50,7 +50,33 @@ function extractHours(r){const startIdx=$('map-startTime').value,endIdx=$('map-e
 function req4(v){const s=value(v);const m=s.match(/(?:^|\D)(\d{4})(?=\D|$)/g);if(!m)return s;const last=m[m.length-1].match(/\d{4}/);return last?last[0]:s}
 function sheetData(){const sheet=wb.Sheets[$('sheet').value];raw=XLSX.utils.sheet_to_json(sheet,{header:1,raw:true,defval:'',blankrows:false});const opts=$('headerRow');opts.replaceChildren();raw.slice(0,Math.min(35,raw.length)).forEach((r,i)=>{const o=new Option((i+1)+' — '+r.slice(0,6).map(value).join(' | ').slice(0,130),i);opts.add(o)});let best=0,score=-1;for(let i=0;i<Math.min(35,raw.length);i++){const r=raw[i].map(value),sc=keys.reduce((n,k)=>n+(r.some(t=>patterns[k].test(t))?1:0),0);if(sc>score){best=i;score=sc}}opts.value=best;configure()}
 function configure(){const hi=+$('headerRow').value;headers=(raw[hi]||[]).map((v,i)=>value(v)||'עמודה '+(i+1));$('previewCount').value=Math.max(0,raw.length-hi-1);const map=$('mapping');map.replaceChildren();for(const key of keys){const div=document.createElement('div');div.className='field';const lab=document.createElement('label');lab.textContent=labels[key];const sel=document.createElement('select');sel.id='map-'+key;sel.append(new Option('— ללא עמודה —',''));headers.forEach((h,i)=>sel.append(new Option((i+1)+': '+h,i)));let idx=headers.findIndex(h=>patterns[key].test(h));if((key==='startDate'||key==='endDate')&&headers.some(h=>/^תאריך\s*$/.test(h)))idx=headers.findIndex(h=>/^תאריך\s*$/.test(h));if((key==='startTime'||key==='endTime')&&headers.some(h=>/^שעות\s*$/.test(h)))idx=headers.findIndex(h=>/^שעות\s*$/.test(h));if(key==='plan'&&idx<0)idx=headers.findIndex(h=>/בקשה/i.test(h));if((key==='startDate'||key==='endDate')&&idx<0){let top=-1,confidence=0;headers.forEach((h,j)=>{let count=0;for(const r of raw.slice(hi+1,hi+36)){if(parseDate(r[j])||datesInCell(r[j]).length)count++}if(count>confidence){confidence=count;top=j}});if(confidence>=2)idx=top}if(key==='endDate'&&idx<0&&$('map-startDate'))idx=+$('map-startDate').value;if((key==='startTime'||key==='endTime')&&idx<0){let foundCol=-1,foundCount=0;headers.forEach((h,j)=>{let count=0;for(const r of raw.slice(hi+1,hi+36)){if(allTimes(r[j]).length>=2)count++}if(count>foundCount){foundCount=count;foundCol=j}});if(foundCount>=2)idx=foundCol}sel.value=idx<0?'':String(idx);div.append(lab,sel);map.append(div)}}
-async function loadWorkFile(f,automatic=false){if(!f)return;try{if(!window.XLSX)throw Error('ספריית Excel לא נטענה. נדרש חיבור לאינטרנט.');sourceFile=f.name;wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true});$('sheet').replaceChildren();wb.SheetNames.forEach(n=>$('sheet').append(new Option(n,n)));$('sheet').disabled=false;$('mappingPanel').classList.remove('hidden');$('outputPanel').classList.add('hidden');if(automatic){let best=-1,bestName=wb.SheetNames[0];for(const name of wb.SheetNames){const data=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:'',blankrows:false});for(const row of data.slice(0,35)){const score=keys.reduce((n,k)=>n+(row.map(value).some(t=>patterns[k].test(t))?1:0),0);if(score>best){best=score;bestName=name}}}$('sheet').value=bestName;}sheetData();info('נטען: '+f.name+' · '+wb.SheetNames.length+' גיליונות');if(automatic){convert();if(!rows.length)throw Error('לא זוהו עבודות תקינות');if(!stageEventProposals())throw Error('לא ניתן להכין אירועים לבדיקה')}}catch(err){info('שגיאה בטעינת הקובץ: '+err.message);if(automatic)parent.postMessage({type:'elia-import-error',message:err.message},location.origin)}}
+
+const receiptCatalog={purple:['PLW1.1','PLW1.2','PLW1.3','PLW1.4','PLW1.5','PLW1.6','PLW1.7','PLW1.8','PLW1.9.1','PLW1.9.2','PLW1.10','PLW1.11','PLW1.12','PLW1.13','PLW1.14','PLW2.1','PLW2.2','PLW2.3','PLW2.5','PLW2.6','PLW2.7','PLE2.1','PLE2.2','PLE2.3'],brown:['B3','B5','B7','B8','B8.1','BE_2.3'],green:['G1-5.2','G1-5.3','G2-6','G5-7']};
+function receiptSections(input){
+ const s=value(input).toUpperCase().replace(/[\u2010-\u2015]/g,'-').replace(/\s*([._-])\s*/g,'$1').replace(/\b(PLW|PLE|BE|B|G)\s+(?=\d)/g,'$1');
+ const out=[];for(const [project,codes] of Object.entries(receiptCatalog))for(const segment of codes){const escaped=segment.replace(/\./g,'\\.');if(new RegExp('(^|[^A-Z0-9.])'+escaped+'(?![A-Z0-9.]|-[0-9])').test(s))out.push({project,segment})}return out;
+}
+function receiptWeek(date){const d=new Date(date+'T12:00:00Z');return plusDay(date,-d.getUTCDay())}
+function collectSectionReceipts(){
+ const found=new Map(),hi=+$('headerRow').value;
+ const fallback=receiptSections([sourceFile,...raw.slice(0,hi+1).flat().map(value)].join(' '));
+ const def=receiptSections($('segmentDefault').value);
+ for(const r of raw.slice(hi+1)){
+  let sections=receiptSections(field(r,'segment'));if(!sections.length)sections=def;if(!sections.length&&fallback.length===1)sections=fallback;
+  const cell=field(r,'startDate'),date=datesInCell(cell)[0]||parseDate(cell);
+  if(!date)continue;
+  for(const section of sections){const week=receiptWeek(date);found.set(section.project+':'+week+':'+section.segment,{...section,week})}
+ }
+ return [...found.values()];
+}
+async function recordSectionReceipts(){
+ const receipts=collectSectionReceipts();if(!receipts.length)return {added:0,identified:0};
+ const r=await fetch('/api/tasks/section-receipts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({receipts,source:sourceFile})});
+ if(!r.ok)throw Error('לא ניתן לשמור אישור קבלת מקטעים (HTTP '+r.status+')');
+ return {...await r.json(),identified:receipts.length};
+}
+
+async function loadWorkFile(f,automatic=false){if(!f)return;try{if(!window.XLSX)throw Error('ספריית Excel לא נטענה. נדרש חיבור לאינטרנט.');sourceFile=f.name;wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true});$('sheet').replaceChildren();wb.SheetNames.forEach(n=>$('sheet').append(new Option(n,n)));$('sheet').disabled=false;$('mappingPanel').classList.remove('hidden');$('outputPanel').classList.add('hidden');if(automatic){let best=-1,bestName=wb.SheetNames[0];for(const name of wb.SheetNames){const data=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:'',blankrows:false});for(const row of data.slice(0,35)){const score=keys.reduce((n,k)=>n+(row.map(value).some(t=>patterns[k].test(t))?1:0),0);if(score>best){best=score;bestName=name}}}$('sheet').value=bestName;}sheetData();info('נטען: '+f.name+' · '+wb.SheetNames.length+' גיליונות');if(automatic){convert();const receipt=await recordSectionReceipts();if(!rows.length){if(receipt.identified){parent.postMessage({type:'elia-import-received',message:'קבלת הקובץ נרשמה עבור '+receipt.identified+' מקטעים/שבועות. אין עבודות ליצירת אירועים.'},location.origin);return}throw Error('לא זוהו עבודות תקינות או מקטע ושבוע בקובץ')}if(!stageEventProposals())throw Error('לא ניתן להכין אירועים לבדיקה')}}catch(err){info('שגיאה בטעינת הקובץ: '+err.message);if(automatic)parent.postMessage({type:'elia-import-error',message:err.message},location.origin)}}
 $('upload').addEventListener('change',e=>loadWorkFile(e.target.files[0]));
 window.addEventListener('message',e=>{if(e.origin===location.origin&&e.source===parent&&e.data?.type==='elia-import-file')loadWorkFile(e.data.file,true)});
 $('sheet').onchange=sheetData;$('headerRow').onchange=configure;
@@ -126,7 +152,7 @@ function stageEventProposals(){
  $('eventDraftStatus').textContent='הוכנו '+proposals.length+' כרטיסי אירועים לבדיקה ('+proposals.filter(p=>p.importIssues.length).length+' דורשים השלמת נתונים). מעבר למסך אירועים…';
  window.top.location.href='./events.html?reviewSiteImport=1';return true}catch(err){$('eventDraftStatus').textContent='לא ניתן להעביר טיוטות לאירועים: '+err.message}
 }
-$('stageEvents').onclick=stageEventProposals;
+$('stageEvents').onclick=async()=>{try{await recordSectionReceipts();stageEventProposals()}catch(e){status(e.message)}};
 
 function save(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000)}
 $('downloadCsv').onclick=()=>save(new Blob(['\ufeff'+tsv(0,15)],{type:'text/tab-separated-values;charset=utf-8'}),'Elia_Work_Import.tsv');
