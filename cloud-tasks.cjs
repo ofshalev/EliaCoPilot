@@ -32,7 +32,15 @@ function generate(data,now=new Date()){
  data.tasks.push({...d,id:require('node:crypto').randomUUID(),definitionId:d.id,weekStart,receivedAt,dueAt,completedAt:null});changed=true;
  }}return changed;
 }
+const sectionCatalog={'purple':['PLW1.1','PLW1.2','PLW1.3','PLW1.4','PLW1.5','PLW1.6','PLW1.7','PLW1.8','PLW1.9.1','PLW1.9.2','PLW1.10','PLW1.11','PLW1.12','PLW1.13','PLW1.14','PLW2.1','PLW2.2','PLW2.3','PLW2.5','PLW2.6','PLW2.7','PLE2.1','PLE2.2','PLE2.3'],brown:['B3','B5','B7','B8','B8.1','BE_2.3'],green:['G1-5.2','G1-5.3','G2-6','G5-7']};
 function register(app,pool,user){
+ app.post('/api/tasks/section-receipts',async(req,res)=>{
+  const u=await user(req);if(!u)return res.sendStatus(401);if(req.get('origin')!=='https://elia-copilot.onrender.com')return res.sendStatus(403);
+  const {receipts,source}=req.body||{};if(!Array.isArray(receipts)||!receipts.length||receipts.length>200||typeof source!=='string'||source.length>500||!receipts.every(r=>r&&Object.hasOwn(sectionCatalog,r.project)&&sectionCatalog[r.project].includes(r.segment)&&typeof r.week==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(r.week)&&new Date(r.week+'T12:00:00Z').getUTCDay()===0))return res.sendStatus(400);
+  const client=await pool.connect();try{await client.query('BEGIN');const state=(await client.query('SELECT data FROM cloud_task_state WHERE id=1 FOR UPDATE')).rows[0];state.data.sectionReceipts??={};let added=0;for(const r of receipts){const key=r.project+':'+r.week;const sections=state.data.sectionReceipts[key]??={};if(!sections[r.segment]){sections[r.segment]={receivedAt:new Date().toISOString(),source};added++}}
+  if(added)await client.query('UPDATE cloud_task_state SET data=$1::jsonb,revision=revision+1,updated_by=$2,updated_at=now() WHERE id=1',[JSON.stringify(state.data),u.username]);await client.query('COMMIT');res.json({added})}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
+ });
+
  app.get('/api/tasks',async(req,res)=>{if(!await user(req))return res.sendStatus(401);const client=await pool.connect();try{await client.query('BEGIN');const state=(await client.query('SELECT revision::text,data FROM cloud_task_state WHERE id=1 FOR UPDATE')).rows[0];if(generate(state.data)){state.revision=(await client.query('UPDATE cloud_task_state SET data=$1::jsonb,revision=revision+1,updated_at=now() WHERE id=1 RETURNING revision::text',[JSON.stringify(state.data)])).rows[0].revision}await client.query('COMMIT');res.json(state)}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}});
  app.put('/api/tasks',async(req,res)=>{const u=await user(req);if(!u)return res.sendStatus(401);if(req.get('origin')!=='https://elia-copilot.onrender.com')return res.sendStatus(403);const {revision,data}=req.body||{};if(typeof revision!=='string'||!/^\d{1,18}$/.test(revision)||!valid(data))return res.sendStatus(400);const {rows}=await pool.query('UPDATE cloud_task_state SET data=$1::jsonb,revision=revision+1,updated_by=$2,updated_at=now() WHERE id=1 AND revision=$3 RETURNING revision::text',[JSON.stringify(data),u.username,revision]);if(!rows.length)return res.status(409).json({error:'revision_conflict'});res.json(rows[0])});
 }
