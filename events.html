@@ -1473,7 +1473,7 @@ $('workDrop').onclick=()=>$('workFile').click();
 $('workFile').onchange=e=>{submitWorkFile(e.target.files[0]);e.target.value=''};
 $('workDrop').ondragover=e=>e.preventDefault();
 $('workDrop').ondrop=e=>{e.preventDefault();submitWorkFile(e.dataTransfer.files[0])};
-window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==$('workImportFrame').contentWindow||e.data?.type!=='elia-import-error')return;importBusy=false;$('workImportMessage').textContent=e.data.message;});
+window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==$('workImportFrame').contentWindow||!['elia-import-error','elia-import-received'].includes(e.data?.type))return;importBusy=false;$('workImportMessage').textContent=e.data.message;});
 function initSiteImport(){
  try{const candidate=JSON.parse(localStorage.getItem(SITE_PENDING_KEY)||'null');if(candidate&&Array.isArray(candidate.proposals)&&candidate.proposals.length)pendingSiteImport=candidate}catch(e){}
  const panel=$('siteImportPanel');if(!pendingSiteImport){panel.hidden=true;return}
